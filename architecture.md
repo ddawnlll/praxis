@@ -1,6 +1,6 @@
 # PRAXIS Architecture
 
-**Version:** 0.1  
+**Version:** 0.2  
 **Status:** Draft architecture baseline  
 **Audience:** AI coding agents, maintainers, runtime implementers  
 **Primary goal:** Make the repository understandable, navigable, and safely extensible by humans and AI agents.
@@ -21,7 +21,7 @@ This repository is organized around hard architectural boundaries:
 
 ```txt
 praxis/
-├─ kernel/      # pure PRAXIS execution brain
+├─ kernel/      # pure PRAXIS execution brain (FSM, PSAG, Evidence, Truth Engine, RIM, Governor, Circuit Breaker, Assembler, ACCP)
 ├─ adapters/    # external worker integrations: Claude Code, OpenCode, local models
 ├─ hooks/       # hook binaries called from external tools, especially Claude Code
 ├─ server/      # local runtime server, control plane, storage, events, telemetry
@@ -71,7 +71,8 @@ PRAXIS is a local runtime system with multiple interfaces:
 │                         Kernel                              │
 │                                                             │
 │  FSM · PSAG · Evidence · Truth Engine · RIM · Governor      │
-│  Deterministic Assembler · ACCP artifact compiler           │
+│  Circuit Breaker · Deterministic Assembler · ACCP artifact  │
+│  compiler                                                    │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                                ▼
@@ -149,6 +150,7 @@ praxis/
 │  ├─ truth-engine/
 │  ├─ rim/
 │  ├─ governor/
+│  ├─ circuit-breaker/
 │  ├─ assembler/
 │  └─ accp/
 │
@@ -298,6 +300,7 @@ Evidence interpretation
 Truth verification
 Repair strategy selection
 Concurrency governance
+System-level safety guard
 Wave assembly
 ACCP artifact compilation
 ```
@@ -448,6 +451,7 @@ Use scoped packages:
 @praxis/truth-engine
 @praxis/rim
 @praxis/governor
+@praxis/circuit-breaker
 @praxis/assembler
 @praxis/accp
 
@@ -508,7 +512,7 @@ lib
 server runtime API client or local spool
 
 server/runtime composes:
-  kernel + adapters + storage + control-plane
+  kernel + adapters + storage + control-plane + circuit-breaker
 ```
 
 A more precise graph:
@@ -554,6 +558,31 @@ kernel/* must not import interface/desktop.
 lib/* must not import anything above lib.
 adapters/* must not import interface/*.
 hooks/* must not import kernel/truth-engine.
+```
+
+Circuit Breaker dependency rules:
+
+```txt
+kernel/circuit-breaker may depend on:
+  lib/contracts
+  lib/errors
+  lib/result
+  lib/ids
+  lib/time
+
+kernel/circuit-breaker must not import:
+  server/*
+  interface/*
+  adapters/*
+  hooks/*
+  storage implementations
+
+server/runtime composes Circuit Breaker with:
+  kernel/core
+  kernel/evidence
+  kernel/governor
+  server/event-bus
+  server/storage
 ```
 
 The runtime server composes dependencies. The kernel does not instantiate concrete adapters.
@@ -690,6 +719,30 @@ data: {"attemptId":"att_...","recordId":"ev_..."}
 event: transcript.chunk
 id: 1850
 data: {"attemptId":"att_...","stream":"stdout","chunk":"..."}
+
+event: circuit_breaker.opened
+id: 1851
+data: {"state":"OPEN","previousState":"CLOSED","reason":"failure_rate > 30%","diagnosticSnapshot":{...}}
+
+event: circuit_breaker.half_opened
+id: 1852
+data: {"state":"HALF_OPEN","previousState":"OPEN","reason":"cooldown_expired"}
+
+event: circuit_breaker.closed
+id: 1853
+data: {"state":"CLOSED","previousState":"HALF_OPEN","reason":"probe_passed"}
+
+event: circuit_breaker.probe_started
+id: 1854
+data: {"probeRunId":"run_...","state":"HALF_OPEN"}
+
+event: circuit_breaker.probe_passed
+id: 1855
+data: {"probeRunId":"run_...","verdict":"PASS"}
+
+event: circuit_breaker.probe_failed
+id: 1856
+data: {"probeRunId":"run_...","verdict":"FAIL"}
 ```
 
 ### 8.3 Command API
@@ -707,6 +760,8 @@ POST /api/workers/:workerId/kill
 POST /api/workers/:workerId/restart
 POST /api/conflicts/:conflictId/resolve
 POST /api/governor/override
+POST /api/circuit-breaker/reset
+POST /api/circuit-breaker/probe
 ```
 
 Command response:
@@ -792,7 +847,8 @@ server/storage/migrations/
 ├─ 0002_runtime_events.sql
 ├─ 0003_evidence_chain.sql
 ├─ 0004_task_runs.sql
-└─ 0005_conflicts_hir.sql
+├─ 0005_conflicts_hir.sql
+└─ 0006_circuit_breaker_transitions.sql
 ```
 
 ### 10.3 Core Tables
@@ -813,6 +869,7 @@ hir_requests
 conflict_reports
 accp_jobs
 runtime_commands
+circuit_breaker_transitions
 ```
 
 ### 10.4 Runtime Events Table
@@ -1053,7 +1110,40 @@ Promote only after measured stability
 Track token/time budgets
 ```
 
-### 11.7 `kernel/assembler`
+### 11.7 `kernel/circuit-breaker`
+
+System-level safety guard.
+
+```txt
+kernel/circuit-breaker/src/
+├─ circuit-breaker.ts
+├─ circuit-breaker-state.ts
+├─ circuit-breaker-policy.ts
+├─ open-trigger-evaluator.ts
+├─ failure-rate-window.ts
+├─ governor-red-monitor.ts
+├─ ehc-break-monitor.ts
+├─ probe-controller.ts
+├─ diagnostic-snapshot.ts
+├─ circuit-breaker-events.ts
+└─ index.ts
+```
+
+Responsibilities:
+
+```txt
+Track system-level failure rate over sliding window
+Evaluate CONFIRMED EHC break classifications
+Monitor Governor RED duration
+Open breaker when policy thresholds are exceeded
+Reject new admissions while OPEN
+Control exactly-one probe attempt during HALF_OPEN
+Produce diagnostic snapshots on state transitions
+Emit circuit-breaker runtime events
+Persist state transitions for recovery
+```
+
+### 11.8 `kernel/assembler`
 
 Wave-level deterministic assembler.
 
@@ -1088,7 +1178,7 @@ Generate ConflictReport
 Send affected TaskRuns back to repair
 ```
 
-### 11.8 `kernel/accp`
+### 11.9 `kernel/accp`
 
 Async artifact layer.
 
@@ -1932,7 +2022,242 @@ The adapter receives this packet but does not decide whether the strategy succee
 
 ---
 
-## 23. Assembly Model
+## 23. Circuit Breaker Architecture
+
+### 23.1 Purpose
+
+The Circuit Breaker protects the whole PRAXIS system from sustained instability. It is distinct from per-attempt verification.
+
+While the Truth Engine asks "Is this attempt actually complete?", the Circuit Breaker asks:
+
+```txt
+Is the whole system safe enough to continue admitting work?
+```
+
+When the system is healthy, the breaker is CLOSED and work flows normally. When the system crosses safety thresholds, the breaker OPENs and blocks new admissions until recovery conditions are met.
+
+### 23.2 Owner
+
+```txt
+Circuit Breaker is a kernel-owned safety component.
+```
+
+The server exposes Circuit Breaker state but does not own the decision logic. The interface displays Circuit Breaker state but must never decide or override completion/safety authority directly.
+
+Circuit Breaker protects system health; Truth Engine verifies individual attempts. Circuit Breaker must not replace EvidenceGate, ExecGate, FinalGate, PSAG, RIM, Governor, or Assembler.
+
+### 23.3 States
+
+```txt
+CLOSED:
+  meaning: "System is healthy enough to admit new work."
+  allows_new_admissions: true
+  allows_new_worker_launches: true
+
+OPEN:
+  meaning: "System is unsafe. New admissions are blocked."
+  allows_new_admissions: false
+  allows_new_worker_launches: false
+  in_flight_attempt_policy: "finish_current_attempt_or_controlled_abort"
+
+HALF_OPEN:
+  meaning: "System is testing recovery with one controlled attempt."
+  allows_new_admissions: false
+  allows_new_worker_launches: "one_controlled_probe_only"
+  pass_transition: "CLOSED"
+  fail_transition: "OPEN"
+```
+
+### 23.4 Open Triggers
+
+The Circuit Breaker opens when any of these thresholds is exceeded:
+
+```txt
+open_triggers:
+
+failure_rate:
+  threshold: "> 30%"
+  window: "10 minute sliding window"
+
+governor_red:
+  duration: "> 15 minutes continuous"
+
+ehc_break:
+  classification: "CONFIRMED"
+```
+
+Key constraint — NOISE and SUSPECTED EHC breaks do not automatically open the Circuit Breaker. Only CONFIRMED EHC breaks open it.
+
+### 23.5 OPEN Behavior
+
+When Circuit Breaker enters OPEN:
+
+```txt
+- reject new plan admissions
+- reject new task run starts
+- prevent new worker launches
+- allow in-flight attempts to finish current command or perform controlled abort
+- emit circuit_breaker.opened runtime event
+- persist state transition
+- notify clients through SSE
+- include diagnostic snapshot:
+  failure_rate
+  top_failing_gates
+  governor_state
+  ehc_break_classification
+  last_failed_verdicts
+  opened_at
+  opened_reason
+```
+
+### 23.6 HALF_OPEN Behavior
+
+```txt
+HALF_OPEN behavior:
+- entered after cooldown or explicit human reset
+- permits exactly one controlled probe attempt
+- probe attempt must use a low-risk task or health-check task
+- if probe passes safety gates, transition to CLOSED
+- if probe fails, transition back to OPEN
+- all transitions must be persisted and emitted as runtime events
+```
+
+### 23.7 Recovery and Reset
+
+Recovery paths:
+
+```txt
+OPEN → (cooldown expires) → HALF_OPEN
+OPEN → (human reset via API) → HALF_OPEN
+HALF_OPEN → (probe passes) → CLOSED
+HALF_OPEN → (probe fails) → OPEN
+```
+
+The Circuit Breaker does not self-recover from OPEN to CLOSED directly. It must always pass through HALF_OPEN with a successful probe.
+
+### 23.8 Runtime Events
+
+```txt
+circuit_breaker.opened
+circuit_breaker.half_opened
+circuit_breaker.closed
+circuit_breaker.reset_requested
+circuit_breaker.probe_started
+circuit_breaker.probe_passed
+circuit_breaker.probe_failed
+```
+
+Each event payload must include:
+
+```txt
+state
+previous_state
+reason
+timestamp
+diagnostic_snapshot
+correlation_id
+```
+
+### 23.9 Storage
+
+Circuit Breaker transitions are recorded in a dedicated table:
+
+Table: `circuit_breaker_transitions`
+
+```txt
+id                     TEXT PRIMARY KEY
+previous_state         TEXT NOT NULL
+next_state             TEXT NOT NULL
+reason                 TEXT NOT NULL
+diagnostic_snapshot    JSONB NOT NULL
+correlation_id         TEXT NOT NULL
+runtime_event_seq      BIGINT NULL
+created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
+```
+
+`runtime_events` remains the SSE replay source of truth. The `circuit_breaker_transitions` table provides durable per-transition records for recovery and audit.
+
+### 23.10 API Exposure
+
+Snapshot must include:
+
+```json
+{
+  "circuitBreaker": {
+    "state": "CLOSED | OPEN | HALF_OPEN",
+    "openedAt": "timestamp or null",
+    "openedReason": "string or null",
+    "lastTransitionSeq": "number",
+    "probeRunId": "string or null"
+  }
+}
+```
+
+SSE stream must emit:
+
+```txt
+circuit_breaker.opened
+circuit_breaker.half_opened
+circuit_breaker.closed
+circuit_breaker.probe_started
+circuit_breaker.probe_passed
+circuit_breaker.probe_failed
+```
+
+Commands:
+
+```http
+POST /api/circuit-breaker/reset
+POST /api/circuit-breaker/probe
+```
+
+Rule: HTTP command response means command accepted. SSE event means Circuit Breaker state actually changed.
+
+### 23.11 Relationship to Other Components
+
+```txt
+Truth Engine:
+  question: "Is this attempt actually complete?"
+  authority: EvidenceGate, ExecGate, FinalGate
+
+Governor:
+  question: "How many workers can safely run concurrently?"
+  authority: Concurrency and resource pressure
+
+Circuit Breaker:
+  question: "Is the whole system safe enough to continue admitting work?"
+  authority: System-level safety state
+```
+
+### 23.12 Testing Requirements
+
+Required tests:
+
+```txt
+unit:
+  CLOSED allows admissions
+  OPEN rejects admissions
+  HALF_OPEN permits exactly one probe
+  failure_rate > 30% over 10 minutes opens breaker
+  governor RED > 15 minutes opens breaker
+  EHC CONFIRMED opens breaker
+  EHC NOISE does not open breaker
+  EHC SUSPECTED does not open breaker
+
+integration:
+  runtime snapshot exposes circuitBreaker state
+  SSE emits circuit_breaker.opened
+  reset command emits accepted response before state event
+  state survives runtime restart via storage
+
+false_done_safety:
+  repeated ExecGate failures open breaker by failure-rate policy
+  confirmed divergence/EHC integrity failure opens breaker
+```
+
+---
+
+## 24. Assembly Model
 
 Assembler is wave-level.
 
@@ -1975,7 +2300,7 @@ Affected TaskRuns go back to repair with ConflictReport injected.
 
 ---
 
-## 24. ACCP Artifact Layer
+## 25. ACCP Artifact Layer
 
 ACCP is async by default.
 
@@ -2010,7 +2335,7 @@ If ACCP compiler crashes:
 
 ---
 
-## 25. Config Model
+## 26. Config Model
 
 Config package:
 
@@ -2066,7 +2391,7 @@ export interface PraxisConfig {
 
 ---
 
-## 26. Testing Strategy
+## 27. Testing Strategy
 
 ### 26.1 Unit Tests
 
@@ -2075,6 +2400,7 @@ Every package should own local unit tests:
 ```txt
 kernel/truth-engine/tests/
 kernel/rim/tests/
+kernel/circuit-breaker/tests/
 adapters/claude-code/tests/
 server/control-plane/tests/
 ```
@@ -2089,6 +2415,7 @@ tests/e2e/
 tests/false-done/
 tests/evidence-chain/
 tests/assembler/
+tests/circuit-breaker/
 ```
 
 ### 26.3 Required Test Categories
@@ -2107,6 +2434,17 @@ adapter timeout handling
 hook event ingestion
 assembly rollback
 ConflictReport repair injection
+CLOSED allows admissions
+OPEN rejects new admissions
+HALF_OPEN permits exactly one probe
+failure_rate > 30% over 10 minutes opens breaker
+governor RED > 15 minutes opens breaker
+EHC CONFIRMED opens breaker
+EHC NOISE does not open breaker
+EHC SUSPECTED does not open breaker
+SSE emits circuit_breaker.opened
+reset command accepted before state transition
+state survives runtime restart
 ```
 
 ### 26.4 Mock Worker
@@ -2128,7 +2466,7 @@ simulate rate limit
 
 ---
 
-## 27. AI Agent Instructions
+## 28. AI Agent Instructions
 
 When an AI coding agent works in this repo, it must obey these rules:
 
@@ -2151,6 +2489,9 @@ Need to change completion logic?
 
 Need to change repair strategy?
   → kernel/rim
+
+Need to change system-level safety policy?
+  → kernel/circuit-breaker
 
 Need to change Claude invocation?
   → adapters/claude-code
@@ -2176,7 +2517,7 @@ Need generic utility?
 
 ---
 
-## 28. MVP Scope
+## 29. MVP Scope
 
 MVP should include:
 
@@ -2187,6 +2528,7 @@ lib/errors/result/ids/time/crypto/validation
 kernel/core basic FSM
 kernel/psag basic admission
 kernel/evidence basic capture
+kernel/circuit-breaker basic CLOSED/OPEN/HALF_OPEN states
 kernel/truth-engine EvidenceGate + ExecGate + FinalGate
 adapters/mock-worker
 adapters/claude-code basic run attempt
@@ -2216,7 +2558,7 @@ WebSocket protocol unless ADR-approved
 
 ---
 
-## 29. Roadmap Phases
+## 30. Roadmap Phases
 
 ### Phase 0 — Foundation
 
@@ -2275,7 +2617,7 @@ cross-platform installers
 
 ---
 
-## 30. Architecture Decision Records
+## 31. Architecture Decision Records
 
 Use ADRs for irreversible or controversial decisions.
 
@@ -2291,6 +2633,7 @@ ADR-006: Claude Code adapter and praxis-hook separation
 ADR-007: Electron instead of Tauri
 ADR-008: No root src directory
 ADR-009: Event log as UI source of truth
+ADR-010: Circuit Breaker as kernel-owned safety component
 ```
 
 ADR format:
@@ -2321,7 +2664,7 @@ What else did we consider?
 
 ---
 
-## 31. Final Architecture Contract
+## 32. Final Architecture Contract
 
 The repository is considered architecturally valid if:
 
