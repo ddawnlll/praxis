@@ -146,7 +146,7 @@ Terminal states: `COMPLETE` (FVR enqueued), `ABORTED` (evidence preserved), `FAI
 
 | # | Phase | Scope | Status |
 |---|-------|-------|--------|
-| P-1 | Architecture / Reuse Decision Lock | ADRs, lock matrix, reuse policy, Circuit Breaker section | ~11% |
+| P-1 | Architecture / Reuse Decision Lock | ADRs, lock matrix, reuse policy, Circuit Breaker section | ~33% (decisions.md done, ADR index done, phase map done, product scope done) |
 | P0.1 | Monorepo Scaffold + CI | Bun workspace, tsconfig, package skeletons, CI | 0% |
 | P0.2 | Port execution-contracts → lib/contracts | ACCP types, WorkerAdapter, runtime types | 0% |
 | P0.3 | Port accp-compiler → kernel/accp | Compiler pipeline, validators, CLI, 135 tests | 0% |
@@ -188,6 +188,27 @@ See `todo.md` for full task-level tracking.
 | `ai_summary.md` | Meta | This file — project state maintained by agents | Active |
 | `CLAUDE.md` | Meta | Agent instructions: read ai_summary.md first, update on changes | Active |
 | `reports/` | Reports | ACCP readiness reports (pi_reuse_readiness, architecture_lock_readiness) | ACCP YAML |
+| `docs/` | Design | Architecture docs, ADRs, specs, phase map, product scope | DRAFT_FOR_AUDIT |
+| `docs/decisions.md` | Design | Canonical decision register — HARD_LOCK/SOFT_LOCK/OPEN/REJECTED | Authoritative |
+| `docs/adr/README.md` | Design | ADR index — resolves numbering collisions, registers all ADRs | v0.1 |
+| `docs/phase-map.md` | Design | P-1 through P6 canonical phase map, gates, parallelism rules | v0.1 |
+| `docs/product-scope.md` | Design | Product scope, MVP-A/B/C staging, in/out of scope | v0.1 |
+| `docs/pipelines/overview.md` | Spec | End-to-end pipeline: PlanSpec through ACCP artifacts. Component placement, MVP staging, CB/Governor intervention, ACCP async independence. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/pipelines/taskrun-lifecycle.md` | Spec | TaskRun FSM: states, transitions, gate positions, repair loop (max 7), false-done protection, terminal invariants. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/pipelines/runtime-event-flow.md` | Spec | RuntimeEvent model, append-only log, SSE streaming, snapshot, event replay, gap detection, UI state rules, in-memory→PG migration. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/pipelines/worker-adapter.md` | Spec | Generic worker adapter 5-stage pipeline: healthCheck→prepareAttempt→runAttempt→captureOutput→normalizeResult; RunAttemptResult (no verdict); AdapterError normalization (RateLimitSignal/CrashSignal/TimeoutSignal); mock adapter contract; CLAIM ONLY designation for worker_reported_status. | DRAFT_FOR_AUDIT v0.1 (rewritten) |
+| `docs/pipelines/claude-code-adapter.md` | Spec | Claude Code adapter specifics: Day 0 Spike (S1-S5 GO/NO-GO criteria); primary path (headless + praxis-hook); Claude local loop vs. PRAXIS supervisory loop (independent); rate limit/crash/divergence detection; NO adapter-owned FinalGate; NO direct shared writes. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/pipelines/praxis-hook-capture.md` | Spec | Hook event capture pipeline: Claude emits→praxis-hook intercepts→normalizes JSON→POSTs to runtime→spool fallback; PreToolUse/PostToolUse/Stop; server ingestion→EvidenceRecord→EHC chain; EHC break (NOISE/SUSPECTED/CONFIRMED)→Circuit Breaker; hook NEVER decides truth. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/pipelines/messages-api-fallback.md` | Spec | Messages API fallback (gated on Day 0 Spike NO-GO): PRAXIS-owned tool execution loop; what stays identical (Truth Engine/Three Laws/evidence model/gate pipeline); what changes (adapter impl); tradeoffs; MUST NOT implement now; MUST NOT change Truth Engine authority. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/index.md` | Meta | Documentation index — inventory, reading order (4 tiers), required-reading for ACCP/prompts. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/testing/pipeline-test-strategy.md` | Spec | Phase-by-phase test categories (P0-P6), gate mapping, false-done mandates, CB test requirements. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/implementation/p0-entry-gate.md` | Spec | P0 entry prerequisites, P0.1-P0.4 sub-gates, P0 Exit Gate, forbidden-copy enforcement. | DRAFT_FOR_AUDIT v0.1 |
+| `docs/contracts/task-spec.contract.md` | Contract | TaskSpec fields, AcceptanceCriterion, TaskBudget, PredictedInterface, PSAG validation rules V1-V14, forbidden authority fields | DRAFT_FOR_AUDIT v0.1 |
+| `docs/contracts/plan-spec.contract.md` | Contract | PlanSpec fields, PlanBudget, PSAG plan-level checks P1-P15, dependency graph validation, namespace partitioning | DRAFT_FOR_AUDIT v0.1 |
+| `docs/contracts/worker-adapter.contract.md` | Contract | WorkerAdapter operations, WorkerHealth, RunAttemptInput/Result, ErrorSignal taxonomy, adapter MUST/MUST NOT rules | DRAFT_FOR_AUDIT v0.1 |
+| `docs/contracts/run-attempt.contract.md` | Contract | RunAttemptInput/Result, AttemptManifest (kernel-extended), DivergenceFlag, GateResult placeholder, claim vs. verdict boundary | DRAFT_FOR_AUDIT v0.1 |
+| `docs/contracts/runtime-event.contract.md` | Contract | RuntimeEvent envelope, 10 event type categories, sequencing/gap-detection, SSP ingestion algorithm, forbidden authority sources | DRAFT_FOR_AUDIT v0.1 |
+| `docs/contracts/runtime-snapshot.contract.md` | Contract | RuntimeSnapshot shape, RuntimeStatus/GovernorSummary/CircuitBreakerSummary/TaskRunSummary/WorkerSummary/HumanAction sub-types, UI consumption algorithm, forbidden UI-authored fields | DRAFT_FOR_AUDIT v0.1 |
 | `pi/` | Archive | Old Pi monorepo — reference and selective port source | See below |
 
 ### `pi/` — Reference Archive
@@ -408,6 +429,11 @@ These packages must NOT be copied into PRAXIS:
 
 | Date | Files | Summary |
 |------|-------|---------|
+| 2026-06-18 | `docs/pipelines/worker-adapter.md` (rewritten), `docs/pipelines/claude-code-adapter.md`, `docs/pipelines/praxis-hook-capture.md`, `docs/pipelines/messages-api-fallback.md` | Created/rewrote four DRAFT_FOR_AUDIT v0.1 pipeline specs: worker-adapter (complete rewrite per user spec with 5-stage pipeline + RunAttemptResult with no verdict + AdapterError normalization + mock adapter), claude-code-adapter (Day 0 Spike S1-S5 GO/NO-GO gates + headless+primary path + two independent loops + NO adapter-owned FinalGate), praxis-hook-capture (hook event capture pipeline + PreToolUse/PostToolUse/Stop + spool fallback + EHC chain feed + 4 design principles), messages-api-fallback (gated on Spike NO-GO + PRAXIS-owned tool loop + what stays same vs. changes + tradeoffs). All respect decisions.md HARD_LOCK decisions and Three Laws. |
+| 2026-06-18 | `docs/contracts/*.md` (6 files) | Created six DRAFT_FOR_AUDIT v0.1 contract documentation files: task-spec.contract.md (TaskSpec + AcceptanceCriterion + PSAG V1-V14), plan-spec.contract.md (PlanSpec + PlanBudget + PSAG P1-P15), worker-adapter.contract.md (WorkerAdapter + WorkerHealth + RunAttemptInput/Result + MUST/MUST NOT rules), run-attempt.contract.md (RunAttemptResult + AttemptManifest + DivergenceFlag + GateResult), runtime-event.contract.md (RuntimeEvent envelope + 10 event categories + sequencing/gap-detection + SSP replay), runtime-snapshot.contract.md (RuntimeSnapshot + 6 sub-types + UI consumption algorithm). All use conceptual field tables (not TypeScript). Forbidden authority fields enforced per Three Laws. Contract-first development (D-098). docs/decisions.md NOT modified. |
+| 2026-06-18 | `docs/pipelines/overview.md`, `docs/pipelines/taskrun-lifecycle.md`, `docs/pipelines/runtime-event-flow.md` | Created three core pipeline specs DRAFT_FOR_AUDIT v0.1: end-to-end overview (component placement, MVP staging, CB/Governor intervention, ACCP async independence), TaskRun lifecycle FSM (states, transitions, gate positions, repair loop, false-done protection, terminal invariants), RuntimeEvent flow (append-only log, SSE streaming, snapshot, event replay, gap detection, UI state rules). All respect decisions.md HARD_LOCK decisions. |
+| 2026-06-18 | `docs/index.md`, `docs/testing/pipeline-test-strategy.md`, `docs/implementation/p0-entry-gate.md` | Created three DRAFT_FOR_AUDIT v0.1 spec docs: documentation index (4-tier reading order), pipeline test strategy (P0-P6 test categories + CB transition tests + false-done mandates), P0 entry gate (prerequisites + P0.1-P0.4 sub-gates + P0 Exit Gate). All respect decisions.md HARD_LOCK decisions. |
+| 2026-06-18 | `docs/adr/README.md`, `docs/phase-map.md`, `docs/product-scope.md` | Created three DRAFT_FOR_AUDIT v0.1 spec docs: ADR index (resolves numbering collision), phase map (P-1 through P6 canonical), product scope (MVP-A/B/C staging). All respect decisions.md HARD_LOCK decisions. |
 | 2026-06-17 | `CLAUDE.md`, `ai_summary.md` | Initial agent documentation baseline |
 | 2026-06-17 | `todo.md`, `reports/*.yaml` | Update todo with full phase tracking, add ACCP readiness reports |
 
@@ -424,7 +450,7 @@ These packages must NOT be copied into PRAXIS:
 
 ## Active Work
 
-- (none — establishing documentation baseline)
+- P-1 documentation: decisions.md, ADR index, phase map, product scope, docs/index.md, pipeline overview + taskrun-lifecycle + runtime-event-flow, pipeline test strategy, P0 entry gate, 6 contract docs, 4 pipeline detail docs (worker-adapter rewritten, claude-code-adapter, praxis-hook-capture, messages-api-fallback) all created DRAFT_FOR_AUDIT v0.1 (2026-06-18). Next: lock matrix, reuse policy ADR (ADR-006), Circuit Breaker section in README, boundary docs.
 
 ---
 
