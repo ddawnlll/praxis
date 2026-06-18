@@ -2560,59 +2560,91 @@ WebSocket protocol unless ADR-approved
 
 ## 30. Roadmap Phases
 
-### Phase 0 — Foundation
+The canonical phase model is defined in `docs/decisions.md` (D-052 through D-061). This section summarizes each phase; `docs/decisions.md` and `todo.md` are authoritative for scope, gates, and progress.
+
+### P-1 — Architecture / Reuse Decision Lock
 
 ```txt
-repo scaffold
-contracts
-runtime server
-mock worker
-single TaskRun FSM
-basic evidence capture
-basic gates
-CLI status
-SSE event stream
-Postgres migrations
+decisions.md (canonical decision register)
+ADR index
+lock matrix
+reuse policy
+phase map
+forbidden-copy list
 ```
 
-### Phase 1 — Claude Path
+### P0 — Selective pi/ Reuse Foundation Port
 
 ```txt
-Claude Code adapter
-praxis-hook
-hook ingestion
-KernelOwnedTranscript
-false-done tests
-FinalGate criteria
-RIM basic strategy rotation
-desktop Mission Control
+P0.1: Monorepo scaffold + CI (Bun workspaces, tsconfig, boundary checker)
+P0.2: Port execution-contracts → lib/contracts
+P0.3: Port accp-compiler → kernel/accp
+P0.4: Extract old FSM reference doc
+P0 Gate: All ported tests pass, no old namespace remains
 ```
 
-### Phase 2 — Parallel Execution
+### P1 — Desktop Mission Control + Runtime Contracts
 
 ```txt
-multiple workers
-namespace partition
-governor
-wave scheduling
-assembler
-ConflictReport
-repair injection
-event replay hardening
-desktop Worker Grid and TaskRun Detail
+RuntimeSnapshot / RuntimeEvent contracts
+Desktop mockup with fake runtime data
+Mission Control dashboard (mock state only)
+Contract docs (docs/contracts/*.md)
 ```
 
-### Phase 3 — Production Hardening
+### P2 — Mock Runtime Vertical Slice
 
 ```txt
-ACCP FVR/PRR
-circuit breaker
-EHC classifier
-advanced TestOutputParser
-Playwright desktop e2e
-runtime crash recovery
-packaging
-cross-platform installers
+server/event-bus, server/control-plane (minimal HTTP + SSE)
+In-memory event log
+adapters/mock-worker
+interface/client (typed HTTP/SSE client)
+Desktop connected to snapshot + SSE (mock data)
+```
+
+### P3 — Kernel Safety Core
+
+```txt
+kernel/core TaskRun FSM (from scratch)
+kernel/psag (minimal admission gate)
+kernel/evidence (minimal model + EHC)
+kernel/truth-engine (EvidenceGate + ExecGate + FinalGate)
+kernel/circuit-breaker (CLOSED/OPEN/HALF_OPEN, all triggers)
+kernel/rim (basic strategy rotation)
+False-done / namespace-violation / empty-diff tests
+```
+
+### P4 — Real Worker Integration
+
+```txt
+Day 0 Claude Code spike (GO/NO-GO gate)
+hooks/praxis-hook (PreToolUse, PostToolUse, Stop)
+adapters/claude-code (command builder, session runner, output normalizer)
+KernelOwnedTranscript + divergence detection
+Real attempt in isolated workspace
+```
+
+### P5 — Parallel Execution + Assembler
+
+```txt
+Workspace manager + namespace locks
+Wave scheduler + dependency graph
+kernel/governor (concurrency tiers, demotion rules)
+kernel/assembler (namespace recheck, semantic check, atomic apply, rollback)
+ConflictReport + repair injection
+3 mock workers → 3 real workers (after mock proof)
+```
+
+### P6 — ACCP Artifacts + Production Hardening
+
+```txt
+ACCP async job queue + FVR/PRR
+PostgreSQL durable storage + runtime event replay
+Runtime restart recovery
+Desktop production build
+CLI commands
+Installer / packaging
+Playwright e2e + long-run stability baseline
 ```
 
 ---
