@@ -1,0 +1,355 @@
+accp_version: "2.0.0"
+source_format: "ACCP-YAML"
+prompt_type: "implementation_report"
+id: "ACCP-PRAXIS-P1-CONTRACTS-PARSER-VALIDATOR-REPORT"
+title: "@praxis/contracts Implementation Report"
+created_at: "2026-06-20T00:00:00+03:00"
+
+executive_summary:
+  verdict: "PASS"
+  score: "17/17 acceptance criteria met"
+  summary: >
+    @praxis/contracts is implemented as the canonical TypeScript package for
+    PlanSpec v0.1 parsing, validation, canonicalization, and fixture testing.
+    All 17 acceptance criteria pass. No kernel/CLI/plugin code was created or
+    modified. The package validates all examples and fixtures correctly.
+    Schema validation uses AJV Draft 2020-12. Hashing is deterministic.
+    31 tests pass. Python validation confirms 38/38 checks pass.
+
+repo_discovery:
+  repo_root: "/home/erfolg/src/praxis"
+  package_manager_detected: "bun (1.3.11) + npm (11.12.1) available"
+  node_version: "v25.9.0"
+  existing_packages: "pi/ monorepo (npm workspaces, separate repo)"
+  contracts_package_status: "new — created at packages/contracts/"
+  schema_pack_status: "LOCKED — schemas/planspec.v0.1.schema.yaml"
+  examples_dir: "examples/planspec/ (5 examples)"
+  fixtures_dir: "fixtures/planspec/ (4 pass, 2 hold, 4 fail)"
+  validation_script: "scripts/validate-planspec-v0.1.py"
+
+package_created_or_updated:
+  path: "packages/contracts/"
+  name: "@praxis/contracts"
+  version: "0.1.0"
+  language: "TypeScript"
+  runtime: "Bun-compatible Node-style TypeScript"
+  module_goal: "Library package only — no daemon, no CLI, no plugin"
+  files_created:
+    - "packages/contracts/package.json"
+    - "packages/contracts/tsconfig.json"
+    - "packages/contracts/bunfig.toml"
+    - "packages/contracts/README.md"
+    - "packages/contracts/src/index.ts"
+    - "packages/contracts/src/planspec/types.ts"
+    - "packages/contracts/src/planspec/diagnostics.ts"
+    - "packages/contracts/src/planspec/parsePlanSpecYaml.ts"
+    - "packages/contracts/src/planspec/readPlanSpecSchema.ts"
+    - "packages/contracts/src/planspec/validatePlanSpecSchema.ts"
+    - "packages/contracts/src/planspec/validatePlanSpecSemantics.ts"
+    - "packages/contracts/src/planspec/validatePlanSpec.ts"
+    - "packages/contracts/src/planspec/canonicalizePlanSpec.ts"
+    - "packages/contracts/src/planspec/hashPlanSpec.ts"
+    - "packages/contracts/src/planspec/loadPlanSpecYaml.ts"
+    - "packages/contracts/src/planspec/runPlanSpecFixtureSuite.ts"
+    - "packages/contracts/test/planspec.spec.ts"
+  total_files: 17
+  dependencies:
+    - "yaml: ^2.7.0"
+    - "ajv: ^8.17.1"
+    - "ajv-formats: ^3.0.1"
+  dev_dependencies:
+    - "@types/node: ^22.10.5"
+    - "typescript: ^5.9.2"
+  package_boundary: >
+    Exports only parser, validator, canonicalizer, hasher, and fixture runner.
+    No kernel gates, CLI commands, or Claude plugin functionality.
+
+public_api:
+  primary_exports:
+    - "parsePlanSpecYaml"
+    - "validatePlanSpecSchema"
+    - "validatePlanSpecSemantics"
+    - "validatePlanSpec"
+    - "canonicalizePlanSpec"
+    - "hashPlanSpec"
+    - "loadPlanSpecYaml"
+    - "runPlanSpecFixtureSuite"
+    - "readPlanSpecSchema"
+    - "PlanSpecV01 (type)"
+    - "ValidationResult (type)"
+    - "Diagnostic (type)"
+    - "PlanHashes (type)"
+    - "FixtureSuiteResult (type)"
+  all_public_exports_count: 26
+
+parser_implementation:
+  file: "src/planspec/parsePlanSpecYaml.ts"
+  strategy: "yaml npm package (YAML.parse)"
+  errors_handled:
+    - "YAML_PARSE_ERROR"
+    - "PLAN_FILE_EMPTY"
+    - "PLAN_ROOT_NOT_OBJECT"
+  notes: "YAML comments are stripped by the parser."
+
+schema_validator_implementation:
+  file: "src/planspec/validatePlanSpecSchema.ts"
+  library: "ajv (Draft 2020-12 via ajv/dist/2020)"
+  formats: "ajv-formats"
+  schema_load_strategy: >
+    readPlanSpecSchema reads schemas/planspec.v0.1.schema.yaml from disk,
+    parses it as YAML, and returns the schema object.
+    Default repo root is process.cwd(); configurable via parameter.
+  errors_handled:
+    - "PLAN_SCHEMA_INVALID"
+    - "PLAN_SCHEMA_REF_ERROR"
+    - "PLAN_SCHEMA_LOAD_ERROR"
+  ajv_options:
+    strict: false
+    allErrors: true
+    verbose: true
+    allowUnionTypes: true
+
+semantic_validator_implementation:
+  file: "src/planspec/validatePlanSpecSemantics.ts"
+  rules_implemented:
+    identity:
+      - "planSpecVersion must be 0.1.0"
+      - "kind must be ImplementationPlan"
+      - "profile must be praxis-v0.1"
+    uniqueness:
+      - "Duplicate task IDs (error)"
+      - "Duplicate acceptance criterion IDs globally (error)"
+      - "Duplicate command IDs (error)"
+    command_refs:
+      - "verification.commandRef existence check"
+      - "usageProof.commandRef existence check"
+      - "runtimeProbe.commandRef existence check"
+      - "runnerDiscovery.commandRef existence check"
+    evidence_refs:
+      - "acceptanceCriteria[].requiredEvidence declared check (warning)"
+      - "verification.evidenceRefs mapping check (info)"
+    artifact_contract_consistency:
+      - "runtime_code/cli_command require integrationContract"
+      - "mode=none forbidden for runtime_code/cli_command"
+      - "wiringRequired=consumer_or_export requires usageProofs or exportSurfaces"
+      - "wiringRequired=runner_discovery requires runnerDiscovery"
+      - "reachabilityRequired=true requires entrypoints"
+      - "executionRequired=true requires runtimeProbes or usageProofs"
+    acceptance_criteria_authority:
+      - "humanApproved=false + canSatisfyFinalGate=true (error)"
+      - "advisoryOnly=true + canSatisfyFinalGate=true (error)"
+      - "agent_draft + canSatisfyFinalGate=true (error)"
+      - "deterministic=false + canSatisfyFinalGate=true (error)"
+    gates:
+      - "Sequence must be SchemaGate→LockGate→...→FinalGate"
+      - "Verdicts must include PASS, HOLD, FAIL"
+      - "ReasonCodes should include all gate keys (warning)"
+    locking:
+      - "Required hash fields should be present (warning — schema allows subsets)"
+      - "Unknown hash fields flagged (warning)"
+    repair_report:
+      - "repairPacketRequiredOnHoldOrFail → repair.enabled=true"
+      - "failedCriteriaOnly must be true"
+      - "mayModifyAcceptanceCriteria must be false"
+      - "mayModifyPlan must be false"
+  diagnostic_codes:
+    - "DUPLICATE_TASK_ID"
+    - "DUPLICATE_ACCEPTANCE_CRITERION_ID"
+    - "DUPLICATE_COMMAND_ID"
+    - "COMMAND_REF_NOT_FOUND"
+    - "MISSING_REQUIRED_HASH_FIELD"
+    - "INVALID_GATE_SEQUENCE"
+    - "FINAL_GATE_UNSUPPORTED_BY_REQUIRED_CRITERION"
+    - "REQUIRED_EVIDENCE_NOT_DECLARED"
+    - "CONTRACT_MODE_ARTIFACT_POLICY_MISMATCH"
+    - "SEMANTIC_IDENTITY_MISMATCH"
+    - "UNAPPROVED_FINALGATE_CRITERION"
+    - "ADVISORY_FINALGATE_CRITERION"
+    - "AGENT_DRAFT_FINALGATE_CRITERION"
+    - "REPAIR_REPORT_INCONSISTENT"
+    - "HASH_FIELD_MISMATCH"
+  known_deferred_kernel_checks:
+    - "Runtime wiring import graph analysis (WiringGate)"
+    - "Command execution and evidence collection (ExecGate)"
+    - "Diff verification against allowed/forbidden files (EvidenceGate)"
+    - "Runtime evidence ledger validation"
+    - "Repair packet generation"
+    - "Circuit breaker / governor runtime checks"
+
+canonicalization_and_hashing:
+  canonicalization_strategy: "Recursive key sort + JSON.stringify (no whitespace)"
+  hash_algorithm: "SHA-256 (node:crypto)"
+  hash_fields:
+    - "planHash — full canonical plan"
+    - "acceptanceCriteriaHash — all ACs across all tasks"
+    - "artifactPolicyHash — task artifact policies"
+    - "integrationContractHash — integration contracts (tasks with IC only)"
+    - "commandPolicyHash — exactAllowedCommands + hardDeniedCommands"
+    - "allowedFilesHash — sorted workspace.allowedFiles"
+    - "forbiddenFilesHash — sorted workspace.forbiddenFiles"
+  determinism_verified: true
+  canonicalization_notes: "Equivalent YAML objects with different key ordering produce identical hashes because keys are sorted before stringification."
+
+fixture_runner:
+  file: "src/planspec/runPlanSpecFixtureSuite.ts"
+  input_dirs:
+    - "examples/planspec/"
+    - "fixtures/planspec/pass/"
+    - "fixtures/planspec/hold/"
+    - "fixtures/planspec/fail/"
+  fixture_results:
+    total: 15
+    pass_fixtures_validated: 9 (5 examples + 4 pass fixtures)
+    negative_fixtures_rejected: 6 (2 hold + 4 fail)
+    all_match_expectation: true
+
+test_results:
+  test_runner: "bun test"
+  total_tests: 31
+  passed: 31
+  failed: 0
+  coverage:
+    parse_valid_yaml: true
+    reject_invalid_yaml: true
+    load_canonical_schema: true
+    validate_runtime_code_example: true
+    validate_documentation_example: true
+    validate_test_only_example: true
+    validate_library_code_example: true
+    validate_cli_command_example: true
+    reject_runtime_code_missing_integration_contract: true
+    reject_code_artifact_mode_none: true
+    reject_unapproved_finalgate_criterion: true
+    reject_advisory_finalgate_criterion: true
+    reject_repair_report_inconsistency: true
+    detect_missing_commandref_target: true
+    detect_duplicate_task_id: true
+    detect_duplicate_command_id: true
+    compute_stable_hashes: true
+    fixture_suite_total_matches: true
+
+validation_results:
+  python_validation_script: "scripts/validate-planspec-v0.1.py"
+  python_checks_total: 38
+  python_checks_passed: 38
+  python_checks_failed: 0
+  verdict: "ALL VALIDATIONS PASS"
+  typescript_typecheck: "No errors found"
+
+acceptance_criteria_results:
+  - id: "AC-001"
+    description: "@praxis/contracts package exists."
+    status: "PASS"
+  - id: "AC-002"
+    description: "Package exports PlanSpec YAML parser."
+    status: "PASS"
+  - id: "AC-003"
+    description: "Package exports schema validator using canonical schema path."
+    status: "PASS"
+  - id: "AC-004"
+    description: "Package exports semantic validator."
+    status: "PASS"
+  - id: "AC-005"
+    description: "Package exports combined validatePlanSpec pipeline."
+    status: "PASS"
+  - id: "AC-006"
+    description: "Package exports canonicalizePlanSpec and hashPlanSpec."
+    status: "PASS"
+  - id: "AC-007"
+    description: "Package exports fixture runner."
+    status: "PASS"
+  - id: "AC-008"
+    description: "ValidationResult, Diagnostic, PlanHashes, FixtureSuiteResult types exist."
+    status: "PASS"
+  - id: "AC-009"
+    description: "Valid examples pass validation."
+    status: "PASS"
+  - id: "AC-010"
+    description: "PASS fixtures pass validation."
+    status: "PASS"
+  - id: "AC-011"
+    description: "Negative fixtures reject as expected."
+    status: "PASS"
+  - id: "AC-012"
+    description: "Semantic validator detects missing commandRef targets."
+    status: "PASS"
+  - id: "AC-013"
+    description: "Semantic validator detects duplicate task IDs and duplicate command IDs."
+    status: "PASS"
+  - id: "AC-014"
+    description: "Hashes are deterministic across equivalent YAML object order."
+    status: "PASS"
+  - id: "AC-015"
+    description: "Tests run and results are reported."
+    status: "PASS"
+  - id: "AC-016"
+    description: "No kernel/CLI/plugin implementation files are created or modified."
+    status: "PASS"
+  - id: "AC-017"
+    description: "ACCP report exists."
+    status: "PASS"
+
+changed_files:
+  created:
+    - "packages/contracts/package.json"
+    - "packages/contracts/tsconfig.json"
+    - "packages/contracts/bunfig.toml"
+    - "packages/contracts/README.md"
+    - "packages/contracts/src/index.ts"
+    - "packages/contracts/src/planspec/types.ts"
+    - "packages/contracts/src/planspec/diagnostics.ts"
+    - "packages/contracts/src/planspec/parsePlanSpecYaml.ts"
+    - "packages/contracts/src/planspec/readPlanSpecSchema.ts"
+    - "packages/contracts/src/planspec/validatePlanSpecSchema.ts"
+    - "packages/contracts/src/planspec/validatePlanSpecSemantics.ts"
+    - "packages/contracts/src/planspec/validatePlanSpec.ts"
+    - "packages/contracts/src/planspec/canonicalizePlanSpec.ts"
+    - "packages/contracts/src/planspec/hashPlanSpec.ts"
+    - "packages/contracts/src/planspec/loadPlanSpecYaml.ts"
+    - "packages/contracts/src/planspec/runPlanSpecFixtureSuite.ts"
+    - "packages/contracts/test/planspec.spec.ts"
+    - "packages/contracts/bun.lock"
+    - "reports/accp/p1-contracts-parser-validator.accp.yaml"
+  modified: []
+  deleted: []
+  total_new_files: 19
+
+forbidden_mutation_check:
+  kernel_files_touched: []
+  cli_files_touched: []
+  plugin_files_touched: []
+  planspec_json_deleted: false
+  schema_weakened: false
+  forbidden_mutations_detected: 0
+  verdict: "PASS — no forbidden mutations"
+
+known_deferred_kernel_checks:
+  - "Runtime gate execution (SchemaGate, LockGate, etc.)"
+  - "Command execution and evidence collection"
+  - "Diff-based evidence verification"
+  - "Import graph analysis (WiringGate)"
+  - "Evidence ledger runtime"
+  - "RepairPacket generation"
+  - "Circuit breaker / governor"
+  - "Claude plugin integration"
+  - "CLI command handling"
+
+implementation_readiness:
+  status: "READY"
+  ready_for_next_prompt: true
+  blocked_items: []
+  dependency_limitations:
+    - >
+      Schema validation requires AJV (Draft 2020-12). The ajv/dist/2020 import
+      resolves correctly at Bun runtime. No other blockers.
+  notes_for_kernel_team: >
+    The semantic validator defers all runtime checks (wiring, execution, diff
+    evidence) to @praxis/kernel. The ValidationResult type and Diagnostic
+    protocol are designed to compose with future gate implementations.
+    PlanHashes can be consumed directly by LockGate.
+
+next_prompt_recommendation:
+  id: "ACCP-PRAXIS-P2-KERNEL-SCHEMAGATE-LOCKGATE"
+  purpose: "Implement first Truth Kernel gates: SchemaGate using @praxis/contracts and LockGate using canonical PlanHashes."
+  start_condition: "@praxis/contracts parser/validator PASS with AC 17/17."
+  status: "START_CONDITION_MET"
