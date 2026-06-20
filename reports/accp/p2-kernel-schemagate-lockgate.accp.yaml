@@ -1,0 +1,323 @@
+accp_version: "2.0.0"
+source_format: "ACCP-YAML"
+prompt_type: "implementation_report"
+id: "ACCP-PRAXIS-P2-KERNEL-SCHEMAGATE-LOCKGATE-REPORT"
+title: "@praxis/kernel P2 Implementation Report"
+created_at: "2026-06-20T00:00:00+03:00"
+
+executive_summary:
+  verdict: "PASS"
+  score: "18/18 acceptance criteria met"
+  summary: >
+    @praxis/kernel P2 is implemented with SchemaGate and LockGate only.
+    SchemaGate delegates to @praxis/contracts for PlanSpec YAML parsing,
+    schema validation, semantic validation, and hashing. LockGate supports
+    verify_existing, create_if_missing, and refresh_explicit modes with
+    YAML .lock.yaml files. runP2Kernel composes both gates and stops there.
+    No EvidenceGate, WiringGate, ExecGate, FinalGate, CLI, or plugin code
+    was implemented. Contracts tests and schema pack validation still pass.
+
+repo_discovery:
+  repo_root: "/home/erfolg/src/praxis"
+  contracts_package: "packages/contracts/ (31 tests, all pass)"
+  kernel_package_status: "new — created at packages/kernel/"
+  schema_pack_status: "LOCKED — schemas/planspec.v0.1.schema.yaml"
+  package_manager: "bun (1.3.11)"
+
+package_created_or_updated:
+  path: "packages/kernel/"
+  name: "@praxis/kernel"
+  version: "0.1.0"
+  language: "TypeScript"
+  runtime: "Bun-compatible Node-style TypeScript"
+  dependency:
+    required:
+      - "@praxis/contracts (file:../contracts)"
+      - "yaml"
+  files_created:
+    - "packages/kernel/package.json"
+    - "packages/kernel/tsconfig.json"
+    - "packages/kernel/bunfig.toml"
+    - "packages/kernel/.gitignore"
+    - "packages/kernel/README.md"
+    - "packages/kernel/src/index.ts"
+    - "packages/kernel/src/types.ts"
+    - "packages/kernel/src/diagnostics.ts"
+    - "packages/kernel/src/gates/schemaGate.ts"
+    - "packages/kernel/src/gates/lockGate.ts"
+    - "packages/kernel/src/lock/createPlanLock.ts"
+    - "packages/kernel/src/lock/readPlanLockYaml.ts"
+    - "packages/kernel/src/lock/writePlanLockYaml.ts"
+    - "packages/kernel/src/lock/verifyPlanLock.ts"
+    - "packages/kernel/src/runP2Kernel.ts"
+    - "packages/kernel/test/schemaGate.spec.ts"
+    - "packages/kernel/test/lockGate.spec.ts"
+    - "packages/kernel/test/p2Kernel.spec.ts"
+  total_files: 18
+  forbidden_gate_absence:
+    - "packages/kernel/src/gates/evidenceGate.ts — NOT CREATED ✅"
+    - "packages/kernel/src/gates/wiringGate.ts — NOT CREATED ✅"
+    - "packages/kernel/src/gates/execGate.ts — NOT CREATED ✅"
+    - "packages/kernel/src/gates/finalGate.ts — NOT CREATED ✅"
+
+public_api:
+  primary_exports:
+    - "runSchemaGate"
+    - "runLockGate"
+    - "runP2Kernel"
+    - "createPlanLock"
+    - "readPlanLockYaml"
+    - "writePlanLockYaml"
+    - "verifyPlanLock"
+    - "KernelContext (type)"
+    - "GateVerdict (type)"
+    - "SchemaGateInput (type)"
+    - "LockGateInput (type)"
+    - "PlanLockV01 (type)"
+    - "KernelP2Result (type)"
+
+schema_gate_implementation:
+  file: "src/gates/schemaGate.ts"
+  uses_contracts:
+    - "validatePlanSpec"
+    - "readPlanSpecSchema"
+    - "validatePlanSpecSchema"
+    - "validatePlanSpecSemantics"
+    - "hashPlanSpec"
+  input_modes:
+    - "planYaml — string"
+    - "planPath — file path"
+    - "planObject — pre-parsed PlanSpecV01"
+  pass_behavior: "Returns PASS with PlanHashes and typed PlanSpecV01"
+  fail_behavior: "Returns FAIL with mapped reason codes from contracts diagnostics"
+  reason_codes:
+    - "SCHEMA_PASS"
+    - "YAML_PARSE_ERROR"
+    - "PLAN_FILE_EMPTY"
+    - "PLAN_ROOT_NOT_OBJECT"
+    - "PLAN_SCHEMA_INVALID"
+    - "PLAN_SCHEMA_LOAD_ERROR"
+    - "PLAN_SCHEMA_REF_ERROR"
+    - "PLAN_SEMANTIC_INVALID"
+    - "PLAN_HASH_FAILED"
+  notes: "Does NOT duplicate contracts parser logic — delegates entirely to @praxis/contracts."
+
+plan_lock_model:
+  file_extension: ".lock.yaml"
+  version: "praxis-plan-lock/v0.1"
+  format: "YAML only — no .json lock files created"
+  required_fields:
+    - "lockVersion"
+    - "planSpecVersion"
+    - "kind"
+    - "profile"
+    - "planId"
+    - "createdAt"
+    - "updatedAt"
+    - "hashes (all 7 PlanHash fields)"
+    - "source (schemaPath, optional planPath)"
+  helpers:
+    - "createPlanLock — constructs from plan + hashes"
+    - "readPlanLockYaml — reads and validates .lock.yaml"
+    - "writePlanLockYaml — serializes to YAML file"
+    - "verifyPlanLock — compares current vs locked hashes with per-field reason codes"
+
+lock_gate_implementation:
+  file: "src/gates/lockGate.ts"
+  modes:
+    verify_existing:
+      behavior: "Reads lock, compares planId and all hashes"
+      pass: "All hashes match"
+      hold: "Lock file missing"
+      fail: "Any hash mismatch, version mismatch, bad YAML"
+    create_if_missing:
+      behavior: "Creates lock only if missing; verifies if exists"
+      pass: "Lock created or verified"
+    refresh_explicit:
+      behavior: "Overwrites lock unconditionally"
+      pass: "Lock written"
+  hash_mismatch_mapping:
+    planHash: "PLAN_LOCK_HASH_MISMATCH"
+    acceptanceCriteriaHash: "CRITERIA_CHANGED_AFTER_LOCK"
+    artifactPolicyHash: "ARTIFACT_POLICY_CHANGED_AFTER_LOCK"
+    integrationContractHash: "INTEGRATION_CONTRACT_CHANGED_AFTER_LOCK"
+    commandPolicyHash: "COMMAND_POLICY_CHANGED_AFTER_LOCK"
+    allowedFilesHash: "ALLOWED_FILES_CHANGED_AFTER_LOCK"
+    forbiddenFilesHash: "FORBIDDEN_FILES_CHANGED_AFTER_LOCK"
+  reason_codes: 15 total
+
+p2_pipeline:
+  file: "src/runP2Kernel.ts"
+  flow: "SchemaGate → [stop if FAIL] → LockGate → [stop]"
+  stop_conditions:
+    - "SchemaGate FAIL: LockGate skipped, returns FAIL"
+    - "SchemaGate PASS without plan/hashes: returns FAIL with SCHEMA_GATE_NO_PLAN"
+    - "LockGate completes: returns overall verdict (PASS if both PASS, HOLD if any HOLD, FAIL if any FAIL)"
+  ordered_verdicts: "gateVerdicts[0] = SchemaGate, gateVerdicts[1] = LockGate"
+  attemptId_stability: "Same attemptId used for both gates"
+  forbidden_gates_not_invoked:
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+
+test_results:
+  test_runner: "bun test"
+  schemaGate_tests: 9
+  lockGate_tests: 14
+  p2_pipeline_tests: 5
+  total_tests: 28
+  passed: 28
+  failed: 0
+  coverage:
+    - "SchemaGate PASS on valid example (planYaml)"
+    - "SchemaGate PASS on valid example (planPath)"
+    - "SchemaGate PASS on valid planObject"
+    - "SchemaGate FAIL on invalid YAML"
+    - "SchemaGate FAIL on schema-invalid fixture"
+    - "SchemaGate FAIL on unapproved FinalGate criterion"
+    - "SchemaGate FAIL on empty input"
+    - "SchemaGate output includes hashes on PASS"
+    - "LockGate create_if_missing creates .lock.yaml"
+    - "LockGate verify_existing PASS when hashes match"
+    - "LockGate verify_existing HOLD when lock missing"
+    - "LockGate FAIL on planHash mismatch"
+    - "LockGate FAIL on acceptanceCriteriaHash mismatch (specific code)"
+    - "LockGate FAIL on artifactPolicyHash mismatch (specific code)"
+    - "LockGate FAIL on integrationContractHash mismatch (specific code)"
+    - "LockGate FAIL on planId mismatch"
+    - "LockGate FAIL on bad lock YAML"
+    - "LockGate FAIL on version mismatch"
+    - "LockGate refresh_explicit overwrites and PASS"
+    - "createPlanLock produces valid YAML-serializable lock"
+    - "readPlanLockYaml reads valid lock"
+    - "verifyPlanLock detects hash mismatches"
+    - "Lock file is YAML, not JSON"
+    - "runP2Kernel runs both gates in order"
+    - "runP2Kernel stops after SchemaGate failure"
+    - "runP2Kernel only returns SchemaGate + LockGate"
+    - "attemptId is stable across gates"
+
+validation_results:
+  contracts_tests: "31 pass, 0 fail"
+  kernel_tests: "28 pass, 0 fail"
+  total_tests: "59 pass, 0 fail"
+  typescript_typecheck: "No errors found"
+  python_schema_validation: "38/38 ALL VALIDATIONS PASS"
+  forbidden_mutation_check:
+    kernel_files_only: true
+    contracts_files_minimal: "diagnostics.ts code type widened to string (backward compatible)"
+    schema_files_unchanged: true
+    legacy_planspec_json_untouched: true
+    cli_plugin_untouched: true
+
+acceptance_criteria_results:
+  - id: "AC-001"
+    description: "@praxis/kernel package exists as library-only"
+    status: "PASS"
+  - id: "AC-002"
+    description: "Kernel exports runSchemaGate"
+    status: "PASS"
+  - id: "AC-003"
+    description: "SchemaGate uses @praxis/contracts without duplicating parser logic"
+    status: "PASS"
+  - id: "AC-004"
+    description: "SchemaGate returns PASS GateVerdict on valid PlanSpec"
+    status: "PASS"
+  - id: "AC-005"
+    description: "SchemaGate returns FAIL with diagnostics on invalid input"
+    status: "PASS"
+  - id: "AC-006"
+    description: "Kernel exports PlanLock YAML helpers"
+    status: "PASS"
+  - id: "AC-007"
+    description: "Plan lock canonical format is YAML .lock.yaml, not JSON"
+    status: "PASS"
+  - id: "AC-008"
+    description: "LockGate supports all three modes"
+    status: "PASS"
+  - id: "AC-009"
+    description: "LockGate PASSes when hashes match lock"
+    status: "PASS"
+  - id: "AC-010"
+    description: "LockGate HOLDs when verify_existing and lock missing"
+    status: "PASS"
+  - id: "AC-011"
+    description: "LockGate FAILs with specific reason codes per hash field mismatch"
+    status: "PASS"
+  - id: "AC-012"
+    description: "LockGate detects planId/version/parse errors"
+    status: "PASS"
+  - id: "AC-013"
+    description: "runP2Kernel runs SchemaGate then LockGate and stops"
+    status: "PASS"
+  - id: "AC-014"
+    description: "Types exist: GateVerdict, KernelContext, PlanLockV01, KernelP2Result"
+    status: "PASS"
+  - id: "AC-015"
+    description: "Tests cover SchemaGate, LockGate, and P2 pipeline"
+    status: "PASS"
+  - id: "AC-016"
+    description: "No EvidenceGate/WiringGate/ExecGate/FinalGate/CLI/plugin created"
+    status: "PASS"
+  - id: "AC-017"
+    description: "Contracts tests and schema validation still pass"
+    status: "PASS"
+  - id: "AC-018"
+    description: "ACCP report exists"
+    status: "PASS"
+
+changed_files:
+  created:
+    - "packages/kernel/package.json"
+    - "packages/kernel/tsconfig.json"
+    - "packages/kernel/bunfig.toml"
+    - "packages/kernel/.gitignore"
+    - "packages/kernel/README.md"
+    - "packages/kernel/src/index.ts"
+    - "packages/kernel/src/types.ts"
+    - "packages/kernel/src/diagnostics.ts"
+    - "packages/kernel/src/gates/schemaGate.ts"
+    - "packages/kernel/src/gates/lockGate.ts"
+    - "packages/kernel/src/lock/createPlanLock.ts"
+    - "packages/kernel/src/lock/readPlanLockYaml.ts"
+    - "packages/kernel/src/lock/writePlanLockYaml.ts"
+    - "packages/kernel/src/lock/verifyPlanLock.ts"
+    - "packages/kernel/src/runP2Kernel.ts"
+    - "packages/kernel/test/schemaGate.spec.ts"
+    - "packages/kernel/test/lockGate.spec.ts"
+    - "packages/kernel/test/p2Kernel.spec.ts"
+    - "packages/kernel/bun.lock"
+    - "reports/accp/p2-kernel-schemagate-lockgate.accp.yaml"
+  modified:
+    - "packages/contracts/src/planspec/diagnostics.ts (Diagnostic.code: DiagnosticCode → string — backward compatible)"
+  total_new_files: 20
+
+known_deferred_kernel_checks:
+  - "EvidenceGate — changed file boundary checks, evidence ledger"
+  - "WiringGate — import graph analysis, wiring verification"
+  - "ExecGate — command execution and exit code verification"
+  - "FinalGate — final acceptance criteria satisfaction"
+  - "CLI command handling"
+  - "Claude Code plugin integration"
+  - "Repair packet generation"
+  - "Circuit breaker / governor runtime"
+
+implementation_readiness:
+  status: "READY"
+  ready_for_next_prompt: true
+  blocked_items: []
+  dependency_limitations:
+    - "@praxis/contracts is linked via file:../contracts — works at Bun runtime"
+    - "LockGate uses filesystem for lock file I/O — safe for library usage"
+  notes_for_p3_team: >
+    EvidenceGate can consume SchemaGate.plan and LockGate.hashes from P2 output.
+    The GateVerdict protocol (gateName, verdict, reasonCodes, failedCriteriaIds,
+    evidenceRefs, attemptId, timestamp, diagnostics, repairHint) is established
+    and ready for extension with evidence-specific fields.
+
+next_prompt_recommendation:
+  id: "ACCP-PRAXIS-P3-KERNEL-EVIDENCEGATE"
+  purpose: "Implement EvidenceGate: changed file boundary checks, evidence ledger YAML read model, required evidence mapping, forbidden file mutation detection, diff-empty HOLD/FAIL semantics."
+  start_condition: "P2 SchemaGate + LockGate PASS with AC 18/18."
+  status: "START_CONDITION_MET"

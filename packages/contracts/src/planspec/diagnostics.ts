@@ -37,7 +37,7 @@ export type DiagnosticCode =
 
 /** A single diagnostic — error, warning, or info. */
 export interface Diagnostic {
-  code: DiagnosticCode;
+  code: string;
   severity: DiagnosticSeverity;
   message: string;
   path?: string;

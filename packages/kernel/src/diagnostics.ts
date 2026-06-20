@@ -1,0 +1,60 @@
+// @praxis/kernel — Kernel Diagnostics
+// Helper functions for gate reason codes and diagnostic construction.
+
+import type { Diagnostic, DiagnosticSeverity } from '@praxis/contracts';
+
+/** SchemaGate reason codes. */
+export const SCHEMA_REASON_CODES = {
+  SCHEMA_PASS: 'SCHEMA_PASS',
+  YAML_PARSE_ERROR: 'YAML_PARSE_ERROR',
+  PLAN_FILE_EMPTY: 'PLAN_FILE_EMPTY',
+  PLAN_ROOT_NOT_OBJECT: 'PLAN_ROOT_NOT_OBJECT',
+  PLAN_SCHEMA_INVALID: 'PLAN_SCHEMA_INVALID',
+  PLAN_SCHEMA_LOAD_ERROR: 'PLAN_SCHEMA_LOAD_ERROR',
+  PLAN_SCHEMA_REF_ERROR: 'PLAN_SCHEMA_REF_ERROR',
+  PLAN_SEMANTIC_INVALID: 'PLAN_SEMANTIC_INVALID',
+  PLAN_HASH_FAILED: 'PLAN_HASH_FAILED',
+} as const;
+
+/** LockGate reason codes. */
+export const LOCK_REASON_CODES = {
+  LOCK_PASS: 'LOCK_PASS',
+  LOCK_CREATED: 'LOCK_CREATED',
+  MISSING_PLAN_LOCK: 'MISSING_PLAN_LOCK',
+  PLAN_LOCK_PARSE_ERROR: 'PLAN_LOCK_PARSE_ERROR',
+  PLAN_LOCK_VERSION_MISMATCH: 'PLAN_LOCK_VERSION_MISMATCH',
+  PLAN_ID_MISMATCH: 'PLAN_ID_MISMATCH',
+  PLAN_LOCK_HASH_MISMATCH: 'PLAN_LOCK_HASH_MISMATCH',
+  CRITERIA_CHANGED_AFTER_LOCK: 'CRITERIA_CHANGED_AFTER_LOCK',
+  ARTIFACT_POLICY_CHANGED_AFTER_LOCK: 'ARTIFACT_POLICY_CHANGED_AFTER_LOCK',
+  INTEGRATION_CONTRACT_CHANGED_AFTER_LOCK: 'INTEGRATION_CONTRACT_CHANGED_AFTER_LOCK',
+  COMMAND_POLICY_CHANGED_AFTER_LOCK: 'COMMAND_POLICY_CHANGED_AFTER_LOCK',
+  ALLOWED_FILES_CHANGED_AFTER_LOCK: 'ALLOWED_FILES_CHANGED_AFTER_LOCK',
+  FORBIDDEN_FILES_CHANGED_AFTER_LOCK: 'FORBIDDEN_FILES_CHANGED_AFTER_LOCK',
+  LOCK_HASH_FIELD_MISSING: 'LOCK_HASH_FIELD_MISSING',
+} as const;
+
+/** Map PlanHashes field keys to LockGate mismatch reason codes. */
+export const HASH_FIELD_REASON_MAP: Record<keyof import('@praxis/contracts').PlanHashes, string> = {
+  planHash: LOCK_REASON_CODES.PLAN_LOCK_HASH_MISMATCH,
+  acceptanceCriteriaHash: LOCK_REASON_CODES.CRITERIA_CHANGED_AFTER_LOCK,
+  artifactPolicyHash: LOCK_REASON_CODES.ARTIFACT_POLICY_CHANGED_AFTER_LOCK,
+  integrationContractHash: LOCK_REASON_CODES.INTEGRATION_CONTRACT_CHANGED_AFTER_LOCK,
+  commandPolicyHash: LOCK_REASON_CODES.COMMAND_POLICY_CHANGED_AFTER_LOCK,
+  allowedFilesHash: LOCK_REASON_CODES.ALLOWED_FILES_CHANGED_AFTER_LOCK,
+  forbiddenFilesHash: LOCK_REASON_CODES.FORBIDDEN_FILES_CHANGED_AFTER_LOCK,
+};
+
+/** Create a timestamp string for gate verdicts. */
+export function now(): string {
+  return new Date().toISOString();
+}
+
+/** Build a kernel diagnostic. */
+export function kdiag(
+  code: string,
+  severity: DiagnosticSeverity,
+  message: string,
+): Diagnostic {
+  return { code, severity, message } as Diagnostic;
+}
