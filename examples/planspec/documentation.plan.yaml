@@ -1,0 +1,208 @@
+# PRAXIS PlanSpec v0.1 — Documentation Example
+# Profile: praxis-v0.1 | Kind: ImplementationPlan
+# Demonstrates: artifactPolicy.class=documentation, wiringRequired=false,
+#   no integrationContract, deterministic file/content evidence,
+#   documentation correctly skips wiring/import checks.
+
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-DOCS-001"
+  title: "Update API Documentation"
+  description: "Add health endpoint documentation to the API reference README."
+  createdAt: "2026-06-20T12:00:00Z"
+  humanId: "erfolg"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "docs/api/health.md"
+  forbiddenFiles:
+    - "src/"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 2
+
+tasks:
+  - id: "task-api-docs"
+    title: "API Health Endpoint Documentation"
+    objective: "Write documentation for the GET /health endpoint in docs/api/health.md."
+
+    implementation:
+      instructions:
+        - "Create docs/api/health.md with endpoint description, request format, response format, and example curl command."
+        - "Include status codes (200, 500) and error responses."
+      suggestedSteps:
+        - "Write docs/api/health.md with endpoint reference."
+        - "Verify the file contains required sections: Endpoint, Request, Response, Examples."
+      antiPatterns:
+        - "Do not modify source code."
+        - "Do not create src/ files."
+      expectedOutputs:
+        - "docs/api/health.md with complete API documentation."
+
+    artifactPolicy:
+      class: "documentation"
+      wiringRequired: false
+      reachabilityRequired: false
+      executionRequired: false
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: true
+
+    acceptanceCriteria:
+      - id: "AC-docs-file-exists"
+        description: "Documentation file docs/api/health.md exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "docs/api/health.md"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+            - "source"
+        requiredEvidence:
+          - "diff"
+          - "source"
+
+      - id: "AC-docs-content"
+        description: "Documentation contains required sections: Endpoint, Request, Response, Examples."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_contains"
+          path: "docs/api/health.md"
+          patterns:
+            - "## Endpoint"
+            - "## Request"
+            - "## Response"
+            - "## Example"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "source"
+        requiredEvidence:
+          - "source"
+
+      - id: "AC-docs-no-code"
+        description: "No source code was modified (documentation-only task)."
+        level: "advisory"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "no_diff_contains"
+          path: "src/"
+          deterministic: true
+          canSatisfyFinalGate: false
+          advisoryOnly: true
+          evidenceRefs:
+            - "diff"
+        requiredEvidence:
+          - "diff"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-GREP"
+      kind: "final_validation"
+      command: "grep -c '## Endpoint' docs/api/health.md"
+      evidenceRequired: true
+      timeoutSeconds: 10
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+
+  hardDeniedCommands:
+    - command: "rm -rf"
+      reason: "Destructive operation."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+    - "source"
+    - "command"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes:
+    EvidenceGate:
+      - "EVIDENCE_EMPTY"
+      - "DIFF_EMPTY"
+    ExecGate:
+      - "EXIT_CODE_NONZERO"
+    FinalGate:
+      - "ALL_CRITERIA_MET"
+      - "CRITERIA_PARTIAL"
+      - "FILE_NOT_FOUND"
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 2
+  reverifyCommand: "grep -c '## Endpoint' docs/api/health.md"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

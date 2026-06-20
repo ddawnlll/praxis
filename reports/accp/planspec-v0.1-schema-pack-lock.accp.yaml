@@ -1,0 +1,473 @@
+# ACCP Lock Report — PRAXIS PlanSpec v0.1 Schema Pack Lock
+# accp_version: 2.0.0
+# source_format: ACCP-YAML
+# id: ACCP-PRAXIS-PLANSPEC-V0_1-SCHEMA-PACK-LOCK
+# title: PRAXIS PlanSpec v0.1 Schema Pack Lock
+# created_at: 2026-06-20T00:00:00+03:00
+# execution_mode: schema_pack_lock
+# analyzer: claude-code (ultracode, truth-gated)
+#
+# Locks the hardened PRAXIS PlanSpec v0.1 schema pack as canonical.
+# No kernel/CLI/plugin code implemented.
+
+report:
+  id: PLANSPEC_V0_1_SCHEMA_PACK_LOCK
+  status: PASS
+  status_meaning: >-
+    The PRAXIS PlanSpec v0.1 schema pack is locked as canonical. Schema validates
+    as Draft 2020-12, all examples and fixtures validate, all 6 negative fixtures
+    correctly rejected, all 7 contract docs written, legacy planspec.json preserved
+    and documented as deprecated. Implementation may begin with @praxis/contracts
+    and praxis verify.
+
+# ---------------------------------------------------------------------------
+# EXECUTIVE SUMMARY
+# ---------------------------------------------------------------------------
+executive_summary: |
+  The PRAXIS PlanSpec v0.1 schema pack is LOCKED.
+
+  Schema: `schemas/planspec.v0.1.schema.yaml` (1100 lines, 28 $defs, 27 $refs,
+  all resolve via Draft 2020-12 meta-validation). Identity confirmed:
+  kind=ImplementationPlan, profile=praxis-v0.1, planSpecVersion=0.1.0.
+
+  All 36 validation checks pass across the full pack:
+  - Schema YAML parses ✓
+  - Meta-validates as Draft 2020-12 ✓
+  - All 27 $refs resolve ✓
+  - All 5 examples parse and validate ✓
+  - All 4 PASS fixtures validate ✓
+  - All 6 negative fixtures correctly REJECTED by schema ✓
+  - No forbidden legacy terms (p45Bridge, v411AdapterRequired, etc.) in schema ✓
+  - All required concepts present ✓
+  - Schema identity confirmed ✓
+
+  Key hardened rules enforced by schema:
+  - Dead allOf conditionals fixed (integratedContract enforcement fires)
+  - integrationContract content requirements (mode≠none → ≥1 content array)
+  - AC cross-field constraints (advisoryOnly+canSatisfyFinalGate blocked, unapproved+canSatisfyFinalGate blocked)
+  - String wiring modes trigger integrationContract (consumer_or_export, runner_discovery)
+  - mode:none blocked for runtime_code/cli_command
+  - GateVerdict $def present
+  - hardDeniedCommands structured as deniedCommand objects
+  - commandRef patterns (CMD-*) enforced
+  - Metadata date-time formats enforced
+  - Repair/reports consistency enforced
+
+  Legacy: `planspec.json` preserved at root (Pi P44/v4.11/P45, scored 3.6/10 for v0.1).
+  Documented as deprecated at `docs/contracts/legacy-planspec-deprecation.md`. Not deleted.
+
+  Implementation readiness: GO for @praxis/contracts PlanSpec parser + schema
+  validator + fixture runner. Kernel/CLI/plugin still NOT started. D4 gate + human
+  authorization required for code beyond contracts.
+
+# ---------------------------------------------------------------------------
+# SOURCE RECONCILIATION
+# ---------------------------------------------------------------------------
+source_reconciliation:
+  selected_schema_source: /home/erfolg/src/praxis/praxis_planspec_v0_1.schema.yaml
+  canonical_target: schemas/planspec.v0.1.schema.yaml
+  schema_copied: true
+  source_hash: "254994375c908187a2e38680b81b7396fc22073a996572d0562c7b1598a41de6"  # original hardened source
+  canonical_hash: "from copy of hardened source — re-validated via meta-schema check"
+  selected_example_source: "none — examples created from scratch per example_pack_requirements"
+  legacy_schema_status: preserved_at_root (planspec.json, UNCHANGED, documented as deprecated)
+  diff_summary: >-
+    Only ai_summary.md (project state update) and docs/contracts/gate-verdict.contract.md
+    (updated to match v0.1 gateVerdict $def) were MODIFIED existing files. All other files
+    are NEW: schemas/*, examples/*, fixtures/*, docs/contracts/artifact-policy.contract.md,
+    docs/contracts/integration-contract.contract.md, docs/contracts/legacy-planspec-deprecation.md,
+    docs/contracts/planspec-v0.1.contract.md, docs/contracts/repair-policy.contract.md,
+    docs/contracts/wiring-gate.contract.md, scripts/validate-planspec-v0.1.py,
+    reports/accp/planspec-v0.1-schema-pack-lock.accp.yaml.
+    NO kernel/CLI/plugin implementation files touched.
+
+# ---------------------------------------------------------------------------
+# CANONICAL SCHEMA
+# ---------------------------------------------------------------------------
+canonical_schema:
+  path: schemas/planspec.v0.1.schema.yaml
+  lines: 1100
+  json_schema_draft: "2020-12"
+  root_identity:
+    planSpecVersion: "0.1.0"
+    kind: "ImplementationPlan"
+    profile: "praxis-v0.1"
+  defs_count: 28
+  refs_count: 27
+  all_refs_resolve: true
+  meta_schema_valid: true
+  critical_rules_present:
+    - 'Tasks require artifactPolicy (via task.required)'
+    - 'runtime_code/cli_command require integrationContract (task allOf 0)'
+    - 'wiringRequired=true requires integrationContract (task allOf 1)'
+    - 'consumer_or_export/runner_discovery require integrationContract (task allOf 2)'
+    - 'reachabilityRequired=true requires entrypoints (task allOf 3)'
+    - 'executionRequired=true requires runtimeProbes or usageProofs (task allOf 4)'
+    - 'runtime_code/cli_command cannot use mode:none (task allOf 5)'
+    - 'mode != none requires 1+ content array (integrationContract allOf)'
+    - 'advisoryOnly + canSatisfyFinalGate blocked (acceptanceCriterion allOf 0)'
+    - 'humanApproved=false + canSatisfyFinalGate=true blocked (acceptanceCriterion allOf 1)'
+    - 'repairPacketRequiredOnHoldOrFail=true requires repair.enabled=true (root allOf)'
+    - 'commandRef matches CMD- pattern (4 fields)'
+    - 'createdAt/updatedAt format date-time (metadata)'
+
+# ---------------------------------------------------------------------------
+# EXAMPLES CREATED
+# ---------------------------------------------------------------------------
+examples_created:
+  total: 5
+  all_validated: true
+  items:
+    - file: examples/planspec/runtime-code.plan.yaml
+      class: runtime_code
+      shows: full integrationContract (declaredUnits, integrationPoints, entrypoints, runtimeProbes), humanApproved ACs
+      validates: true
+    - file: examples/planspec/documentation.plan.yaml
+      class: documentation
+      shows: wiringRequired=false, no integrationContract, file/content evidence only
+      validates: true
+    - file: examples/planspec/test-only.plan.yaml
+      class: test_only
+      shows: wiringRequired=false, executionRequired=true, runtimeProbes, no import wiring
+      validates: true
+    - file: examples/planspec/library-code.plan.yaml
+      class: library_code
+      shows: wiringRequired=consumer_or_export, exportSurfaces, usageProofs
+      validates: true
+    - file: examples/planspec/cli-command.plan.yaml
+      class: cli_command
+      shows: wiringRequired=true, command registration, runtimeProbe
+      validates: true
+
+# ---------------------------------------------------------------------------
+# FIXTURES CREATED
+# ---------------------------------------------------------------------------
+fixtures_created:
+  total: 10
+  pass_fixtures: 4
+  negative_fixtures: 6
+  all_pass_fixtures_validate: true
+  all_negative_fixtures_rejected: true
+  items:
+    - id: PASS-001
+      file: fixtures/planspec/pass/runtime-code-full.plan.yaml
+      expected: schema_valid
+      actual: PASS
+    - id: PASS-002
+      file: fixtures/planspec/pass/documentation-no-wiring.plan.yaml
+      expected: schema_valid
+      actual: PASS
+    - id: PASS-003
+      file: fixtures/planspec/pass/test-only-execution.plan.yaml
+      expected: schema_valid
+      actual: PASS
+    - id: PASS-004
+      file: fixtures/planspec/pass/library-export-surface.plan.yaml
+      expected: schema_valid
+      actual: PASS
+    - id: NEG-001
+      file: fixtures/planspec/hold/runtime-code-missing-integration-contract.plan.yaml
+      expected: schema_invalid
+      actual: REJECTED (correctly)
+      reason: runtime_code without integrationContract fails allOf[0]
+    - id: NEG-002
+      file: fixtures/planspec/hold/library-consumer-or-export-missing-proof.plan.yaml
+      expected: schema_invalid
+      actual: REJECTED (correctly)
+      reason: consumer_or_export without integrationContract fails allOf[2]
+    - id: NEG-003
+      file: fixtures/planspec/fail/unapproved-finalgate-criterion.plan.yaml
+      expected: schema_invalid
+      actual: REJECTED (correctly)
+      reason: humanApproved=false+canSatisfyFinalGate=true fails AC allOf[1]
+    - id: NEG-004
+      file: fixtures/planspec/fail/advisory-finalgate-criterion.plan.yaml
+      expected: schema_invalid
+      actual: REJECTED (correctly)
+      reason: advisoryOnly=true+canSatisfyFinalGate=true fails AC allOf[0]
+    - id: NEG-005
+      file: fixtures/planspec/fail/code-artifact-mode-none.plan.yaml
+      expected: schema_invalid
+      actual: REJECTED (correctly)
+      reason: runtime_code+mode:none fails task allOf[5]
+    - id: NEG-006
+      file: fixtures/planspec/fail/repair-report-inconsistent.plan.yaml
+      expected: schema_invalid
+      actual: REJECTED (correctly)
+      reason: repairPacketRequiredOnHoldOrFail=true+repair.enabled=false fails root allOf
+
+# ---------------------------------------------------------------------------
+# DOCS CREATED
+# ---------------------------------------------------------------------------
+docs_created:
+  total: 7
+  items:
+    - file: docs/contracts/planspec-v0.1.contract.md
+      content: PlanSpec contract (root fields, Claude/PRAXIS consumption, v0.1 boundary)
+    - file: docs/contracts/artifact-policy.contract.md
+      content: Artifact class enum, default wiring matrix, false-PASS/HOLD prevention
+    - file: docs/contracts/integration-contract.contract.md
+      content: integrationContract fields, sub-types, mode enum, content requirements, when required
+    - file: docs/contracts/wiring-gate.contract.md
+      content: WiringGate placement, checks, verdicts, reason codes, artifact class behavior
+    - file: docs/contracts/gate-verdict.contract.md
+      content: Updated for v0.1 gateVerdict $def (6 gates, verdict enum, reason codes, MUST/MUST NOT)
+    - file: docs/contracts/repair-policy.contract.md
+      content: Repair const locks, repair-report consistency, RepairPacket shape, strategy rotation
+    - file: docs/contracts/legacy-planspec-deprecation.md
+      content: planspec.json deprecated, canonical replacement, audit scores, no deletion
+
+# ---------------------------------------------------------------------------
+# VALIDATION SCRIPT
+# ---------------------------------------------------------------------------
+validation_script:
+  path: scripts/validate-planspec-v0.1.py
+  language: Python 3
+  dependencies: pyyaml, jsonschema (optional — degrades gracefully)
+  checks:
+    - VAL-001: Schema YAML parse (PASS)
+    - VAL-002: Examples YAML parse (PASS × 5)
+    - VAL-003: Fixtures YAML parse (PASS × 10)
+    - VAL-004: Schema meta-validation (PASS)
+    - VAL-005: $ref resolution (PASS — 27 refs, 28 defs)
+    - VAL-006: Examples validate (PASS × 5)
+    - VAL-007: Fixtures expected pass/fail (PASS × 10)
+    - VAL-008: Forbidden legacy terms absent (PASS)
+    - VAL-009: Required concepts present (PASS — 8/8)
+    - VAL-010: Schema identity (PASS — planSpecVersion, kind, profile)
+  exit_code: 0
+  summary: "36/36 checks pass, 0 failures. Schema pack is ready for lock."
+
+# ---------------------------------------------------------------------------
+# VALIDATION RESULTS
+# ---------------------------------------------------------------------------
+validation_results:
+  run_timestamp: "2026-06-20 (verified)"
+  command: "python scripts/validate-planspec-v0.1.py"
+  exit_code: 0
+  total_checks: 36
+  passed: 36
+  failed: 0
+  key_outcomes:
+    - "Schema meta-validates as Draft 2020-12"
+    - "All 5 examples validate"
+    - "All 4 PASS fixtures validate"
+    - "All 6 negative fixtures correctly rejected by schema"
+    - "No forbidden legacy terms anywhere in schema/examples/fixtures"
+    - "Kind=ImplementationPlan, profile=praxis-v0.1, planSpecVersion=0.1.0 confirmed"
+
+# ---------------------------------------------------------------------------
+# SCORECARD
+# ---------------------------------------------------------------------------
+scorecard:
+  total_score_out_of_10: 9.2
+  dimensions:
+    - id: S1
+      name: Canonical schema identity
+      max_points: 1.0
+      score: 1.0
+      finding: "Schema at canonical path. Identity confirmed: ImplementationPlan, praxis-v0.1, 0.1.0."
+    - id: S2
+      name: Schema hardening and conditional rules
+      max_points: 1.5
+      score: 1.4
+      finding: "All hardened fixes present and empirically verified via 6 negative fixtures. 6 allOf conditions + integrationContract allOf + acceptanceCriterion allOf + root allOf. Minor: some deep conditional chains could be documented more explicitly."
+    - id: S3
+      name: Examples coverage
+      max_points: 1.0
+      score: 1.0
+      finding: "5 examples covering all 5 required artifact classes. All validate. Clear comments document intent."
+    - id: S4
+      name: Negative fixtures coverage
+      max_points: 1.25
+      score: 1.25
+      finding: "6 negative fixtures covering missing contract, missing proof, unapproved finalgate, advisory finalgate, mode:none, repair inconsistency. All correctly rejected. Good coverage of false-PASS/false-HOLD scenarios."
+    - id: S5
+      name: Validation script and empirical proof
+      max_points: 1.25
+      score: 1.25
+      finding: "Script runs without dependencies, degrades gracefully, 36/36 checks pass, clear output color-coded. Empirical proof provided via automated runs."
+    - id: S6
+      name: Contract docs clarity
+      max_points: 1.0
+      score: 0.85
+      finding: "7 contract docs written. Planspec, artifact-policy, integration-contract, wiring-gate, gate-verdict, repair-policy, legacy-deprecation. Gate-verdict updated to match v0.1 gateVerdict $def. Minor: some docs could be more concise."
+    - id: S7
+      name: Legacy deprecation
+      max_points: 0.75
+      score: 0.75
+      finding: "planspec.json preserved, documented as deprecated with clear reasons, audit scores, migration notes, and canonical replacement path. Not deleted."
+    - id: S8
+      name: Implementation readiness
+      max_points: 1.25
+      score: 1.25
+      finding: "All validation passes. Schema pack is complete and validated. @praxis/contracts implementation may begin. Kernel/CLI/plugin NOT started — D4 gate still required."
+    - id: S9
+      name: v0.1 simplicity boundary
+      max_points: 0.75
+      score: 0.60
+      finding: "Execution.mode=single_session, agent=claude-code. No server/runtime/multi-agent. But schema carries 7 wiring $defs, 16 verification types, 11 artifact classes — forward-looking but heavy for 1-2 day MVP. Acceptable for full contract scope."
+    - id: S10
+      name: No premature implementation
+      max_points: 0.25
+      score: 0.25
+      finding: "No kernel/CLI/plugin code created. All files are schemas, examples, fixtures, docs, scripts, reports. Confirmed via git diff."
+
+# ---------------------------------------------------------------------------
+# LEGACY DEPRECATION
+# ---------------------------------------------------------------------------
+legacy_deprecation:
+  legacy_file: planspec.json
+  preserved: true
+  not_deleted: true
+  documented_at: docs/contracts/legacy-planspec-deprecation.md
+  legacy_v0_1_score: 3.6
+  legacy_verdict: HOLD
+  canonical_replacement: schemas/planspec.v0.1.schema.yaml
+  migration: No adapter planned. PRAXIS v0.1 uses task.yaml + schemas/planspec.v0.1.schema.yaml, neither compatible with planspec.json v5-alpha2.
+
+# ---------------------------------------------------------------------------
+# SCHEMA PACK LOCK VERDICT
+# ---------------------------------------------------------------------------
+schema_pack_lock_verdict:
+  verdict: PASS
+  score: 9.2
+  schema_valid: true
+  all_examples_valid: true
+  all_fixtures_valid: true (positive)
+  all_negative_fixtures_rejected: true
+  legacy_preserved_and_deprecated: true
+  no_premature_implementation: true
+  implementation_may_begin: "YES for @praxis/contracts (PlanSpec parser, schema validator, fixture runner). Kernel/CLI/plugin still NOT authorized (D4 gate + human)."
+
+# ---------------------------------------------------------------------------
+# IMPLEMENTATION READINESS
+# ---------------------------------------------------------------------------
+implementation_readiness:
+  implementation_may_begin: true
+  scope: "@praxis/contracts only — PlanSpec parser, schema validator, fixture runner, typed validation result model"
+  not_authorized: "Kernel (gates, evidence, repair, report), CLI (init/spec/verify/repair/status/report), Claude Code plugin (slash commands)"
+  blocking_gate: "D4 Final Plugin-First Design Lock Audit + human authorization for kernel/CLI/plugin"
+  next_recommended_prompt: >-
+    "Implement @praxis/contracts: PlanSpec v0.1 parser (YAML→typed objects), schema
+    validator (Draft 2020-12), fixture runner (all 10 fixtures from fixtures/planspec/),
+    and typed validation result model (ValidationResult with errors/warnings/semantic
+    warnings). Use the canonical schema at schemas/planspec.v0.1.schema.yaml. Write
+    tests covering all 6 negative fixture rejection cases. Design only the parser/validator
+    contract; no kernel gate logic yet."
+
+# ---------------------------------------------------------------------------
+# REMAINING RISKS
+# ---------------------------------------------------------------------------
+remaining_risks:
+  - id: RISK-01
+    description: "Schema is heavy for 1-2 day MVP (7 wiring $defs, 16 verification types, 11 artifact classes). Most fields will be dead weight in the first @praxis/contracts implementation. Mitigation: parser implements all types; validator validates all fields; kernel gates use only the subset implementable in v0.1."
+  - id: RISK-02
+    description: "commandRef cross-validation (CMD-* pattern matched to exactAllowedCommand.id) is pattern-only, not structural cross-reference. JSON Schema 2020-12 cannot cross-validate IDs across array boundaries. Mitigation: kernel validates commandRef existence at runtime; parser can add a post-parse coherence check."
+  - id: RISK-03
+    description: "Semantic-only fixtures (import graph reachability, orphan module detection, evidence ref existence) are documented but not schema-enforceable. Mitigation: documented in fixture comments as semantic_runtime_checks_to_be_implemented."
+  - id: RISK-04
+    description: "acceptanceCriterion.artifactPolicyOverride allows per-AC policy override with no restriction that it must be a subset (restriction) of task-level policy. Mitigation: kernel enforces subset semantics; schema could add an allOf constraint in the future."
+
+# ---------------------------------------------------------------------------
+# NEXT PROMPT RECOMMENDATION
+# ---------------------------------------------------------------------------
+next_prompt_recommendation:
+  id: "ACCP-PRAXIS-P1-CONTRACTS-PARSER-VALIDATOR"
+  purpose: "Implement @praxis/contracts PlanSpec parser, schema validator, fixture runner, and typed validation result model."
+  scope: "@praxis/contracts only — no kernel gate logic, no CLI, no plugin."
+  start_condition: "Schema pack lock returned PASS with score 9.2 >= 8.7."
+
+# ---------------------------------------------------------------------------
+# ACCEPTANCE CRITERIA RESULTS
+# ---------------------------------------------------------------------------
+acceptance_criteria_results:
+  total: 17
+  passed: 17
+  failed: 0
+  results:
+    - {id: AC-001, result: PASS, evidence: "schemas/planspec.v0.1.schema.yaml exists at canonical path (1100 lines)."}
+    - {id: AC-002, result: PASS, evidence: "kind=ImplementationPlan (const), profile=praxis-v0.1 (const), planSpecVersion=0.1.0 (const)."}
+    - {id: AC-003, result: PASS, evidence: "All 11 hardened fixes present. Verified by validation script (VAL-006, VAL-007, VAL-009)."}
+    - {id: AC-004, result: PASS, evidence: "Forbidden legacy terms absent from schema/examples/fixtures. VAL-008 PASS."}
+    - {id: AC-005, result: PASS, evidence: "examples/planspec/runtime-code.plan.yaml validates."}
+    - {id: AC-006, result: PASS, evidence: "examples/planspec/documentation.plan.yaml validates (no integrationContract)."}
+    - {id: AC-007, result: PASS, evidence: "examples/planspec/test-only.plan.yaml validates (execution proof, no import wiring)."}
+    - {id: AC-008, result: PASS, evidence: "examples/planspec/library-code.plan.yaml validates (consumer_or_export proof)."}
+    - {id: AC-009, result: PASS, evidence: "examples/planspec/cli-command.plan.yaml validates (command registration/probe)."}
+    - {id: AC-010, result: PASS, evidence: "All 4 PASS fixtures validate against schema."}
+    - {id: AC-011, result: PASS, evidence: "All 6 negative fixtures correctly rejected by schema."}
+    - {id: AC-012, result: PASS, evidence: "scripts/validate-planspec-v0.1.py exists, runs without install, 36/36 PASS."}
+    - {id: AC-013, result: PASS, evidence: "7 contract docs exist in docs/contracts/."}
+    - {id: AC-014, result: PASS, evidence: "planspec.json preserved at root, documented as deprecated at docs/contracts/legacy-planspec-deprecation.md."}
+    - {id: AC-015, result: PASS, evidence: "This file at reports/accp/planspec-v0.1-schema-pack-lock.accp.yaml."}
+    - {id: AC-016, result: PASS, evidence: "No kernel/CLI/plugin files in git diff. Only schemas, examples, fixtures, docs, scripts, reports, and ai_summary.md."}
+    - {id: AC-017, result: PASS, evidence: "Verdict: PASS. Implementation may begin for @praxis/contracts. Kernel/CLI/plugin NOT authorized."}
+
+# ---------------------------------------------------------------------------
+# CHANGED FILES
+# ---------------------------------------------------------------------------
+changed_files:
+  modified_existing:
+    - ai_summary.md (project state update)
+    - docs/contracts/gate-verdict.contract.md (updated to match v0.1 gateVerdict $def)
+  new_canonical:
+    - schemas/planspec.v0.1.schema.yaml
+    - schemas/README.md
+  new_examples:
+    - examples/planspec/runtime-code.plan.yaml
+    - examples/planspec/documentation.plan.yaml
+    - examples/planspec/test-only.plan.yaml
+    - examples/planspec/library-code.plan.yaml
+    - examples/planspec/cli-command.plan.yaml
+  new_fixtures:
+    - fixtures/planspec/pass/runtime-code-full.plan.yaml
+    - fixtures/planspec/pass/documentation-no-wiring.plan.yaml
+    - fixtures/planspec/pass/test-only-execution.plan.yaml
+    - fixtures/planspec/pass/library-export-surface.plan.yaml
+    - fixtures/planspec/hold/runtime-code-missing-integration-contract.plan.yaml
+    - fixtures/planspec/hold/library-consumer-or-export-missing-proof.plan.yaml
+    - fixtures/planspec/fail/unapproved-finalgate-criterion.plan.yaml
+    - fixtures/planspec/fail/advisory-finalgate-criterion.plan.yaml
+    - fixtures/planspec/fail/code-artifact-mode-none.plan.yaml
+    - fixtures/planspec/fail/repair-report-inconsistent.plan.yaml
+  new_docs:
+    - docs/contracts/planspec-v0.1.contract.md
+    - docs/contracts/artifact-policy.contract.md
+    - docs/contracts/integration-contract.contract.md
+    - docs/contracts/wiring-gate.contract.md
+    - docs/contracts/repair-policy.contract.md
+    - docs/contracts/legacy-planspec-deprecation.md
+  new_scripts:
+    - scripts/validate-planspec-v0.1.py
+  new_reports:
+    - reports/accp/planspec-v0.1-schema-pack-lock.accp.yaml
+
+# ---------------------------------------------------------------------------
+# FORBIDDEN MUTATION CHECK
+# ---------------------------------------------------------------------------
+forbidden_mutation_check:
+  kernel_code_modified: false
+  cli_code_modified: false
+  plugin_code_modified: false
+  source_implementation_files_modified: false
+  package_manager_invoked: false
+  dependencies_installed: false
+  legacy_planspec_json_deleted: false
+  verification: >-
+    git diff confirms only schemas/, examples/, fixtures/, docs/contracts/,
+    scripts/, reports/accp/, and ai_summary.md were changed or created.
+    No kernel/CLI/plugin source files exist in the repo yet.
+
+# ---------------------------------------------------------------------------
+# COMPLETION GATE
+# ---------------------------------------------------------------------------
+completion_gate:
+  ac_001_through_ac_017_pass: true
+  target_score_reached: true (9.2 >= 8.7)
+  schema_pack_validates: true
+  positive_fixtures_validate: true
+  negative_fixtures_rejected: true
+  legacy_preserved_and_deprecated: true
+  no_premature_implementation: true
+  report_exists: true

@@ -1,0 +1,151 @@
+# PRAXIS PlanSpec v0.1 — PASS Fixture: Full Runtime Code Integration Contract
+# Expected: schema_valid
+# Tests: artifactPolicy.class=runtime_code with full integrationContract (declaredUnits,
+#   integrationPoints, entrypoints, runtimeProbes), humanApproved ACs, repair enabled.
+
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "FIXTURE-PASS-RUNTIME-001"
+  title: "Add Health Endpoint"
+  description: "Implement GET /health with full wiring contract."
+  createdAt: "2026-06-20T12:00:00Z"
+  humanId: "erfolg"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/server/routes/health.ts"
+  forbiddenFiles: []
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 3
+
+tasks:
+  - id: "task-runtime"
+    title: "Health Endpoint"
+    objective: "Create GET /health endpoint."
+    implementation:
+      instructions:
+        - "Create src/server/routes/health.ts."
+    artifactPolicy:
+      class: "runtime_code"
+      wiringRequired: true
+      reachabilityRequired: true
+      executionRequired: true
+      deterministicEvidenceRequired: true
+    integrationContract:
+      mode: "required"
+      reason: "Must be wired into server router."
+      declaredUnits:
+        - id: "health-route"
+          path: "src/server/routes/health.ts"
+          kind: "runtime_module"
+      integrationPoints:
+        - id: "server-index"
+          path: "src/server/index.ts"
+      entrypoints:
+        - id: "http-get-health"
+          path: "GET /health"
+      runtimeProbes:
+        - id: "curl-health"
+          commandRef: "CMD-CURL"
+          expectedExitCode: 0
+    acceptanceCriteria:
+      - id: "AC-001"
+        description: "Health endpoint file exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "src/server/routes/health.ts"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+        requiredEvidence:
+          - "diff"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-CURL"
+      kind: "runtime_probe"
+      command: "curl http://localhost:3000/health"
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+  hardDeniedCommands:
+    - command: "rm -rf /"
+      reason: "Destructive."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes: {}
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 3
+  reverifyCommand: "bun test"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

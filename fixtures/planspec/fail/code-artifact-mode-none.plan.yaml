@@ -1,0 +1,138 @@
+# PRAXIS PlanSpec v0.1 — FAIL/NEG Fixture: Code Artifact mode:none
+# Expected: schema_invalid
+# Reason: artifactPolicy.class=runtime_code with integrationContract.mode=none
+#   violates the allOf constraint (bonus fix): runtime_code/cli_command cannot use mode:none.
+
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "FIXTURE-NEG-005"
+  title: "Runtime Code mode:none"
+  description: "runtime_code with integrationContract.mode=none."
+  createdAt: "2026-06-20T12:00:00Z"
+  humanId: "erfolg"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/health.ts"
+  forbiddenFiles: []
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 3
+
+tasks:
+  - id: "task-runtime"
+    title: "Health Endpoint"
+    objective: "Create endpoint."
+    implementation:
+      instructions:
+        - "Create src/health.ts."
+    artifactPolicy:
+      class: "runtime_code"
+      wiringRequired: true
+      reachabilityRequired: false
+      executionRequired: false
+      deterministicEvidenceRequired: true
+    integrationContract:
+      mode: "none"
+      reason: "No wiring."
+      # mode:none is NOT allowed for runtime_code — must fail
+    acceptanceCriteria:
+      - id: "AC-001"
+        description: "File exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "src/health.ts"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+        requiredEvidence:
+          - "diff"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-001"
+      kind: "final_validation"
+      command: "bun test"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+  hardDeniedCommands:
+    - command: "rm -rf"
+      reason: "Destructive."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes: {}
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 3
+  reverifyCommand: "bun test"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

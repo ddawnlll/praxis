@@ -1,0 +1,144 @@
+# PRAXIS PlanSpec v0.1 — PASS Fixture: Library Code Export Surface
+# Expected: schema_valid
+# Tests: artifactPolicy.class=library_code, wiringRequired=consumer_or_export,
+#   integrationContract with exportSurfaces, consumer proof via export surface.
+
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "FIXTURE-PASS-LIB-001"
+  title: "Date Library"
+  description: "Date formatting library."
+  createdAt: "2026-06-20T12:00:00Z"
+  humanId: "erfolg"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/lib/date.ts"
+  forbiddenFiles: []
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 2
+
+tasks:
+  - id: "task-lib"
+    title: "Date Lib"
+    objective: "Create library."
+    implementation:
+      instructions:
+        - "Create src/lib/date.ts."
+    artifactPolicy:
+      class: "library_code"
+      wiringRequired: "consumer_or_export"
+      reachabilityRequired: false
+      executionRequired: false
+      deterministicEvidenceRequired: true
+    integrationContract:
+      mode: "consumer_or_export"
+      reason: "Library exports public API."
+      exportSurfaces:
+        - id: "date-exports"
+          path: "src/lib/date.ts"
+          requiredExports:
+            - "formatDate"
+            - "parseDate"
+    acceptanceCriteria:
+      - id: "AC-001"
+        description: "Library file exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "src/lib/date.ts"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+        requiredEvidence:
+          - "diff"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST"
+      kind: "final_validation"
+      command: "bun test"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+  hardDeniedCommands:
+    - command: "rm -rf"
+      reason: "Destructive."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+    - "source"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes: {}
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 2
+  reverifyCommand: "bun test"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

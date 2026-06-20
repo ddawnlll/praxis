@@ -1,0 +1,329 @@
+# PRAXIS PlanSpec v0.1 — Runtime Code Example
+# Profile: praxis-v0.1 | Kind: ImplementationPlan
+# Demonstrates: artifactPolicy.class=runtime_code, full integrationContract,
+#   wiringRequired=true, reachabilityRequired=true, executionRequired=true,
+#   human-approved acceptance criteria.
+
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-RUNTIME-001"
+  title: "Add Health Check Endpoint"
+  description: "Implement a GET /health endpoint returning {status: ok} with 200 status and unit tests."
+  createdAt: "2026-06-20T12:00:00Z"
+  humanId: "erfolg"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/server/routes/health.ts"
+    - "src/server/__tests__/health.test.ts"
+  forbiddenFiles:
+    - "src/server/index.ts"
+    - "package.json"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 3
+
+tasks:
+  - id: "task-health-endpoint"
+    title: "Health Check Endpoint"
+    objective: "Create a GET /health endpoint returning {status: 'ok'} with HTTP 200 and passing tests."
+
+    implementation:
+      instructions:
+        - "Create src/server/routes/health.ts with an Express/Fastify route handler for GET /health."
+        - "Return JSON {status: 'ok'} with HTTP status 200."
+        - "Create src/server/__tests__/health.test.ts with tests for: 200 response, correct JSON body, error handling."
+        - "Register the route in the server router/index."
+      suggestedSteps:
+        - "Write the health route handler in src/server/routes/health.ts."
+        - "Write unit tests in src/server/__tests__/health.test.ts."
+        - "Wire the route into the server index/router at src/server/index.ts."
+        - "Run tests: bun test src/server/__tests__/health.test.ts."
+        - "Run runtime probe: curl http://localhost:3000/health."
+      antiPatterns:
+        - "Do not modify package.json."
+        - "Do not add new dependencies."
+        - "Do not skip test execution."
+      dependencies:
+        - "src/server/index.ts"
+      expectedOutputs:
+        - "src/server/routes/health.ts implemented."
+        - "src/server/__tests__/health.test.ts with passing tests."
+        - "curl /health returns 200 with {status: 'ok'}."
+
+    artifactPolicy:
+      class: "runtime_code"
+      wiringRequired: true
+      reachabilityRequired: true
+      executionRequired: true
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+
+    integrationContract:
+      mode: "required"
+      reason: "Health endpoint must be wired into server router and reachable via HTTP GET /health."
+      declaredUnits:
+        - id: "health-route"
+          path: "src/server/routes/health.ts"
+          kind: "runtime_module"
+          expectedExports:
+            - "healthRouter"
+          requiredPatterns:
+            - "export.*healthRouter"
+          language: "TypeScript"
+      integrationPoints:
+        - id: "server-index"
+          path: "src/server/index.ts"
+          expectedImports:
+            - "import { healthRouter }"
+          expectedRegistrationPatterns:
+            - "app.use('/health', healthRouter)"
+      entrypoints:
+        - id: "http-get-health"
+          path: "GET /health"
+          kind: "http_endpoint"
+          requiredReachabilityFrom:
+            - "server index"
+      runtimeProbes:
+        - id: "curl-health"
+          commandRef: "CMD-CURL"
+          expectedOutputPatterns:
+            - "status"
+            - "ok"
+          expectedExitCode: 0
+          proves:
+            - "Health endpoint returns 200 OK with correct JSON body."
+
+    acceptanceCriteria:
+      - id: "AC-health-file"
+        description: "Health endpoint file src/server/routes/health.ts exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "src/server/routes/health.ts"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+            - "source"
+        requiredEvidence:
+          - "diff"
+          - "source"
+
+      - id: "AC-health-tests"
+        description: "Health endpoint tests pass (bun test)."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST"
+          patterns:
+            - "tests.*passed"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "test_output"
+            - "command"
+        requiredEvidence:
+          - "test_output"
+          - "command"
+
+      - id: "AC-health-runtime"
+        description: "curl /health returns 200 with {status: 'ok'}."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "runtime_probe"
+          commandRef: "CMD-CURL"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "runtime_probe"
+            - "command"
+        requiredEvidence:
+          - "runtime_probe"
+          - "command"
+
+      - id: "AC-health-wired"
+        description: "Health route is registered in server index (wiring check)."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "integration_contract"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "wiring"
+            - "source"
+        requiredEvidence:
+          - "wiring"
+          - "source"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST"
+      kind: "final_validation"
+      command: "bun test src/server/__tests__/health.test.ts"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-CURL"
+      kind: "runtime_probe"
+      command: "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/health"
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      expectedOutputPatterns:
+        - "200"
+      networkAllowed: true
+      shellAllowed: true
+
+    - id: "CMD-TYPECHECK"
+      kind: "typecheck"
+      command: "bun run typecheck"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+
+  hardDeniedCommands:
+    - command: "rm -rf /"
+      reason: "Destructive filesystem operation."
+    - command: "git push --force"
+      reason: "Force push prohibited."
+    - command: "DROP TABLE"
+      pattern: "DROP\\s+TABLE"
+      reason: "Database destruction prohibited."
+    - command: "npm install"
+      reason: "No new dependencies without approval."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+    - "source"
+    - "wiring"
+    - "command"
+    - "test_output"
+    - "runtime_probe"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes:
+    SchemaGate:
+      - "SCHEMA_INVALID"
+      - "SCHEMA_MISSING_REQUIRED"
+      - "SCHEMA_ADDITIONAL_PROPERTIES"
+    LockGate:
+      - "LOCK_MISSING"
+      - "LOCK_HASH_MISMATCH"
+      - "LOCK_CRITERIA_CHANGED_AFTER_LOCK"
+    EvidenceGate:
+      - "EVIDENCE_EMPTY"
+      - "DIFF_EMPTY"
+      - "NAMESPACE_VIOLATION"
+      - "FILES_CHANGED_MISMATCH"
+    WiringGate:
+      - "WIRING_DECLARED_UNIT_MISSING"
+      - "WIRING_ENTRYPOINT_UNREACHABLE"
+      - "WIRING_EXPORT_MISMATCH"
+      - "WIRING_ORPHAN_MODULE"
+      - "WIRING_RUNTIME_PROBE_FAILED"
+    ExecGate:
+      - "TESTS_RAN_ZERO"
+      - "TESTS_FAILURES"
+      - "EXIT_CODE_NONZERO"
+      - "FORBIDDEN_COMMAND"
+    FinalGate:
+      - "ALL_CRITERIA_MET"
+      - "CRITERIA_PARTIAL"
+      - "CRITERIA_NONE_MET"
+      - "CRITERIA_NOT_HUMAN_APPROVED"
+      - "FILE_NOT_FOUND"
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 3
+  reverifyCommand: "bun test src/server/__tests__/health.test.ts"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "integrationContractHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

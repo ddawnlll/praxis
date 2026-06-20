@@ -1,0 +1,237 @@
+# PRAXIS PlanSpec v0.1 — Library Code Example
+# Profile: praxis-v0.1 | Kind: ImplementationPlan
+# Demonstrates: artifactPolicy.class=library_code,
+#   wiringRequired=consumer_or_export, integrationContract with exportSurfaces,
+#   consumer_or_export proof via export surface.
+
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-LIB-001"
+  title: "Create Date Utility Library"
+  description: "Implement a shared date formatting library with exported functions and consumer-facing types."
+  createdAt: "2026-06-20T12:00:00Z"
+  humanId: "erfolg"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/lib/date-utils.ts"
+    - "src/lib/__tests__/date-utils.test.ts"
+  forbiddenFiles:
+    - "src/server/"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 2
+
+tasks:
+  - id: "task-date-lib"
+    title: "Date Utility Library"
+    objective: "Create a date formatting library with formatDate, parseDate, and isWeekend exports, plus tests."
+
+    implementation:
+      instructions:
+        - "Create src/lib/date-utils.ts with exported functions: formatDate, parseDate, isWeekend."
+        - "Create src/lib/__tests__/date-utils.test.ts with unit tests."
+        - "All exported functions must be typed and documented."
+      suggestedSteps:
+        - "Write formatDate(iso: string, format: string): string."
+        - "Write parseDate(str: string): Date."
+        - "Write isWeekend(date: Date): boolean."
+        - "Write tests covering edge cases (leap years, timezones)."
+      antiPatterns:
+        - "Do not import server-specific modules."
+        - "Do not add runtime dependencies."
+      dependencies: []
+      expectedOutputs:
+        - "src/lib/date-utils.ts with 3 exported functions."
+        - "src/lib/__tests__/date-utils.test.ts with passing tests."
+
+    artifactPolicy:
+      class: "library_code"
+      wiringRequired: "consumer_or_export"
+      reachabilityRequired: false
+      executionRequired: true
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+
+    integrationContract:
+      mode: "consumer_or_export"
+      reason: "Library code must export its public API surface; consumers import from exports. Unit tests serve as usage proof."
+      exportSurfaces:
+        - id: "date-utils-exports"
+          path: "src/lib/date-utils.ts"
+          requiredExports:
+            - "formatDate"
+            - "parseDate"
+            - "isWeekend"
+      usageProofs:
+        - id: "test-usage"
+          commandRef: "CMD-TEST-LIB"
+          expectedOutputPatterns:
+            - "tests.*passed"
+          proves:
+            - "Exported functions are usable by consumers."
+
+    acceptanceCriteria:
+      - id: "AC-lib-file"
+        description: "Library file src/lib/date-utils.ts exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "src/lib/date-utils.ts"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+            - "source"
+        requiredEvidence:
+          - "diff"
+          - "source"
+
+      - id: "AC-lib-exports"
+        description: "All required exports (formatDate, parseDate, isWeekend) are present."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "static_pattern"
+          path: "src/lib/date-utils.ts"
+          patterns:
+            - "export.*function formatDate"
+            - "export.*function parseDate"
+            - "export.*function isWeekend"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "source"
+        requiredEvidence:
+          - "source"
+
+      - id: "AC-lib-tests"
+        description: "Unit tests pass."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-LIB"
+          patterns:
+            - "tests.*passed"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "test_output"
+            - "command"
+        requiredEvidence:
+          - "test_output"
+          - "command"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST-LIB"
+      kind: "final_validation"
+      command: "bun test src/lib/__tests__/date-utils.test.ts"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+
+  hardDeniedCommands:
+    - command: "rm -rf"
+      reason: "Destructive operation."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+    - "source"
+    - "command"
+    - "test_output"
+    - "runtime_probe"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes:
+    WiringGate:
+      - "WIRING_EXPORT_MISMATCH"
+    ExecGate:
+      - "TESTS_RAN_ZERO"
+      - "TESTS_FAILURES"
+    FinalGate:
+      - "ALL_CRITERIA_MET"
+      - "CRITERIA_PARTIAL"
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 2
+  reverifyCommand: "bun test src/lib/__tests__/date-utils.test.ts"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "integrationContractHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

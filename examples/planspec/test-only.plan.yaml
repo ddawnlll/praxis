@@ -1,0 +1,226 @@
+# PRAXIS PlanSpec v0.1 — Test-Only Example
+# Profile: praxis-v0.1 | Kind: ImplementationPlan
+# Demonstrates: artifactPolicy.class=test_only, wiringRequired=false,
+#   executionRequired=true with runtimeProbes, no import wiring,
+#   test runner evidence for deterministic FinalGate.
+
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-TEST-001"
+  title: "Add Integration Tests for Authentication"
+  description: "Write integration tests for the authentication middleware without modifying production code."
+  createdAt: "2026-06-20T12:00:00Z"
+  humanId: "erfolg"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "tests/integration/auth.test.ts"
+  forbiddenFiles:
+    - "src/server/middleware/auth.ts"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 2
+
+tasks:
+  - id: "task-auth-tests"
+    title: "Authentication Integration Tests"
+    objective: "Write integration tests for the auth middleware covering login, token refresh, and forbidden access."
+
+    implementation:
+      instructions:
+        - "Create tests/integration/auth.test.ts with integration test cases."
+        - "Test login endpoint returns JWT token."
+        - "Test token refresh endpoint."
+        - "Test forbidden access returns 403."
+        - "Do NOT modify src/server/middleware/auth.ts or any production code."
+      suggestedSteps:
+        - "Write test file with describe/it blocks for each test case."
+        - "Run tests: bun test tests/integration/auth.test.ts."
+        - "Confirm all tests pass before marking done."
+      antiPatterns:
+        - "Do not modify production source files."
+        - "Do not refactor the auth middleware."
+      expectedOutputs:
+        - "tests/integration/auth.test.ts with 3+ test cases."
+        - "All tests pass."
+
+    artifactPolicy:
+      class: "test_only"
+      wiringRequired: false
+      reachabilityRequired: false
+      executionRequired: true
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+
+    integrationContract:
+      mode: "runtime_probe"
+      reason: "Test execution serves as runtime proof. No import wiring required for test-only artifacts."
+      runtimeProbes:
+        - id: "bun-test-auth"
+          commandRef: "CMD-TEST-AUTH"
+          expectedOutputPatterns:
+            - "tests.*passed"
+            - "0.*failed"
+          expectedExitCode: 0
+          proves:
+            - "All auth integration tests pass."
+
+    acceptanceCriteria:
+      - id: "AC-test-file"
+        description: "Test file tests/integration/auth.test.ts exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "tests/integration/auth.test.ts"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+            - "source"
+        requiredEvidence:
+          - "diff"
+          - "source"
+
+      - id: "AC-test-pass"
+        description: "All authentication integration tests pass."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-AUTH"
+          patterns:
+            - "tests.*passed"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "test_output"
+            - "command"
+        requiredEvidence:
+          - "test_output"
+          - "command"
+
+      - id: "AC-no-prod-change"
+        description: "No production source files were modified."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "no_diff_contains"
+          path: "src/"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+        requiredEvidence:
+          - "diff"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST-AUTH"
+      kind: "final_validation"
+      command: "bun test tests/integration/auth.test.ts"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+
+  hardDeniedCommands:
+    - command: "rm -rf"
+      reason: "Destructive operation."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+    - "source"
+    - "command"
+    - "test_output"
+    - "runtime_probe"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes:
+    WiringGate:
+      - "WIRING_NOT_REQUIRED"
+    ExecGate:
+      - "TESTS_RAN_ZERO"
+      - "TESTS_FAILURES"
+    FinalGate:
+      - "ALL_CRITERIA_MET"
+      - "CRITERIA_PARTIAL"
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 2
+  reverifyCommand: "bun test tests/integration/auth.test.ts"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

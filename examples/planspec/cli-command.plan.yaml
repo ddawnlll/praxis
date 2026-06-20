@@ -1,0 +1,290 @@
+# PRAXIS PlanSpec v0.1 — CLI Command Example
+# Profile: praxis-v0.1 | Kind: ImplementationPlan
+# Demonstrates: artifactPolicy.class=cli_command, wiringRequired=true,
+#   command registration in CLI router, runtimeProbe for command execution,
+#   exactAllowedCommand with final_validation.
+
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-CLI-001"
+  title: "Add praxis status CLI Command"
+  description: "Add a 'praxis status' CLI command that displays the current task state from .praxis/ workspace."
+  createdAt: "2026-06-20T12:00:00Z"
+  humanId: "erfolg"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/cli/commands/status.ts"
+    - "src/cli/index.ts"
+    - "src/cli/__tests__/status.test.ts"
+  forbiddenFiles:
+    - "src/kernel/"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 2
+
+tasks:
+  - id: "task-status-cli"
+    title: "praxis status Command"
+    objective: "Implement the 'praxis status' CLI command that reads .praxis/ workspace and displays task state."
+
+    implementation:
+      instructions:
+        - "Create src/cli/commands/status.ts with a command handler."
+        - "Read .praxis/task.yaml and .praxis/runs/<latest>/verdict.json."
+        - "Display: task ID, title, last verdict, evidence count, failed criteria."
+        - "Register the command in src/cli/index.ts under the 'status' subcommand."
+        - "Write src/cli/__tests__/status.test.ts."
+      suggestedSteps:
+        - "Write the status command handler."
+        - "Register in CLI router."
+        - "Write tests."
+        - "Run tests: bun test src/cli/__tests__/status.test.ts."
+        - "Run CLI: praxis status (verify output format)."
+      antiPatterns:
+        - "Do not modify kernel gate logic."
+        - "Do not add new dependencies."
+      dependencies:
+        - "src/cli/index.ts"
+      expectedOutputs:
+        - "praxis status command displays task state."
+        - "Tests pass."
+
+    artifactPolicy:
+      class: "cli_command"
+      wiringRequired: true
+      reachabilityRequired: true
+      executionRequired: true
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+
+    integrationContract:
+      mode: "required"
+      reason: "CLI command must be registered in the CLI router and executable via the command line."
+      declaredUnits:
+        - id: "status-command"
+          path: "src/cli/commands/status.ts"
+          kind: "cli_module"
+          expectedExports:
+            - "statusCommand"
+      integrationPoints:
+        - id: "cli-router"
+          path: "src/cli/index.ts"
+          expectedRegistrationPatterns:
+            - "program.command('status')"
+            - ".action(statusCommand)"
+      entrypoints:
+        - id: "praxis-status"
+          path: "praxis status"
+          kind: "cli_entrypoint"
+          requiredReachabilityFrom:
+            - "CLI binary entry"
+      runtimeProbes:
+        - id: "praxis-status-run"
+          commandRef: "CMD-STATUS"
+          expectedOutputPatterns:
+            - "Task ID:"
+            - "Verdict:"
+          expectedExitCode: 0
+          proves:
+            - "praxis status command executes and displays task state."
+
+    acceptanceCriteria:
+      - id: "AC-status-file"
+        description: "Command file src/cli/commands/status.ts exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "src/cli/commands/status.ts"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+            - "source"
+        requiredEvidence:
+          - "diff"
+          - "source"
+
+      - id: "AC-status-registered"
+        description: "Status command is registered in CLI router."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "static_pattern"
+          path: "src/cli/index.ts"
+          patterns:
+            - "program.command('status')"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "wiring"
+            - "source"
+        requiredEvidence:
+          - "wiring"
+          - "source"
+
+      - id: "AC-status-tests"
+        description: "Status command tests pass."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST"
+          patterns:
+            - "tests.*passed"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "test_output"
+            - "command"
+        requiredEvidence:
+          - "test_output"
+          - "command"
+
+      - id: "AC-status-runs"
+        description: "praxis status command executes and displays task state."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "runtime_probe"
+          commandRef: "CMD-STATUS"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "runtime_probe"
+            - "command"
+        requiredEvidence:
+          - "runtime_probe"
+          - "command"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST"
+      kind: "final_validation"
+      command: "bun test src/cli/__tests__/status.test.ts"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-STATUS"
+      kind: "runtime_probe"
+      command: "node dist/cli.js status"
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      expectedOutputPatterns:
+        - "Task ID:"
+        - "Verdict:"
+      networkAllowed: false
+      shellAllowed: true
+
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+
+  hardDeniedCommands:
+    - command: "rm -rf"
+      reason: "Destructive operation."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+    - "source"
+    - "wiring"
+    - "command"
+    - "test_output"
+    - "runtime_probe"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes:
+    WiringGate:
+      - "WIRING_DECLARED_UNIT_MISSING"
+      - "WIRING_ENTRYPOINT_UNREACHABLE"
+      - "WIRING_REGISTRATION_MISSING"
+    ExecGate:
+      - "TESTS_RAN_ZERO"
+      - "TESTS_FAILURES"
+    FinalGate:
+      - "ALL_CRITERIA_MET"
+      - "CRITERIA_PARTIAL"
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 2
+  reverifyCommand: "bun test src/cli/__tests__/status.test.ts"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "integrationContractHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true
