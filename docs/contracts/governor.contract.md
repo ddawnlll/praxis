@@ -1,6 +1,8 @@
+> **⚠ Future scope for v0.1 (ADR-013 Plugin-First Pivot):** Governor and concurrency tiers are FUTURE scope for v0.1. v0.1 is single-session manual verification. See `docs/adr/ADR-013-plugin-first-pivot.md`.
+
 # Governor Contract
 
-**Status:** DRAFT_FOR_AUDIT
+**Status:** DRAFT_FOR_AUDIT (FUTURE for v0.1)
 **Version:** v0.1
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Define the Governor contract -- the concurrency control authority that determines how many workers can safely run concurrently. The Governor controls concurrency, not truth. It manages worker capacity through tiered promotion, demotion on instability, and state signaling (GREEN/YELLOW/RED) that feeds the Circuit Breaker.

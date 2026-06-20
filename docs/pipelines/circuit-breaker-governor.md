@@ -1,6 +1,8 @@
+> **⚠ Future scope for v0.1 (ADR-013 Plugin-First Pivot):** Circuit Breaker and Governor are FUTURE scope for v0.1. v0.1 uses manual `/praxis:verify` with no automated admission loop or concurrency control. See `docs/adr/ADR-013-plugin-first-pivot.md`.
+
 # Circuit Breaker and Governor Pipeline
 
-**Status:** DRAFT_FOR_AUDIT
+**Status:** DRAFT_FOR_AUDIT (FUTURE for v0.1)
 **Version:** v0.1
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Define the interaction between the Circuit Breaker (system-level safety authority) and the Governor (concurrency authority), including state machines, triggers, and how they protect PRAXIS from cascading failures.

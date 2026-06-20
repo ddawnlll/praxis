@@ -1,6 +1,8 @@
+> **⚠ Future scope for v0.1 (ADR-013 Plugin-First Pivot):** This document describes server/runtime, SSE event streaming, RuntimeSnapshot, and append-only event log — all FUTURE scope for v0.1. v0.1 uses local JSONL files in `.praxis/`. See `docs/adr/ADR-013-plugin-first-pivot.md`.
+
 # Runtime Event Flow
 
-**Status:** DRAFT_FOR_AUDIT
+**Status:** DRAFT_FOR_AUDIT (FUTURE for v0.1)
 **Version:** v0.1
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Define the RuntimeEvent model, append-only event log, SSE streaming, snapshot mechanism, event replay, and UI state update rules. This is the authoritative specification for the PRAXIS event-sourced UI model.

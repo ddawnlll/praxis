@@ -1,6 +1,8 @@
+> **⚠ Future scope for v0.1 (ADR-013 Plugin-First Pivot):** Circuit Breaker is FUTURE scope for v0.1. v0.1 uses manual `/praxis:verify` with no automated admission control. See `docs/adr/ADR-013-plugin-first-pivot.md`.
+
 # Circuit Breaker Contract
 
-**Status:** DRAFT_FOR_AUDIT
+**Status:** DRAFT_FOR_AUDIT (FUTURE for v0.1)
 **Version:** v0.1
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Define the Circuit Breaker contract -- the safety component that protects the PRAXIS system from sustained instability by blocking new admissions when system-wide safety thresholds are exceeded. The Circuit Breaker is kernel-owned and answers "Is the whole system safe enough to admit work?"

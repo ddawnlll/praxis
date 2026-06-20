@@ -1,574 +1,376 @@
-# Product Scope
+# Product Scope — Plugin-First Pivot
 
 **Status:** DRAFT_FOR_AUDIT
-**Version:** v0.1
+**Version:** v0.1 (post-ADR-013 Plugin-First Pivot)
 **Canonical decisions:** `docs/decisions.md`
-**Purpose:** Define PRAXIS product scope, MVP staging (MVP-A, MVP-B, MVP-C), in-scope and out-of-scope features, and post-MVP roadmap.
+**Authoritative ADR:** `docs/adr/ADR-013-plugin-first-pivot.md`
 
-> This document must not override `docs/decisions.md`. If there is a conflict, `docs/decisions.md` wins.
-
----
-
-## Purpose
-
-This document defines the product scope for PRAXIS v2.0. It answers:
-
-- **What is PRAXIS?** -- a local-first execution platform for autonomous AI coding workers.
-- **What is the primary operator interface?** -- Desktop Mission Control.
-- **What is in MVP?** -- staged across MVP-A, MVP-B, MVP-C.
-- **What is explicitly out of MVP?** -- rejected features that agents must not build.
-- **What comes after MVP?** -- post-MVP roadmap.
+> **Supersession notice:** This document replaces the previous desktop-first product scope (MVP-A/B/C staging with Desktop Mission Control). For v0.1, Desktop Mission Control, server/runtime, SSE, PostgreSQL, Circuit Breaker, Governor, stable_16, wave scheduler, and multi-worker orchestration are FUTURE scope. See ADR-013.
 
 ---
 
-## Scope
+## Product Identity
 
-Covers the full product scope from pre-MVP (P-1/P0 planning and foundation port) through MVP stages (MVP-A, MVP-B, MVP-C) to post-MVP (production hardening, optional cloud, CLI improvements). This is a product-level scope document, not a technical implementation plan. See `docs/phase-map.md` for implementation phases and `todo.md` for task tracking.
+**PRAXIS is not a coding agent. PRAXIS is a local Truth Kernel for agentic coding tools.**
 
----
+PRAXIS answers one question: "Did the agent actually complete the task?" (Turkish: "Bitti mi gerçekten?")
 
-## Non-Goals
+The Claude Code plugin is the first UX/integration layer — it exposes slash commands that call the praxis CLI. The plugin is a bridge, not the product core. The product core is the local Truth Kernel that verifies evidence against human-authored acceptance criteria.
 
-- This document does **not** define architecture. See `architecture.md`.
-- This document does **not** define implementation phases. See `docs/phase-map.md`.
-- This document does **not** define contracts or APIs. See `docs/contracts/`.
-- This document does **not** replace `docs/decisions.md` as the decision authority.
+### What PRAXIS Is
 
----
+- A local verification and control layer that sits **above** existing coding agents
+- A Truth Kernel that produces PASS/HOLD/FAIL verdicts from evidence, not agent claims
+- A CLI tool + Claude Code plugin that lets operators verify agent work post-execution
+- A local evidence store (`.praxis/`) with JSONL/YAML/JSON files
+- A repair packet generator for failed criteria
 
-## Authoritative Decisions Used
+### What PRAXIS Is Not
 
-| Decision ID | Summary | Source |
-|-------------|---------|--------|
-| D-001 | PRAXIS is a local-first execution platform | `docs/decisions.md` |
-| D-002 | Desktop Mission Control is part of MVP and is the main operator control panel | `docs/decisions.md` |
-| D-003 | Basic Electron operator shell is in scope for MVP | `docs/decisions.md` |
-| D-004 | Mission Control dashboard is in scope for MVP | `docs/decisions.md` |
-| D-005 | Runtime state viewer is in scope for MVP | `docs/decisions.md` |
-| D-006 | TaskRun list/detail is in scope for MVP | `docs/decisions.md` |
-| D-007 | Worker grid is in scope for MVP | `docs/decisions.md` |
-| D-008 | Evidence/log stream is in scope for MVP | `docs/decisions.md` |
-| D-009 | Gate verdicts are in scope for MVP | `docs/decisions.md` |
-| D-010 | Circuit Breaker / Governor status are in scope for MVP | `docs/decisions.md` |
-| D-011 | Human action queue is in scope for MVP | `docs/decisions.md` |
-| D-012 | Production polish is not MVP-critical | `docs/decisions.md` |
-| D-013 | Cloud dashboard is out of MVP scope | `docs/decisions.md` |
-| D-014 | Old pi/web-ui reuse is rejected | `docs/decisions.md` |
-| D-015 | CLI-only MVP is rejected | `docs/decisions.md` |
-| D-025 | HTTP commands/queries + SSE event stream is MVP communication model | `docs/decisions.md` |
-| D-044 | P0 is Selective pi/ Reuse Foundation Port, not migration | `docs/decisions.md` |
-| D-051 | Full pi/ migration is rejected | `docs/decisions.md` |
-| D-063 | Desktop app is the main control panel | `docs/decisions.md` |
-| D-064 | Electron + React + Tailwind/Radix/TanStack direction | `docs/decisions.md` |
-| D-084 | Circuit Breaker is kernel-owned | `docs/decisions.md` |
+- A coding agent (does not write code itself)
+- A Claude Code clone or competitor
+- An OpenCode/MiMo clone or competitor
+- A desktop-first multi-agent orchestrator (in v0.1)
+- A server/runtime platform (in v0.1)
+- "Only a Claude Code plugin" — the kernel is independent
 
 ---
 
-## Conceptual Model
+## v0.1 MVP Scope
 
-PRAXIS is a **local-first execution platform**, not a cloud service, not a CI pipeline, not an IDE plugin. It runs on the operator's machine, connects to local or remote AI coding workers, and provides a Desktop Mission Control interface for supervision.
+### In Scope
+
+| Component | Description |
+|-----------|-------------|
+| **praxis CLI** | Local binary: `praxis init`, `praxis spec`, `praxis verify`, `praxis repair`, `praxis status`, `praxis report` |
+| **local Truth Kernel** | EvidenceGate, ExecGate, FinalGate, TestOutputParser, RepairPacket, local report generation |
+| **Claude Code plugin UX** | Six slash commands (`/praxis:init`, `/praxis:spec`, `/praxis:verify`, `/praxis:repair`, `/praxis:status`, `/praxis:report`) that call praxis CLI |
+| **`.praxis/task.yaml`** | Human-approved task specification with acceptance criteria |
+| **`.praxis/evidence/*.jsonl`** | JSONL evidence store (diffs, command logs, test output, file changes) |
+| **`.praxis/reports/*.md`** | Local audit reports after PASS/HOLD/FAIL |
+| **EvidenceGate** | Checks that evidence exists: diff, changed files, command logs, test logs, tool/hook captures if available |
+| **ExecGate** | Checks that required commands/tests actually ran and produced parseable results |
+| **FinalGate** | Checks human-authored acceptance criteria against evidence. Worker self-report does not count |
+| **TestOutputParser** | Parses test runner output for pass/fail/count |
+| **RepairPacket** | Constrained repair guidance from failed criteria (cannot modify acceptance criteria) |
+| **Manual verify/repair loop** | Operator runs `/praxis:verify` after agent finishes; runs `/praxis:repair` on HOLD/FAIL |
+
+### Out of Scope (v0.1 Non-Goals)
+
+| Excluded Component | Why | Target |
+|--------------------|-----|--------|
+| **Desktop Mission Control (Electron)** | Premature for v0.1; plugin + CLI sufficient | v0.3+ |
+| **server/runtime (Hono + HTTP + SSE)** | Not needed for manual verify | v0.2+ |
+| **PostgreSQL event log** | JSONL files sufficient for single-session | v0.2+ |
+| **RuntimeSnapshot / RuntimeEvent sourcing** | No server, no runtime state to snapshot | v0.2+ |
+| **Circuit Breaker** | Manual verify; no automated admission loop | v0.2+ |
+| **Governor / stable_N concurrency** | Single-session only; no multi-worker | v0.3+ |
+| **Wave scheduler** | No multi-worker orchestration | v0.3+ |
+| **Deterministic Assembler** | No multi-worker integration | v0.3+ |
+| **Multi-agent orchestration** | Single-agent verification only | v0.3+ |
+| **Own coding agent loop** | Killed from v0.1 — agents run independently | N/A |
+| **Automatic repair loop** | Manual repair only in v0.1 | v0.2+ |
+| **Stop hook automatic verification** | Future hypothesis; not proven | v0.2+ |
+| **MiMo/OpenCode/Hermes adapters** | Claude Code plugin first | v0.2+ |
+| **ACCP-lite artifact generation** | Optional; reports are Markdown | Future |
+
+---
+
+## Killed from v0.1
+
+These are permanently removed from the v0.1 roadmap:
+
+- Own terminal coding agent loop
+- Own Claude Code clone
+- Own OpenCode/MiMo clone
+- Own subagent engine
+- Own memory/context compaction system
+- Own autonomous coding runtime
+- Provider routing layer
+- Model-hosting layer
+
+---
+
+## Future Scope
+
+Components deferred to post-v0.1. All are preserved in the roadmap but not designed or implemented now.
+
+| Target | Components |
+|--------|------------|
+| **v0.2** | server/runtime (Hono, HTTP, SSE), PostgreSQL event log, RuntimeSnapshot, Circuit Breaker, MiMo/OpenCode adapters, automatic repair loops |
+| **v0.3** | Desktop Mission Control (Electron + React), Governor, Wave scheduler, Deterministic Assembler, multi-worker orchestration |
+| **v0.4+** | Multi-agent Mission Control, stable_16, full semantic conflict detection, cloud dashboard (optional) |
+
+---
+
+## User Journey (v0.1)
+
+### Manual Verify/Repair Loop
 
 ```
-Operator
-   │
-   ▼
-┌──────────────────────────┐
-│  Desktop Mission Control  │  ← Primary operator interface
-│  (Electron + React)       │
-└──────────┬───────────────┘
-           │ HTTP + SSE (localhost)
-           ▼
-┌──────────────────────────┐
-│  PRAXIS Runtime Server    │  ← Local process (127.0.0.1)
-│  (Hono + PostgreSQL)      │
-└──────────┬───────────────┘
-           │
-           ▼
-┌──────────────────────────┐
-│  PRAXIS Kernel            │  ← Safety & verification brain
-│  (FSM, Gates, CB, etc.)   │
-└──────────┬───────────────┘
-           │
-           ▼
-┌──────────────────────────┐
-│  Worker Adapters          │  ← Claude Code, OpenCode, etc.
-│  (external processes)     │
-└──────────────────────────┘
+1. Operator initializes PRAXIS workspace:
+   /praxis:init
+   → creates .praxis/ with task.yaml skeleton
+
+2. Operator (or agent, with human approval) defines task:
+   /praxis:spec
+   → drafts .praxis/task.yaml with acceptance criteria
+   → human reviews and approves (human_approved: true)
+
+3. Agent (Claude Code, independently) does the work:
+   → writes code, runs tests, edits files
+   → PRAXIS does NOT orchestrate this step in v0.1
+
+4. Operator verifies:
+   /praxis:verify
+   → reads .praxis/task.yaml
+   → collects evidence (diff, changed files, command logs, test output)
+   → runs EvidenceGate → ExecGate → FinalGate
+   → produces PASS / HOLD / FAIL verdict
+
+5. If HOLD or FAIL, operator requests repair:
+   /praxis:repair
+   → generates RepairPacket from failed criteria
+   → operator gives repair packet to agent
+   → agent fixes issues (independently)
+   → operator runs /praxis:verify again
+
+6. Operator generates final report:
+   /praxis:report
+   → produces .praxis/reports/<run_id>.md
 ```
 
-The operator uses Desktop Mission Control to admit plans, monitor task runs, inspect evidence and gate verdicts, and respond to human action requests. A CLI is available as a secondary interface. The runtime server and kernel run locally. Workers run in isolated workspaces.
+### Key Principle
+
+**The agent runs independently. PRAXIS verifies after.** PRAXIS does not interrupt, modify, or control the agent's execution loop in v0.1. The operator decides when to verify.
 
 ---
 
-## MVP Scope: Staged Delivery
+## Why Not Desktop-First?
 
-PRAXIS MVP is staged, not one giant release. Each stage adds a layer of capability and proves a specific part of the safety model.
+The original PRAXIS design targeted Desktop Mission Control as the primary operator interface. This was downgraded to future scope for v0.1 because:
 
-### MVP-A -- Mock Runtime Proof
+1. **Desktop is a large investment.** Electron + React + Tailwind + TanStack + SSE client + all panels (dashboard, worker grid, evidence stream, CB status, etc.) is months of work before proving the core verification model.
 
-**Goal:** Prove the Desktop Mission Control can render realistic system state without a real backend. Prove the event-sourced UI model works.
+2. **Plugin + CLI proves the kernel faster.** A Claude Code plugin with six slash commands can be validated with real sessions immediately.
 
-**What it includes:**
+3. **The kernel is the product, not the UI.** If the Truth Kernel works, any UI can wrap it later. If it doesn't work, no UI saves it.
 
-| Feature | Description |
-|---------|-------------|
-| Basic Electron operator shell | Electron app window, menus, basic chrome. Functional but not polished. |
-| Mission Control dashboard | Main operator view showing runtime state, active workers, task runs, gate verdicts, and system health. All data is mock. |
-| Runtime state viewer | Snapshot-based rendering of current runtime state. |
-| TaskRun list/detail | List of task runs with expandable detail view showing FSM state, attempts, evidence, and verdicts. |
-| Worker grid | Grid showing which workers are active, their status, and workspace assignments. |
-| Evidence/log stream | Scrollable real-time event stream showing evidence records, log entries, and system events. SSE-backed. |
-| Gate verdicts display | Verdict panel showing EvidenceGate, ExecGate, FinalGate results for each attempt. |
-| Circuit Breaker status | Status panel showing CLOSED/OPEN/HALF_OPEN state, trigger reason, diagnostic snapshot. |
-| Governor status | Status panel showing current concurrency tier, active/max workers, clean operation window. |
-| Human action queue | List of pending human actions (HIR requests, conflict resolutions, override confirmations). |
-| Mock data layer | Typed mock data for all UI views. Simulates realistic task runs, gate verdicts, CB transitions. |
-| SSE event stream (mock) | In-memory event log producing realistic events consumed by desktop via EventSource. |
-
-**What it does NOT include:**
-
-- Real worker execution (no Claude Code, no real AI worker)
-- Real kernel safety core (gates are simulated, not implemented)
-- Real PostgreSQL storage (events are in-memory)
-- Real Circuit Breaker trigger evaluation (state is mock-driven)
-- CLI beyond basic status
-
-**Gate verdict:** Desktop opens and displays realistic mock state without any backend dependency. All required panels render. UI does not invent completion state.
+4. **Desktop observability is valuable but premature.** Operators need to see evidence and verdicts. A CLI with Markdown reports provides this for v0.1. Rich visualization can follow.
 
 ---
 
-### MVP-B -- Single Real Worker
+## Why Not an Agent Clone?
 
-**Goal:** Prove PRAXIS can supervise one real Claude Code worker with full evidence capture, gate evaluation, and false-done detection.
+PRAXIS explicitly does NOT build its own coding agent loop for v0.1 because:
 
-**What it includes (adds to MVP-A):**
+1. **Claude Code, MiMo Code, and OpenCode already exist.** They are mature, well-funded, and rapidly improving. Competing at the agent harness layer is a losing strategy.
 
-| Feature | Description |
-|---------|-------------|
-| Real Claude Code adapter | Starts Claude Code headless in isolated workspace. Full command builder, env setup, hook installation. |
-| PRAXIS hooks | PreToolUse, PostToolUse, Stop hook binaries capturing raw tool events from Claude Code. |
-| KernelOwnedTranscript | Complete transcript of Claude session captured by hooks, not by Claude's self-report. |
-| Evidence capture | Git diffs, changed files, command output, exit codes, timestamps. Evidence Hash Chain (EHC) construction. |
-| EvidenceGate | Verifies real file changes occurred inside declared namespace. Detects empty diffs. |
-| ExecGate | Verifies commands ran and tests actually passed. Detects zero-test-ran scenarios. Uses test output parser. |
-| FinalGate | Evaluates human-authored acceptance criteria from TaskSpec. file_exists, test_passes, command_output, diff_contains, no_diff_contains. |
-| False-done detection | Empty diff -> HOLD. Zero tests ran -> HOLD. Agent claim without evidence -> HOLD. |
-| Divergence detection | Compares hook-captured tool events against Claude's self-reported results. Flags mismatches. |
-| Circuit Breaker (real) | CLOSED/OPEN/HALF_OPEN states. Failure rate trigger (>30% in 10min). Governor RED trigger. EHC CONFIRMED trigger. |
-| RIM (basic) | Attempt 1-2: initial strategy. Repair packet construction. |
-| Real evidence stream | Desktop shows real evidence records, real gate verdicts, real CB transitions from live worker. |
+2. **The unique PRAXIS value is verification, not execution.** No existing tool verifies agent outputs with independent evidence gates and human-authored criteria.
 
-**What it does NOT include:**
-
-- Multiple parallel workers
-- Wave scheduler or dependency graph
-- Assembler (only one worker, no integration needed)
-- Governor concurrency tiers beyond single worker
-- ACCP artifact generation (FVR/PRR are P6)
-
-**Gate verdict:** One real Claude Code attempt runs in isolated workspace. Empty diff false-done is caught. Gate verdicts are correct. Divergence is detected. Circuit Breaker transitions work.
+3. **Building an agent loop would delay the kernel.** The agent loop (tool use, stop detection, context management, provider routing) is a separate and large engineering problem. PRAXIS focuses on what happens after the agent finishes.
 
 ---
 
-### MVP-C -- Three Parallel Workers
+## Command UX (v0.1)
 
-**Goal:** Prove PRAXIS can safely run multiple workers with namespace isolation and deterministic assembly.
+| Slash Command | CLI Equivalent | Purpose | Verdicts |
+|---------------|---------------|---------|----------|
+| `/praxis:init` | `praxis init` | Initialize `.praxis` workspace, config, task skeleton, evidence/report directories | — |
+| `/praxis:spec` | `praxis spec` | Help draft task spec; human must approve acceptance criteria | — |
+| `/praxis:verify` | `praxis verify --task .praxis/task.yaml --workspace .` | Run Truth Kernel gates against evidence | PASS / HOLD / FAIL |
+| `/praxis:repair` | `praxis repair --last-run` | Generate constrained repair packet from failed criteria | — |
+| `/praxis:status` | `praxis status` | Show current task, last verdict, evidence count, failed criteria | — |
+| `/praxis:report` | `praxis report` | Generate final audit report | — |
 
-**What it includes (adds to MVP-B):**
+### Agent Can Draft, Human Approves
 
-| Feature | Description |
-|---------|-------------|
-| Wave scheduler | Schedules task runs within a wave respecting dependency graph. |
-| Dependency graph | Tracks task dependencies. Ensures dependent tasks wait for prerequisites. |
-| Namespace locks | Exclusive file path ownership per worker. No two workers touch the same files. |
-| Workspace manager | Creates isolated worktrees per worker. Manages cleanup. |
-| Governor (real) | stable_3 concurrency tier. Clean operation window tracking. Demotion on instability. |
-| Deterministic Assembler | Namespace recheck, basic semantic signature extraction, atomic patch apply, rollback, ConflictReport. |
-| Conflict detection | Detects when two workers' outputs conflict at integration points. |
-| ConflictReport | Structured report: conflict type, files, workers involved, resolution hint, affected task runs. |
-| Repair injection | ConflictReport injected into RepairPacket when assembly fails. Affected tasks re-dispatched. |
-| Three real workers | Three Claude Code workers running concurrently on a coordinated plan. |
-
-**What it does NOT include:**
-
-- stable_6, stable_8, stable_12, stable_16 concurrency tiers (only stable_3 is MVP-C)
-- Full semantic conflict detection (basic only in MVP-C)
-- ACCP artifact generation (FVR/PRR are P6)
-
-**Gate verdict:** Three workers run in parallel. Assembler produces correct integration. Rollback works on conflict. Governor tiers function. Circuit Breaker opens on cascade failure.
+`/praxis:spec` allows the agent to draft a task YAML, but:
+- Agent-generated acceptance criteria are marked `human_approved: false`
+- FinalGate ignores criteria with `human_approved: false`
+- Only the human operator can set `human_approved: true`
 
 ---
 
-## In MVP Scope -- Complete Feature List
-
-### Operator Interface (Desktop Mission Control)
-
-| Feature | MVP Stage |
-|---------|-----------|
-| Basic Electron operator shell | MVP-A |
-| Mission Control dashboard | MVP-A |
-| Runtime state viewer | MVP-A |
-| TaskRun list/detail | MVP-A |
-| Worker grid | MVP-A |
-| Evidence/log stream | MVP-A |
-| Gate verdicts display | MVP-A |
-| Circuit Breaker status panel | MVP-A |
-| Governor status panel | MVP-A |
-| Human action queue | MVP-A |
-| Plan list view | MVP-A |
-| Plan composer / admit plan | MVP-B |
-| Evidence inspector (detailed) | MVP-B |
-| Assembler view (wave status) | MVP-C |
-| Conflict resolution UI | MVP-C |
-
-### Runtime Server
-
-| Feature | MVP Stage |
-|---------|-----------|
-| Local HTTP server (127.0.0.1) | MVP-A |
-| GET /api/snapshot | MVP-A |
-| GET /api/events (SSE) | MVP-A |
-| POST /api/plans/admit | MVP-B |
-| POST /api/runs/:runId/pause | MVP-B |
-| POST /api/runs/:runId/resume | MVP-B |
-| POST /api/hir/:hirId/resolve | MVP-B |
-| POST /api/workers/:workerId/kill | MVP-B |
-| POST /api/circuit-breaker/reset | MVP-B |
-| Security token | MVP-A |
-
-### Kernel
-
-| Feature | MVP Stage |
-|---------|-----------|
-| TaskRun FSM (DORMANT -> COMPLETE/ABORTED/FAILED) | MVP-B |
-| PSAG (minimal admission gate) | MVP-B |
-| Evidence capture + EHC | MVP-B |
-| EvidenceGate | MVP-B |
-| ExecGate | MVP-B |
-| FinalGate | MVP-B |
-| False-done detection | MVP-B |
-| Divergence detection | MVP-B |
-| Circuit Breaker (CLOSED/OPEN/HALF_OPEN, all triggers) | MVP-B |
-| RIM (basic strategy rotation, 6 strategies) | MVP-B |
-| Wave scheduler | MVP-C |
-| Dependency graph | MVP-C |
-| Namespace locks | MVP-C |
-| Governor (stable_3 tier) | MVP-C |
-| Deterministic Assembler | MVP-C |
-| Conflict detection + ConflictReport | MVP-C |
-
-### Workers
-
-| Feature | MVP Stage |
-|---------|-----------|
-| Mock worker (multiple simulation modes) | MVP-A |
-| Claude Code adapter | MVP-B |
-| PRAXIS hooks (PreToolUse, PostToolUse, Stop) | MVP-B |
-| KernelOwnedTranscript | MVP-B |
-| Local spool (hook fallback) | MVP-B |
-| Rate limit detection | MVP-B |
-| 3 concurrent real workers | MVP-C |
-
-### CLI (Secondary)
-
-| Feature | MVP Stage |
-|---------|-----------|
-| `praxis status` | MVP-B |
-| `praxis runs` | MVP-B |
-| `praxis run <id>` | MVP-B |
-| `praxis admit <plan>` | MVP-B |
-
-### Storage
-
-| Feature | MVP Stage |
-|---------|-----------|
-| In-memory event log | MVP-A |
-| PostgreSQL durable storage | MVP-B |
-| Runtime event replay | MVP-B |
-| Runtime restart recovery | MVP-C |
-
-### Testing
-
-| Feature | MVP Stage |
-|---------|-----------|
-| False-done tests | MVP-B |
-| Empty diff tests | MVP-B |
-| Zero tests ran tests | MVP-B |
-| Namespace violation tests | MVP-B |
-| Circuit Breaker transition tests | MVP-B |
-| EHC chain verification tests | MVP-B |
-| Assembler rollback tests | MVP-C |
-| ConflictReport tests | MVP-C |
-
----
-
-## Out of MVP Scope
-
-The following features are explicitly out of MVP scope. Agents must not design, implement, or scope them during MVP phases.
-
-### Explicitly Rejected (Cannot Reintroduce Without ADR)
-
-| Feature | Reason | Decision |
-|---------|--------|----------|
-| CLI-only MVP | Lacks observability and control surface for safe autonomous execution | D-015 (REJECTED) |
-| Old pi/web-ui reuse | Overfit to old project; wrong architectural assumptions | D-014 (REJECTED) |
-| Full pi/ migration | Would import old coupling, wrong architecture, unneeded packages | D-051 (REJECTED) |
-| Cloud dashboard | PRAXIS is local-first; cloud is future consideration | D-013 (REJECTED) |
-| WebSocket protocol | HTTP + SSE sufficient for MVP | D-025 (REJECTED) |
-| Worker self-report as completion | Violates Law 1 | D-028 (REJECTED) |
-| UI-owned completion | Violates Law 1; interface must not decide completion | D-029 (REJECTED) |
-| Agent-generated acceptance criteria | Violates Law 3 | D-035 (REJECTED) |
-| Root `src/` directory | Top-level directories are domain boundaries | D-018 (REJECTED) |
-
-### Deferred to Post-MVP (Not in MVP, Not Rejected)
-
-| Feature | Reason | Target |
-|---------|--------|--------|
-| Production visual polish | Correctness and observability before polish | P6 |
-| Installer / packaging | Needs stable product first | P6 |
-| Cloud dashboard (optional) | Local-first is primary; cloud is supplementary | Post-MVP |
-| CLI improvements (full command set) | Desktop is primary; CLI extended in P6 | P6 |
-| stable_6, stable_8, stable_12, stable_16 concurrency | Scaled from stable_3 baseline after proving stability | Post-MVP |
-| Full semantic conflict detection | Basic detection in MVP-C; full analysis deferred | Post-MVP |
-| Multi-user support | Local-first single-operator model for MVP | Post-MVP |
-| Plugin / extension system | Not needed for core safety model | Post-MVP |
-| Web dashboard (browser-based) | Desktop is primary; web optional later | Post-MVP |
-| OpenCode adapter | Claude Code first; additional adapters later | Post-MVP |
-| Local model adapter | Claude Code first; local models later | Post-MVP |
-| FVR/PRR ACCP artifacts | Deferred to P6 per D-042, D-043 | P6 |
-| Playwright e2e tests | Full e2e suite in P6 | P6 |
-| Long-run stability baseline | Requires continuous operation measurement | P6 |
-
----
-
-## Interface Priority
-
-### Desktop Mission Control is Primary
-
-The Desktop Mission Control (Electron + React) is the **primary operator interface** for PRAXIS. This is a HARD_LOCK decision (D-002, D-063).
-
-All operator workflows -- plan admission, task monitoring, evidence inspection, gate verdict review, human action resolution -- are designed for the desktop first.
-
-### CLI is Secondary
-
-The CLI (`praxis`) is a **secondary interface**. It provides quick status checks and basic commands for operators who prefer terminals, but it is not the primary control surface.
-
-CLI scope in MVP:
-- `praxis status` -- quick system status
-- `praxis runs` -- list task runs
-- `praxis run <id>` -- task run detail
-- `praxis admit <plan>` -- admit a plan from file
-
-CLI does NOT need to replicate all desktop functionality in MVP.
-
----
-
-## Desktop Mission Control -- Detailed Scope
-
-### Panel Descriptions
-
-#### Mission Control Dashboard
-The main landing view. Shows system-level summary: runtime status, active workers count, circuit breaker state, governor tier, recent task run statuses, pending human actions count. Acts as the operator's "at a glance" view.
-
-#### Runtime State Viewer
-Shows the current RuntimeSnapshot: runtime version, status, governor tier, active/max workers, circuit breaker state, event sequence number. Updates via SSE on state changes.
-
-#### TaskRun List
-Table of all task runs with columns: run ID, task ID, wave, worker, FSM state, current attempt, last gate verdict, duration. Sortable and filterable. Click to open detail view.
-
-#### TaskRun Detail
-Full detail for a single task run: FSM state history, all attempts with their gate verdicts, evidence records, transcript preview, acceptance criteria status, repair attempts if any. Tabbed or collapsible sections.
-
-#### Worker Grid
-Grid showing each worker: worker ID, adapter kind, status (idle/running/crashed), current task run, workspace path, uptime, last health check. Color-coded status indicators.
-
-#### Evidence / Log Stream
-Real-time scrolling event stream. Shows: evidence records appended, gate verdicts issued, FSM state transitions, circuit breaker transitions, worker status changes, human actions created. Filterable by type, task run, worker. Searchable.
-
-#### Gate Verdicts
-Dedicated panel or section showing gate results for the selected attempt: EvidenceGate verdict (PASS/HOLD/FAIL) with reason, ExecGate verdict with test output summary, FinalGate verdict with acceptance criteria evaluation. Color-coded: green (PASS), yellow (HOLD), red (FAIL).
-
-#### Circuit Breaker Status
-Panel showing: current state (CLOSED/OPEN/HALF_OPEN) with large color-coded indicator, opened at timestamp, opened reason, diagnostic snapshot (failure rate, top failing gates, governor state, EHC classification), probe status (if HALF_OPEN). Action buttons: Reset (to HALF_OPEN), Probe (if HALF_OPEN and no active probe).
-
-#### Governor Status
-Panel showing: current tier (stable_3/6/8/12/16), active workers, max workers, clean operation window progress, last demotion reason and timestamp, tier history.
-
-#### Human Action Queue
-List of pending human actions: HIR requests (task stuck, needs human hint), conflict resolutions (assembly conflict, choose resolution strategy), circuit breaker override confirmations. Each item shows: type, task run, created at, description, available actions. Actions: resolve, dismiss, provide hint.
-
-#### Plan Composer
-Interface for creating or uploading a PlanSpec. Shows: plan structure, task list, namespace assignments, dependency graph visualization, budget summary. Validate button runs PSAG checks client-side (schema, namespace collisions, dependency cycles). Admit button sends to server.
-
-#### Assembler View (MVP-C)
-Shows wave assembly status: which wave is being assembled, task run statuses within the wave, namespace recheck results, semantic check results, patch preview. ConflictReport display with affected files and workers.
-
----
-
-## Stack Summary
-
-| Layer | Technology | Status |
-|-------|-----------|--------|
-| Operator UI | Electron + React + Tailwind + Radix UI + TanStack Query + Zustand | SOFT_LOCK (D-064) |
-| Runtime Server | Bun + Hono + SSE | SOFT_LOCK |
-| Storage | PostgreSQL + Kysely + raw SQL migrations | SOFT_LOCK (D-092, D-093) |
-| Language | TypeScript strict | SOFT_LOCK |
-| Package Management | Bun workspaces | SOFT_LOCK |
-| Validation | Zod | SOFT_LOCK |
-| Lint/Format | Biome | SOFT_LOCK |
-| Testing | Vitest + Playwright (e2e) | SOFT_LOCK |
-
----
-
-## CLI Scope (Secondary)
-
-The CLI is secondary to Desktop Mission Control. It provides quick terminal-based access for operators who prefer it, but does not replace the desktop for primary operation.
-
-### MVP CLI Commands
+## Evidence Files (v0.1)
 
 ```
-praxis status              Show runtime status, governor tier, CB state
-praxis runs                List task runs (table format)
-praxis runs --state REPAIR  Filter by FSM state
-praxis run <id>            Show task run detail (text format)
-praxis run <id> --json     Show as JSON
-praxis logs <id>           Show recent evidence/log entries
-praxis admit <file>        Admit a PlanSpec from YAML/JSON file
-praxis conflicts           List unresolved assembly conflicts
+.praxis/
+  task.yaml                    ← Human-approved task spec
+  config.yaml                  ← PRAXIS config (optional)
+  runs/
+    <run_id>/
+      evidence.jsonl           ← Evidence records (diff, files, commands, tests)
+      commands.jsonl           ← Command execution logs
+      verdict.json             ← Gate verdict (PASS/HOLD/FAIL with details)
+  reports/
+    <run_id>.md                ← Final audit report
 ```
 
-### Post-MVP CLI Commands (P6)
+### Explicitly NOT v0.1
 
-```
-praxis runtime start       Start the runtime server
-praxis runtime stop        Stop the runtime server
-praxis runtime logs        View runtime server logs
-praxis wave <id>           Show wave detail
-praxis workers             List active workers
-praxis cb reset            Reset circuit breaker
-praxis cb probe            Start circuit breaker probe
-```
+- PostgreSQL `runtime_events` table
+- SSE event stream
+- `RuntimeSnapshot` API
+- Server-based evidence ingestion
 
 ---
 
-## Post-MVP Roadmap
+## Gates (v0.1)
 
-After MVP-C is complete, P6 adds production hardening:
+### EvidenceGate
 
-1. **Production build** -- Desktop app packaged for Linux, macOS, Windows
-2. **Installer** -- One-click install. Distribution method TBD (Homebrew, npm, standalone binary)
-3. **CLI improvements** -- Full command set, better formatting, JSON output for scripting
-4. **ACCP artifacts** -- FVR per TaskRun, PRR per wave, async generation
-5. **Durable storage** -- PostgreSQL with migration management, runtime event replay, restart recovery
-6. **Visual polish** -- Refined UI, animations, accessibility, keyboard shortcuts
-7. **Long-run stability** -- 48h+ continuous operation testing, stability metrics, performance baseline
-8. **E2e tests** -- Playwright suite covering full operator workflows
-9. **Documentation** -- User guide, operator manual, architecture reference
+**Purpose:** Checks that evidence exists — diff, changed files, command logs, test logs, tool/hook captures if available.
 
-### Optional Post-MVP (Not Committed)
+**Produces:** PASS (evidence found) / HOLD (insufficient evidence) / FAIL (evidence contradicts claims).
 
-- Cloud dashboard (optional supplement to local desktop)
-- WebSocket protocol (if SSE proves insufficient at scale)
-- Additional worker adapters (OpenCode, local models)
-- Multi-user support
-- Plugin/extension system
-- stable_6 through stable_16 concurrency tiers (progressive scaling)
-- Full semantic conflict detection
+### ExecGate
 
----
+**Purpose:** Checks that required commands/tests actually ran and produced parseable results.
 
-## MUST / MUST NOT Rules
+**Detects:**
+- Zero tests ran (test runner invoked but no tests found)
+- Tests ran but all skipped
+- Required command not executed
+- Command exited with error
 
-### MUST
+**Produces:** PASS (commands/tests ran, results parseable) / HOLD (missing execution) / FAIL (execution failed).
 
-- MUST include Desktop Mission Control in all MVP stages (MVP-A, MVP-B, MVP-C).
-- MUST treat Desktop as the primary operator interface.
-- MUST support mock runtime first (MVP-A) before real workers.
-- MUST support single real worker (MVP-B) before parallel workers (MVP-C).
-- MUST display all gate verdicts, Circuit Breaker state, and Governor state in Mission Control.
-- MUST use HTTP + SSE for communication in MVP (no WebSocket).
-- MUST bind runtime server to 127.0.0.1 only.
-- MUST use Electron + React for Desktop Mission Control.
-- MUST NOT let UI decide completion.
+### FinalGate
 
-### MUST NOT
+**Purpose:** Checks human-authored acceptance criteria against evidence. Worker self-report does not count.
 
-- MUST NOT build a CLI-only MVP.
-- MUST NOT build a cloud dashboard in MVP.
-- MUST NOT reuse old `pi/web-ui` code.
-- MUST NOT do a full `pi/` migration.
-- MUST NOT start real worker integration before mock runtime proof (MVP-A).
-- MUST NOT start parallel workers before single worker proof (MVP-B).
-- MUST NOT include production visual polish in MVP (correctness first).
-- MUST NOT include WebSocket in MVP.
-- MUST NOT expose runtime server on public network interfaces.
+**Rules:**
+- Every criterion must have `human_approved: true`
+- Agent-generated criteria (`human_approved: false`) are drafts only
+- FinalGate cannot PASS criteria that are not human-approved
+- Agent claims ("I completed the task") are evidence, not verdicts
+
+**Produces:** PASS (all criteria met) / HOLD (some criteria unverified) / FAIL (criteria not met).
 
 ---
 
-## Failure Modes
+## RepairPacket (v0.1)
 
-| Failure | Impact | Mitigation |
-|---------|--------|------------|
-| Desktop omitted from MVP | No operator observability. Unsafe autonomous execution. | HARD_LOCK D-002. Desktop is mandatory in all MVP stages |
-| CLI-only MVP built | Operators cannot supervise workers effectively. No real-time visibility. | D-015 REJECTED. Desktop mockup (MVP-A) proves the UI before any real worker runs |
-| Real workers before mock proof | Adapter bugs and UI bugs interleave; undebuggable | MVP-A (mock) -> MVP-B (single real) -> MVP-C (parallel). Sequential staging |
-| Parallel workers before single worker proof | Parallelism bugs interact with adapter bugs | MVP-B single worker must pass before MVP-C parallel workers |
-| Cloud features added in MVP | Distracts from local-first core. Adds network dependency. | D-013 REJECTED. Cloud is post-MVP and optional |
-| Production polish prioritized over correctness | Pretty UI with broken safety model | D-012. Correctness and observability before polish |
-| Old pi/web-ui reused | Wrong architecture imported. | D-014 REJECTED. Desktop written from scratch |
+Generated by `/praxis:repair` when FinalGate returns HOLD or FAIL.
+
+**Contains:**
+- Failed criterion ID and description
+- Evidence of failure (what was checked, what was found)
+- Suggested fix direction (constrained — cannot modify acceptance criteria)
+- Files that need changes
+
+**Constraints:**
+- RepairPacket MUST NOT modify acceptance criteria
+- RepairPacket MUST NOT change `human_approved` status
+- RepairPacket MUST NOT claim the work is done
+- RepairPacket is guidance for the agent, not a replacement for human judgment
 
 ---
 
-## Test / Gate Implications
+## What Proves MVP
 
-- **MVP-A Gate:** Desktop opens. All panels render with mock data. UI displays state only.
-- **MVP-B Gate:** Real Claude attempt completes pipeline. False-done caught. Gate verdicts correct.
-- **MVP-C Gate:** Three workers run in parallel. Assembler integration correct. CB opens on cascade.
+- Operator can `praxis init` and get a valid `.praxis/` workspace
+- Operator can define a task with human-approved acceptance criteria in `task.yaml`
+- After an agent does work, `praxis verify` produces a correct PASS/HOLD/FAIL verdict
+- Empty diff → HOLD (false-done caught)
+- Zero tests ran → HOLD (false-done caught)
+- Agent claim without evidence → HOLD (false-done caught)
+- Missing human approval → FinalGate fails
+- `praxis repair` produces a valid RepairPacket for failed criteria
+- `praxis report` produces a readable audit report
 
-Each MVP stage gate is a hard checkpoint. Do not proceed to the next stage until the current stage gate passes.
+### What Does NOT Prove MVP
+
+- Automatic hook-based verification (future)
+- Real-time agent supervision (future)
+- Multi-worker orchestration (future)
+- Desktop Mission Control (future)
+- Server/SSE/PostgreSQL (future)
+- Claude Code plugin implementation (design-only in v0.1)
+
+---
+
+## Package Shape (Design Suggestion Only)
+
+> **Note:** This is a design suggestion for future implementation. No packages are created by this document. Implementation is not authorized.
+
+| Package | Purpose |
+|---------|---------|
+| `@praxis/contracts` | Shared types: TaskSpec, AcceptanceCriterion, EvidenceRecord, GateVerdict, RepairPacket |
+| `@praxis/kernel` | Truth Kernel: EvidenceGate, ExecGate, FinalGate, TestOutputParser, report generator |
+| `@praxis/cli` | CLI binary: init, spec, verify, repair, status, report commands |
+| `@praxis/claude-plugin` | Claude Code plugin: slash commands, hook capture (optional/future) |
+| `@praxis/test-parsers` | Test output parsers: Vitest, Jest, Pytest, Go test, etc. |
+
+**Explicitly NOT v0.1 packages:** `@praxis/server`, `@praxis/desktop`, `@praxis/electron`, `@praxis/storage`.
+
+---
+
+## Authority Invariants (Must Preserve)
+
+- Agent claims are not completion. Kernel-verified evidence is completion.
+- Human-authored acceptance criteria are required.
+- Truth Kernel owns PASS/HOLD/FAIL.
+- Claude Code plugin does not decide truth.
+- Claude Code itself does not decide truth.
+- MiMo/OpenCode/Hermes/Codex adapters, if added later, do not decide truth.
+- UI/CLI/plugin displays verdicts; kernel produces verdicts.
+- RepairPacket cannot modify acceptance criteria.
+- ACCP-lite reports do not replace Truth Kernel verdicts.
+
+## Forbidden Claims
+
+These claims must not appear in any PRAXIS document:
+
+- "PRAXIS is a Claude Code plugin only" or "PRAXIS = Claude Code plugin"
+- "Claude Code plugin owns Truth Kernel" or "plugin owns truth"
+- "Plugin decides completion" or "Claude decides completion"
+- "Worker self-report is completion"
+- "MVP requires Desktop Mission Control"
+- "MVP requires Postgres" / "MVP requires SSE" / "MVP requires server"
+- "MVP requires stable_16" / "MVP requires multi-agent orchestration"
+- "PRAXIS will build its own coding agent loop in v0.1"
+
+---
+
+## Readiness Impact of Plugin-First Pivot
+
+| Approach | Score | Explanation |
+|----------|-------|-------------|
+| Old desktop-first MVP | 6.0/10 | Too large and competes with existing agent harnesses |
+| Plugin-only, no local kernel | 6.5/10 | Easy but weak; truth depends too much on Claude context |
+| **Local Truth Kernel + Claude plugin (current)** | **9.0-9.2/10** | Small, focused, independently verifiable, and directly useful |
+
+> **Note:** This is a design score, not implementation completion. Implementation remains unauthorized until the final plugin-first design lock audit (D4).
 
 ---
 
 ## Decision Compliance Checklist
 
-- [x] Desktop Mission Control is MVP and main control panel (D-002)
-- [x] Basic Electron operator shell in scope (D-003)
-- [x] Mission Control dashboard in scope (D-004)
-- [x] Runtime state viewer in scope (D-005)
-- [x] TaskRun list/detail in scope (D-006)
-- [x] Worker grid in scope (D-007)
-- [x] Evidence/log stream in scope (D-008)
-- [x] Gate verdicts in scope (D-009)
-- [x] Circuit Breaker / Governor status in scope (D-010)
-- [x] Human action queue in scope (D-011)
-- [x] Production polish not MVP-critical (D-012)
-- [x] Cloud dashboard out of MVP (D-013)
-- [x] Old pi/web-ui reuse rejected (D-014)
-- [x] CLI-only MVP rejected (D-015)
-- [x] PRAXIS is local-first (D-001)
-- [x] HTTP + SSE is MVP communication model (D-025)
-- [x] Full pi/ migration rejected (D-051)
-- [x] P0 is Selective pi/ Reuse Foundation Port (D-044)
-- [x] Circuit Breaker is kernel-owned (D-084)
-- [x] Desktop is primary, CLI is secondary (D-063)
-- [x] No root src/ directory (D-018)
+- [x] Product identity: local Truth Kernel, not coding agent (D-127, D-128)
+- [x] Claude Code plugin is first UX/integration layer (D-129)
+- [x] Plugin is not kernel (D-130)
+- [x] Post-run verification first (D-132)
+- [x] Manual verify and repair first (D-133)
+- [x] Desktop Mission Control is future scope (D-134)
+- [x] Server/SSE/PostgreSQL are future scope (D-135)
+- [x] Multi-agent orchestration is future scope (D-136)
+- [x] Own agent loop killed from v0.1 (D-137)
+- [x] v0.1 MVP: CLI + kernel + plugin + .praxis (D-138)
+- [x] .praxis/task.yaml is core contract (D-139)
+- [x] JSONL evidence store for v0.1 (D-140)
+- [x] Six v0.1 commands defined (D-141)
+- [x] Three Laws preserved and not weakened
+- [x] Human-authored acceptance criteria required
+- [x] No implementation authorized
+- [x] No forbidden claims present
 
 ---
 
 ## Open Questions
 
-1. **Should Monaco Editor and xterm.js be in MVP-A or MVP-B?** MVP-A has mock data, so code/terminal views would show mock content. Defer to P1 desktop mockup design.
-2. **What is the exact desktop window layout?** Tabbed? Sidebar + main panel? Multiple windows? Defer to P1 mockup exploration.
-3. **Should the desktop auto-start the runtime server?** Tentative: yes. Desktop checks for running server, spawns if needed, waits for health endpoint, then connects.
-4. **What is the CLI distribution model?** Single binary via Bun compile? npm package? Defer to P6 installer spike.
-5. **Should MVP-A include a plan composer or just viewer?** Viewer first (view mock plans). Composer in MVP-B (admit real plans).
-6. **What is the exact PostgreSQL setup automation approach?** OPEN decision (O-008). Spike needed.
-
----
-
-## Audit Notes
-
-- This product scope document is derived from D-001 through D-015 (MVP Scope Decisions) and D-052 through D-061 (Phase Model Decisions) in `docs/decisions.md`.
-- The MVP staging (MVP-A, MVP-B, MVP-C) is defined in `docs/decisions.md` Section 19 and expanded here with detailed feature lists.
-- The "Out of MVP -- Explicitly Rejected" table is particularly important: it prevents agents from reintroducing decisions that were already considered and rejected.
-- Desktop Mission Control panel descriptions are aspirational during P-1. Exact layout, component tree, and UX flow will be refined during P1 mockup development.
+1. **Should v0.1 support project-local `.praxis/` or only global `~/.praxis/`?** Tentative: both, local takes precedence.
+2. **Should evidence capture be automatic (hooks) in v0.1 or manual (operator provides paths)?** Tentative: automatic where safe (diff from git, command logs from shell history), manual for test output if hooks unavailable.
+3. **Should RepairPacket be machine-readable (JSON) for agent consumption?** Tentative: yes — JSON for tool consumption, Markdown for human review.
+4. **When should Desktop Mission Control be reconsidered?** After v0.1 validates kernel with real sessions and user feedback confirms need for richer observability.

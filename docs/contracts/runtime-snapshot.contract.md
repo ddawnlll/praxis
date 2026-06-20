@@ -1,6 +1,8 @@
+> **⚠ Future scope for v0.1 (ADR-013 Plugin-First Pivot):** RuntimeSnapshot and server/runtime state are FUTURE scope for v0.1. See `docs/adr/ADR-013-plugin-first-pivot.md`.
+
 # RuntimeSnapshot Contract
 
-**Status:** DRAFT_FOR_AUDIT
+**Status:** DRAFT_FOR_AUDIT (FUTURE for v0.1)
 **Version:** v0.1
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Define the RuntimeSnapshot contract — the point-in-time summary of all PRAXIS runtime state. The snapshot is the initial state source for the UI (loaded once, then incrementally updated via RuntimeEvent replay) and the restart state source for runtime recovery.

@@ -190,7 +190,7 @@ These are the hypotheses that the spike must confirm or refute through empirical
 
 ---
 
-## GO/NO-GO Criteria
+## GO / NO-GO Criteria
 
 ### GO Criteria (All Must Pass)
 

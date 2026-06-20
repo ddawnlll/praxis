@@ -1,9 +1,11 @@
 # PRAXIS Documentation Index
 
 **Status:** DRAFT_FOR_AUDIT
-**Version:** v0.1
+**Version:** v0.1 (post-ADR-013 Plugin-First Pivot)
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Canonical navigation index for all PRAXIS documentation. Defines the recommended reading order, document inventory, and prerequisite checks for implementation tasks.
+
+> **Plugin-First Pivot (ADR-013):** PRAXIS is now a local Truth Kernel with Claude Code plugin as the first UX/integration layer. Desktop Mission Control, server/runtime, SSE, PostgreSQL, Circuit Breaker, Governor, stable_16, wave scheduler, and multi-worker orchestration are FUTURE scope for v0.1. See `docs/adr/ADR-013-plugin-first-pivot.md` and `docs/decisions.md` Section 23.
 
 > This document must not override `docs/decisions.md`. If there is a conflict, `docs/decisions.md` wins.
 
@@ -11,11 +13,17 @@
 
 ## Read This First
 
-**Read `docs/decisions.md` first.** It is the canonical decision register for PRAXIS v2.0. Every other document in `docs/` derives from it. If any document contradicts `docs/decisions.md`, `docs/decisions.md` wins.
+**Read `README.md` first.** The project README is the clean public face of PRAXIS v0.1. It explains what PRAXIS is, what it's not, the v0.1 MVP, and the manual verify/repair loop with an example workflow.
 
-**Read `docs/index.md` second.** This document. It tells you what exists, what order to read it in, and what you must not start building.
+**Read `architecture.md` second.** The canonical plugin-first architecture baseline: high-level flow, core components, package design, Truth Kernel gates, Claude Code plugin bridge, local state model, and future architecture.
 
-All documents are `DRAFT_FOR_AUDIT v0.1` -- not final implementation specifications. None have been accepted by the human project owner. Do not treat any document as a final design lock. Do not start implementation based on these drafts without explicit human approval.
+**Read `docs/decisions.md` third.** It is the canonical decision register for PRAXIS v2.0. Every other document in `docs/` derives from it. If any document contradicts `docs/decisions.md`, `docs/decisions.md` wins.
+
+**Read `docs/adr/ADR-013-plugin-first-pivot.md` fourth.** The Plugin-First Pivot ADR explains why PRAXIS changed from desktop-first orchestrator to plugin-first local Truth Kernel, what was kept, what was downgraded to future, and what was killed from v0.1.
+
+**Read `docs/index.md` fifth.** This document. It tells you what exists, what order to read it in, and what you must not start building.
+
+All documents are `DRAFT_FOR_AUDIT v0.1` -- not final implementation specifications. None have been accepted by the human project owner. Do not treat any document as a final design lock. **Implementation is NOT authorized.** Do not start implementation based on these drafts without explicit human approval after the Final Plugin-First Design Lock Audit (D4).
 
 ---
 
@@ -25,11 +33,22 @@ All documents are `DRAFT_FOR_AUDIT v0.1` -- not final implementation specificati
 
 | Document | Path | Status |
 |----------|------|--------|
-| Canonical decision register | `docs/decisions.md` | DRAFT_FOR_AUDIT v0.1 |
+| Canonical decision register | `docs/decisions.md` | DRAFT_FOR_AUDIT v0.1 (post-pivot) |
+| **ADR-013 Plugin-First Pivot** | `docs/adr/ADR-013-plugin-first-pivot.md` | DRAFT_FOR_AUDIT v0.1 |
 | ADR index | `docs/adr/README.md` | DRAFT_FOR_AUDIT v0.1 |
-| Phase map (P-1 through P6) | `docs/phase-map.md` | DRAFT_FOR_AUDIT v0.1 |
-| Product scope (MVP-A/B/C) | `docs/product-scope.md` | DRAFT_FOR_AUDIT v0.1 |
+| Phase map (D0-D4 design, I0-I4 future) | `docs/phase-map.md` | DRAFT_FOR_AUDIT v0.1 (post-pivot) |
+| Product scope (plugin-first v0.1) | `docs/product-scope.md` | DRAFT_FOR_AUDIT v0.1 (post-pivot) |
 | Architecture baseline | `architecture.md` (repo root) | DRAFT_FOR_AUDIT v0.2 |
+
+### New Plugin-First Docs (v0.1)
+
+| Document | Path | Status |
+|----------|------|--------|
+| PRAXIS Identity & Glossary | `docs/identity.md` | DRAFT_FOR_AUDIT v0.1 |
+| Task YAML contract | `docs/contracts/praxis-task-yaml.contract.md` | DRAFT_FOR_AUDIT v0.1 |
+| MVP v0.1 plugin-first scope | `docs/implementation/mvp-v0.1-plugin-first-scope.md` | DRAFT_FOR_AUDIT v0.1 |
+| Claude Code plugin flow | `docs/pipelines/claude-code-plugin-flow.md` | DRAFT_FOR_AUDIT v0.1 |
+| Local Truth Kernel flow | `docs/pipelines/local-truth-kernel-flow.md` | DRAFT_FOR_AUDIT v0.1 |
 
 ### Pipelines (15 documents)
 
@@ -93,34 +112,51 @@ All documents are `DRAFT_FOR_AUDIT v0.1` -- not final implementation specificati
 
 ## Recommended Reading Order
 
-### Tier 1: Foundation
+### Tier 1: Foundation (Post-Pivot)
 
-Read these first. They define what PRAXIS is, what decisions are locked, what phases exist, and what is in scope.
-
-| Order | Document | Why |
-|-------|----------|-----|
-| 1 | `docs/decisions.md` | Canonical decision register. The Three Laws, all D-NNN decisions, MVP scope, phase model. Every other document derives from this. |
-| 2 | `docs/phase-map.md` | Phase dependencies, parallelization rules, gate sequencing. Answers "what order do we build in?" |
-| 3 | `docs/product-scope.md` | MVP-A, MVP-B, MVP-C definitions. What is in scope, what is explicitly out of scope. |
-| 4 | `docs/adr/README.md` | ADR index with normalized numbering. Historical context for major decisions. |
-
-After Tier 1, you should understand: what PRAXIS is, why the Three Laws exist, what the phase boundaries are, what MVP looks like, and what order things are built in.
-
-### Tier 2: System
-
-These documents define how PRAXIS works end-to-end and how its components interact.
+Read these first. They define what PRAXIS is after the Plugin-First Pivot.
 
 | Order | Document | Why |
 |-------|----------|-----|
-| 1 | `docs/pipelines/overview.md` | End-to-end execution pipeline: PlanSpec admission through ACCP artifact generation. Component placement, MVP staging, CB/Governor intervention. |
-| 2 | `docs/pipelines/taskrun-lifecycle.md` | TaskRun FSM: every state, every transition, every gate position, termination invariants. |
-| 3 | `docs/boundaries/runtime-server-kernel.md` | Wiring contract between server and kernel. What the kernel exposes, what the server composes. |
-| 4 | `docs/boundaries/worker-adapter-boundary.md` | How adapters plug into the kernel through the WorkerAdapter contract. |
-| 5 | `docs/pipelines/autonomous-loop.md` | Two-layer autonomous execution model: Claude's local loop vs. PRAXIS supervisory loop. |
-| 6 | `docs/pipelines/evidence-to-truth-engine.md` | Evidence flow from hook capture through EHC construction to gate evaluation. |
-| 7 | `docs/pipelines/circuit-breaker-governor.md` | How the three authorities (Truth Engine, Governor, Circuit Breaker) answer different questions and interact. |
+| 1 | `docs/decisions.md` | Canonical decision register. The Three Laws, all D-NNN decisions, Section 23 pivot decisions. Every other document derives from this. |
+| 2 | `docs/adr/ADR-013-plugin-first-pivot.md` | Why PRAXIS pivoted. KEEP / FUTURE / KILL classification. New MVP v0.1 shape. |
+| 3 | `docs/product-scope.md` | Plugin-first v0.1 MVP scope. What is in, what is out, what is future. |
+| 4 | `docs/phase-map.md` | D0-D4 design stages, I0-I4 future implementation stages. Implementation NOT authorized. |
+| 5 | `docs/adr/README.md` | ADR index with normalized numbering. Historical context. |
 
-After Tier 2, you should understand: the full execution flow from plan admission to task completion, how workers are supervised, how evidence becomes verdicts, and how safety systems protect the whole.
+After Tier 1, you should understand: PRAXIS is a local Truth Kernel (not a coding agent), Claude Code plugin is the first UX bridge, Desktop/server/multi-agent are future scope, and implementation is not yet authorized.
+
+### Tier 2: System (Post-Pivot)
+
+These documents define how PRAXIS works after the pivot.
+
+| Order | Document | Why |
+|-------|----------|-----|
+| 1 | `docs/contracts/praxis-task-yaml.contract.md` | The v0.1 `.praxis/task.yaml` contract. Core to all verification. |
+| 2 | `docs/implementation/mvp-v0.1-plugin-first-scope.md` | Exact v0.1 scope, non-goals, exit criteria. |
+| 3 | `docs/pipelines/claude-code-plugin-flow.md` | How the Claude Code plugin bridges to the kernel. |
+| 4 | `docs/pipelines/local-truth-kernel-flow.md` | How the Truth Kernel evaluates evidence and produces verdicts. |
+
+After Tier 2, you should understand: the v0.1 task contract, the exact MVP scope, and how the plugin and kernel interact.
+
+### Tier 3: Existing Docs (Future Scope for v0.1)
+
+> **⚠ Future scope notice:** The following documents describe Desktop Mission Control, server/runtime, SSE, PostgreSQL, Circuit Breaker, Governor, Wave Scheduler, Deterministic Assembler, and multi-worker orchestration. **For v0.1, these are FUTURE scope after ADR-013.** They are preserved as reference for v0.2+ design. Do not treat them as active v0.1 requirements.
+
+The complete inventory is preserved in the Document Inventory section below. Key docs now marked future:
+
+- `docs/pipelines/runtime-event-flow.md` — Future (server/runtime)
+- `docs/pipelines/circuit-breaker-governor.md` — Future (Circuit Breaker, Governor)
+- `docs/pipelines/wave-scheduler.md` — Future (multi-worker)
+- `docs/pipelines/deterministic-assembler.md` — Future (multi-worker)
+- `docs/contracts/runtime-event.contract.md` — Future (server/runtime)
+- `docs/contracts/runtime-snapshot.contract.md` — Future (server/runtime)
+- `docs/contracts/governor.contract.md` — Future (Governor)
+- `docs/contracts/circuit-breaker.contract.md` — Future (Circuit Breaker)
+
+### Tier 4: Legacy Reading Order (Pre-Pivot)
+
+The original Tier 2 (System), Tier 3 (Interfaces), and Tier 4 (Implementation Preparation) reading orders below are preserved as reference for the pre-pivot design. For v0.1 plugin-first work, use the Tier 1-2 order above.
 
 ### Tier 3: Interfaces
 
@@ -160,18 +196,18 @@ After Tier 4, you should understand: what tests are required for each phase, wha
 
 ## Do Not Start
 
-The following components must NOT be implemented yet. They are gated on phase prerequisites, spike results, or explicit human approval.
+**No implementation is authorized.** The following must NOT be started:
 
 | Component | Why Not | Gated By |
 |-----------|---------|----------|
-| Server / runtime implementation | Depends on P0 foundation port and contract stability | P0 Exit Gate (D-110) |
-| Kernel / core (FSM, PSAG, Truth Engine, Circuit Breaker) | Depends on contract stability and P0 foundation | P0 Exit Gate, P2 mock proof |
-| Real Claude adapter | Day 0 Spike must return GO first | Day 0 Spike GO verdict (D-072, D-077) |
-| Deterministic assembler | Depends on namespace isolation, worker contracts, and P5 wave scheduler | P5 gate |
-| Desktop real runtime connection | Mock runtime proof (P2) must complete first | P2 gate |
-| P2 implementation | P0 gate must pass first | P0 Exit Gate (D-110) |
-| P3 implementation | P0 gate must pass first | P0 Exit Gate (D-110) |
-| P4 implementation | Day 0 Spike must return GO | Day 0 Spike GO (D-072, D-077) |
+| **Any implementation (I0-I4)** | Design stages (D0-D4) not complete | D4 Final Plugin-First Design Lock Audit |
+| praxis CLI source | Implementation not authorized | D4 + human approval |
+| Truth Kernel source | Implementation not authorized | D4 + human approval |
+| Claude Code plugin source | Implementation not authorized | D4 + human approval |
+| Desktop Mission Control | Future scope for v0.1 (ADR-013) | v0.3+ |
+| Server / runtime | Future scope for v0.1 (ADR-013) | v0.2+ |
+| PostgreSQL storage | Future scope for v0.1 (ADR-013) | v0.2+ |
+| Multi-worker orchestration | Future scope for v0.1 (ADR-013) | v0.3+ |
 | Any package from the forbidden copy list | Explicitly rejected by decisions.md | D-049, D-050, D-051 |
 
 ---
@@ -182,9 +218,9 @@ All decision IDs (D-NNN) referenced throughout the documentation were checked ag
 
 **Rule:** If any document references a D-ID with a definition that differs from `docs/decisions.md`, `docs/decisions.md` wins. The document with the conflicting reference must be corrected to match the canonical definition.
 
-**Current D-ID range:** D-001 through D-125, O-001 through O-010.
+**Current D-ID range:** D-001 through D-148, O-001 through O-010.
 
-**Cross-reference status:** All D-ID references in the documents listed in this index have been audited against `docs/decisions.md` as of 2026-06-18. No conflicts have been found. If new documents are added or existing documents are revised, the D-ID cross-reference must be re-verified.
+**Cross-reference status:** Updated 2026-06-18 for Plugin-First Pivot. D-127 through D-148 are new pivot decisions. D-002 through D-095 desktop-first decisions are superseded for v0.1 (see Section 23.6 of decisions.md).
 
 ---
 
@@ -205,10 +241,14 @@ Reference: `ai_summary.md` Concurrency Governor Tiers section, `docs/decisions.m
 The complete documentation set (`docs/` and select root files) is packaged in:
 
 ```
-artifacts/praxis-docs-v0.1-draft-fixed.zip
+artifacts/praxis-docs-plugin-first-rebrand-aligned-v0.1.zip    ← Latest (post-rebrand)
+artifacts/praxis-docs-plugin-first-pivot-v0.1.zip               ← Post-pivot
 ```
 
-This zip contains the full snapshot of DRAFT_FOR_AUDIT v0.1 documentation as of the packaging date. It is a point-in-time archive for audit and review, not a living document source. The canonical source is the git repository at `/home/erfolg/src/praxis`.
+These zips contain the full snapshot of DRAFT_FOR_AUDIT v0.1 documentation after the Plugin-First Pivot (ADR-013) and subsequent rebrand alignment. They are point-in-time archives for audit and review, not living document sources. The canonical source is the git repository.
+
+Previous artifacts:
+- `artifacts/praxis-docs-v0.1-draft-fixed.zip` — Pre-pivot snapshot (desktop-first scope)
 
 ---
 
@@ -270,3 +310,4 @@ docs/index.md               ← This file. Organizational only. Lowest authority
 - All 38 documents (including `architecture.md` at the repo root) are DRAFT_FOR_AUDIT v0.1 status. None have been accepted.
 - The Day 0 Claude Code Spike has NOT been executed. The spike specification exists; the spike itself is a future task gating P4.
 - This index must not be treated as an authoritative specification. It is a navigation aid. All authority resides in `docs/decisions.md`.
+- **Decision Compliance Checklist exemption:** This document is intentionally exempt from the Decision Compliance Checklist requirement (AC-012). As a navigation index, it organizes and points to other documents; it does not define architectural decisions, contracts, or pipelines that must comply with `docs/decisions.md`. All 35 specification documents under `docs/` carry the checklist.

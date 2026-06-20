@@ -304,9 +304,16 @@ This section defines the reuse strategy for the old `pi/` monorepo.
 
 These decisions cover the core tooling and runtime stack. They are SOFT_LOCK unless otherwise noted — implementation experience may refine them.
 
+**Authorization note:** D-117 through D-126 are stack preference decisions introduced during design-pack normalization. They:
+- Do **not** authorize implementation start.
+- Do **not** override earlier architecture boundary decisions (D-001 through D-116).
+- May be revised before Final Design Lock v1.0.
+- Are SOFT_LOCK by default: default tooling choices that can evolve during implementation.
+- Source code generation remains forbidden until implementation prompts are explicitly approved.
+
 | ID | Decision | Status | Rationale | Implications |
 |----|----------|--------|-----------|--------------|
-| D-117 | TypeScript strict mode is the implementation language. | **HARD_LOCK** | TypeScript with strict mode provides the type safety, contract enforcement, and tooling ecosystem needed for a verification-heavy codebase. | All packages use TypeScript strict. Contracts are TypeScript interfaces. |
+| D-117 | TypeScript strict mode is the implementation language. | **SOFT_LOCK** | TypeScript with strict mode provides the type safety, contract enforcement, and tooling ecosystem needed for a verification-heavy codebase. | All packages use TypeScript strict. Contracts are TypeScript interfaces. |
 | D-118 | Bun is the runtime, package manager, and test runner. | **SOFT_LOCK** | Bun provides fast installs, native TypeScript support, and a built-in test runner compatible with Vitest. Single tool for runtime + package management reduces complexity. | `bun install`, `bun test`, `bun run typecheck`. Workspaces managed via Bun workspaces. |
 | D-119 | Hono is the HTTP framework for the control plane. | **SOFT_LOCK** | Hono is lightweight, TypeScript-native, and well-suited to the REST + SSE communication model. | Control plane routes use Hono. SSE streaming via Hono's stream helper. |
 | D-120 | PostgreSQL is the primary storage backend. | **SOFT_LOCK** | See D-092. PostgreSQL provides strong indexing, JSONB, transactions, and durable event logs needed for evidence-heavy workloads. | No SQLite in MVP. PostgreSQL setup automation required (D-094). |
@@ -397,18 +404,92 @@ This section defines how decisions in this file can be changed.
 
 ---
 
-## 23. Current Next Actions
+## 23. Plugin-First Pivot Decisions
 
-The following actions are the immediate next steps after this document is complete:
+**Applied:** 2026-06-18 via ADR-013.
 
-1. **Create ADR index** (`docs/adr/README.md`) — list all ADRs with status, topic, date.
-2. **Create phase map** (`docs/phase-map.md`) — map P-1 through P6 with gates, dependencies, and parallelization rules.
-3. **Create product scope doc** (`docs/product-scope.md`) — define MVP-A/B/C, out-of-scope, future considerations.
-4. **Create pipeline overview** (`docs/pipelines/overview.md`) — describe the end-to-end execution pipeline.
-5. **Create TaskRun lifecycle pipeline** (`docs/pipelines/taskrun-lifecycle.md`) — states, transitions, events, gate positions.
-6. **Create runtime-server-kernel boundary doc** (`docs/boundaries/runtime-server-kernel.md`) — define the wiring contract between server and kernel.
-7. **Then write contract docs and P0 implementation prompts** — accelerate P0.1 (scaffold), P0.2 (contracts), P0.3 (accp-compiler), P0.4 (FSM reference).
+These decisions redefine PRAXIS from a desktop-first multi-agent coding orchestrator to a plugin-first local Truth Kernel. They supersede the desktop-first v0.1 MVP decisions in Sections 3, 10, and 19. The old decisions remain in this file for history but are marked SUPERSEDED for v0.1.
 
-These actions are ordered by dependency: documents that inform subsequent documents come first.
+> **Supersession note:** D-002, D-003, D-004, D-005, D-006, D-007, D-008, D-009, D-010, D-011, D-015, D-025, D-062 through D-069, D-084 through D-090, D-091 through D-095, and the MVP-A/B/C staging in Section 19 are superseded for v0.1 by the Plugin-First Pivot. Desktop Mission Control, server/runtime, SSE, PostgreSQL, Circuit Breaker, Governor, stable_16, wave scheduler, and multi-worker orchestration are FUTURE scope, not v0.1. See ADR-013 for full details.
 
-**ADR numbering note:** `ai_summary.md` lists ADRs 001–005 and `architecture.md` lists ADR-001 through ADR-010 with different topics under the same numbers. Neither set has corresponding files in `docs/adr/`. The ADR index (action 1 above) must normalize numbering across all three files. Until then, `ai_summary.md` ADR numbers are the most recent and should be treated as the tentative canonical set.
+### 23.1 Product Identity (HARD_LOCK)
+
+| ID | Decision | Status | Rationale | Implications |
+|----|----------|--------|-----------|--------------|
+| D-127 | PRAXIS is not a coding agent. | **HARD_LOCK** | PRAXIS must not compete with Claude Code, MiMo Code, OpenCode, or similar agent harnesses by building its own terminal coding agent loop in v0.1. | Own agent loop, subagent engine, memory/context compaction, provider routing, and model-hosting are killed from v0.1. |
+| D-128 | PRAXIS is a local Truth Kernel for agentic coding tools. | **HARD_LOCK** | The product core is the local praxis CLI/kernel that verifies work using evidence and human-authored criteria. | All architecture centers on the Truth Kernel. Plugin, CLI, and future UI are bridges to it. |
+| D-129 | Claude Code plugin is the first UX/integration layer. | **HARD_LOCK** | Claude Code plugin is the first interface because it can expose slash commands and hook integration, but it must remain a bridge to the local kernel. | Plugin calls praxis CLI/kernel. Plugin must not contain truth logic. |
+| D-130 | Plugin is not kernel. | **HARD_LOCK** | The plugin must not contain truth logic. It calls praxis CLI/kernel and displays/verbalizes verdicts. | Truth logic lives exclusively in kernel. Plugin is a thin presentation layer. |
+| D-131 | PRAXIS answers: "Did the agent actually complete the task?" | **HARD_LOCK** | The core value proposition is post-execution verification: evidence → gates → verdict. | All product messaging, docs, and UX center on this question. |
+
+### 23.2 v0.1 Scope (HARD_LOCK)
+
+| ID | Decision | Status | Rationale | Implications |
+|----|----------|--------|-----------|--------------|
+| D-132 | Post-run verification first. | **HARD_LOCK** | v0.1 begins with manual post-run verification. It does not orchestrate Claude Code's coding loop. | `/praxis:verify` runs after the agent finishes. No real-time intervention in v0.1. |
+| D-133 | Manual verify and repair first. | **HARD_LOCK** | v0.1 supports manual `/praxis:verify` and `/praxis:repair` before automatic hook loops. | Operator runs commands explicitly. Automatic hooks are future. |
+| D-134 | Desktop Mission Control is future scope. | **HARD_LOCK** | Desktop Mission Control is downgraded from v0.1 MVP to future scope (target v0.3+). | Do not design, implement, or assume Desktop for v0.1. |
+| D-135 | Server/SSE/PostgreSQL are future scope. | **HARD_LOCK** | Local server, SSE runtime stream, PostgreSQL event log, and RuntimeSnapshot are future control-plane scope, not v0.1. | v0.1 uses local JSONL/Markdown files in `.praxis/`. |
+| D-136 | Multi-agent orchestration is future scope. | **HARD_LOCK** | Governor, stable_16, wave scheduler, deterministic assembler, and multi-agent orchestration are future scope. | Single-session verification only in v0.1. |
+| D-137 | Own terminal coding agent loop is killed from v0.1. | **HARD_LOCK** | PRAXIS does not build its own agent loop, subagent engine, or memory/context compaction. | Do not write agent harness code. Agents run independently. |
+
+### 23.3 v0.1 MVP Definition (HARD_LOCK)
+
+| ID | Decision | Status | Rationale | Implications |
+|----|----------|--------|-----------|--------------|
+| D-138 | v0.1 MVP is: praxis CLI + local Truth Kernel + Claude Code plugin + .praxis workspace. | **HARD_LOCK** | Minimal viable product that proves the verification model with real Claude Code sessions. | Package shape: @praxis/contracts, @praxis/kernel, @praxis/cli, @praxis/claude-plugin, @praxis/test-parsers. |
+| D-139 | `.praxis/task.yaml` is the core v0.1 contract. | **HARD_LOCK** | Human-approved task spec defines what the agent should do and how to verify it. | Every verify run reads task.yaml. PSAG admission simplified to YAML validation. |
+| D-140 | v0.1 evidence store is local JSONL/YAML/JSON files. | **SOFT_LOCK** | `.praxis/runs/<run_id>/evidence.jsonl`, `commands.jsonl`, `verdict.json`. | No PostgreSQL, no server, no SSE. Plain files on disk. May be revised if file-based approach proves insufficient. |
+| D-141 | v0.1 commands: init, spec, verify, repair, status, report. | **HARD_LOCK** | Six slash commands exposed via Claude Code plugin, each calling the praxis CLI. | `/praxis:init`, `/praxis:spec`, `/praxis:verify`, `/praxis:repair`, `/praxis:status`, `/praxis:report`. |
+
+### 23.4 Future Scope (HARD_LOCK classification of when, SOFT_LOCK on exact timing)
+
+| ID | Decision | Status | Rationale |
+|----|----------|--------|-----------|
+| D-142 | Desktop Mission Control target: v0.3+. | **HARD_LOCK** | Revisit after v0.1 validates kernel and v0.2 adds server/SSE. |
+| D-143 | Server/SSE/HTTP API target: v0.2+. | **HARD_LOCK** | Needed before Desktop or remote query. Control-plane only. |
+| D-144 | PostgreSQL target: v0.2+. | **HARD_LOCK** | Durable storage for events. v0.1 files sufficient for single-session. |
+| D-145 | Multi-worker orchestration target: v0.3+. | **HARD_LOCK** | Requires server, Governor, assembler. Premature for v0.1. |
+| D-146 | MiMo/OpenCode adapters target: v0.2+. | **HARD_LOCK** | Claude Code plugin first. Additional bridges after kernel proven. |
+
+### 23.5 Automatic Loops (OPEN)
+
+| ID | Decision | Status | Rationale |
+|----|----------|--------|-----------|
+| D-147 | Stop hook verification loops are future hypotheses. | **OPEN** | Automatic post-Stop verification and repair loops are not v0.1 guarantees. Requires hook reliability proof first. |
+| D-148 | Automatic repair dispatch is future. | **OPEN** | v0.1 repair is manual (`/praxis:repair`). Automatic dispatch after HOLD/FAIL requires hook integration and safety review. |
+
+### 23.6 Superseded v0.1 Decisions
+
+The following decisions from earlier sections are superseded for v0.1 by the Plugin-First Pivot. They remain in this document for historical record but must not be treated as active v0.1 scope:
+
+| Superseded ID | Original Decision | New Status |
+|---------------|-------------------|------------|
+| D-002 | Desktop Mission Control is part of MVP | FUTURE for v0.1 (D-134) |
+| D-003 | Basic Electron operator shell in MVP | FUTURE for v0.1 |
+| D-004 | Mission Control dashboard in MVP | FUTURE for v0.1 |
+| D-005 | Runtime state viewer in MVP | FUTURE for v0.1 |
+| D-006 | TaskRun list/detail in MVP | FUTURE for v0.1 |
+| D-007 | Worker grid in MVP | FUTURE for v0.1 |
+| D-008 | Evidence/log stream in MVP | FUTURE for v0.1 |
+| D-009 | Gate verdicts in MVP (via Desktop) | CORE for v0.1 via CLI/plugin |
+| D-010 | Circuit Breaker / Governor in MVP | FUTURE for v0.1 |
+| D-011 | Human action queue in MVP | FUTURE for v0.1 |
+| D-015 | CLI-only MVP rejected | OVERTURNED — CLI-first is now v0.1 |
+| D-025 | HTTP+SSE is MVP communication | FUTURE for v0.1 |
+| D-062 through D-069 | Desktop Mission Control decisions | FUTURE for v0.1 |
+| D-084 through D-090 | Circuit Breaker and Governor decisions | FUTURE for v0.1 (CB logic may partially inform kernel gate design) |
+| D-091 through D-095 | Storage and event decisions (PostgreSQL, SSE) | FUTURE for v0.1 |
+| MVP-A/B/C staging (Section 19) | Desktop-first staged MVP | SUPERSEDED by plugin-first v0.1 MVP |
+
+---
+
+## 24. Current Next Actions (Post-Pivot)
+
+1. **Complete Plugin-First Design Pack** (D1) — task YAML contract, MVP scope doc, plugin flow, kernel flow.
+2. **Truth Kernel Proof Design** (D2) — gates, evidence model, false-done fixtures, repair packets.
+3. **Claude Code Plugin Spike Spec** (D3) — slash command and hook behavior design without implementation.
+4. **Final Plugin-First Design Lock Audit** (D4) — decide whether implementation may begin.
+5. **Implementation stages (I0-I4) remain FUTURE** — not authorized yet.
+
+**Implementation authorization:** None. All phases remain DESIGN ONLY until the Final Plugin-First Design Lock Audit (D4) is complete and the human project owner explicitly authorizes implementation.

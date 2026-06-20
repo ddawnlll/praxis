@@ -329,6 +329,8 @@ Governor: "How many workers can safely run?"
 Governor state changes:
       Promoted: stable_3 → stable_6 → stable_8 → stable_12 → stable_16
                (each tier requires 48h continuous clean operation)
+               Note: stable_16 is an OPEN hypothesis requiring architecture review;
+               only stable_3 is proven for MVP-C.
 
       Demoted: On sustained failure rate, governor RED, or Circuit Breaker OPEN
                Immediate drop to next lower tier or stable_3 minimum

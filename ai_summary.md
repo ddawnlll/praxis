@@ -10,9 +10,9 @@
 |-------|-------|
 | Project | PRAXIS v2.0 |
 | Root | `/home/erfolg/src/praxis` |
-| Purpose | Parallel Runtime for Autonomous eXecution with Integrated Safety |
-| Concept | A local-first execution platform that runs AI coding workers (Claude Code, OpenCode, local models) in isolated workspaces, captures what they actually did, verifies outputs through deterministic gates, repairs failures with structured strategies, and assembles verified patches safely |
-| Status | Architecture ~80% designed, implementation 0% — currently in P-1 (decision lock) / P0 (foundation port) planning |
+| Purpose | Local Truth Kernel for agentic coding tools — verifies whether the agent actually completed the task |
+| Concept | A plugin-first local verification layer: praxis CLI + Truth Kernel + Claude Code plugin UX. Answers "Bitti mi gerçekten?" / "Did the agent actually complete the task?" |
+| Status | Design D0-D1 in progress (~45% design). Implementation 0% — NOT authorized. Post-ADR-013 Plugin-First Pivot. |
 | Pi reference | `pi/` contains the old Pi monorepo — reference and selective port source, NOT the active codebase |
 
 ---
@@ -142,25 +142,23 @@ Terminal states: `COMPLETE` (FVR enqueued), `ABORTED` (evidence preserved), `FAI
 
 ---
 
-## Phase & Milestone Status
+## Phase & Milestone Status (Post-Pivot)
 
 | # | Phase | Scope | Status |
 |---|-------|-------|--------|
-| P-1 | Architecture / Reuse Decision Lock | ADRs, lock matrix, reuse policy, Circuit Breaker section | ~33% (decisions.md done, ADR index done, phase map done, product scope done) |
-| P0.1 | Monorepo Scaffold + CI | Bun workspace, tsconfig, package skeletons, CI | 0% |
-| P0.2 | Port execution-contracts → lib/contracts | ACCP types, WorkerAdapter, runtime types | 0% |
-| P0.3 | Port accp-compiler → kernel/accp | Compiler pipeline, validators, CLI, 135 tests | 0% |
-| P0.4 | Extract old FSM reference doc | Document old patterns, coupling risks, rewrite recommendations | 0% |
-| P1 | Desktop Mission Control + Runtime Contracts | RuntimeSnapshot, RuntimeEvent contracts, mockup | 0% |
-| P2 | Mock Runtime Vertical Slice | event-bus, control-plane, mock worker, SSE, connect UI | 0% |
-| P3 | Kernel Safety Core | FSM, PSAG, evidence, Truth Engine, Circuit Breaker, tests | 0% |
-| P4 | Real Worker Integration | Claude Code hook/adapter, Day 0 spike, KernelOwnedTranscript | 0% |
-| P5 | Parallel Execution + Assembler | Namespace locks, wave scheduler, Governor, atomic assembly | 0% |
-| P6 | ACCP Artifacts + Production Hardening | Async job queue, FVR/PRR, PostgreSQL, CLI, packaging | 0% |
+| D0 | Pivot Decision Lock | ADR-013, decisions.md D-127–D-148 | COMPLETE |
+| D1 | Plugin-First Design Pack | Product scope, phase map, task YAML contract, MVP scope, plugin flow, kernel flow | COMPLETE |
+| D2 | Truth Kernel Proof Design | Evidence model, false-done catalog, RepairPacket schema | Not started |
+| D3 | Claude Code Plugin Spike Spec | Slash command spec, hook design, CLI interface contract | Not started |
+| D4 | Final Design Lock Audit | Cross-doc consistency, decision compliance, readiness assessment | Not started |
+| I0 | Implementation Scaffold | Monorepo, contracts, build infra | FUTURE — not authorized |
+| I1 | Manual Verify MVP | init, spec, verify commands | FUTURE — not authorized |
+| I2 | Repair Packet MVP | repair command | FUTURE — not authorized |
+| I3 | Hook Capture MVP | Hook-based evidence capture | FUTURE — not authorized |
+| I4 | Reports / ACCP-lite | Report generation, plugin integration | FUTURE — not authorized |
 
-**Overall implementation progress:** 0%
-**Overall planning/architecture progress:** ~25%
-**P0 Gate progress:** 0%
+**Overall design progress:** ~45% (D0-D1 complete, D2-D4 remaining)
+**Overall implementation progress:** 0% (NOT authorized)
 
 ### Quick Reference — Next Actions
 
@@ -397,15 +395,15 @@ b055fbc  Initial commit
 
 ---
 
-## Design Lock Summary
+## Design Lock Summary (Post-Pivot)
 
 | Lock level | Definition | Items |
 |------------|-----------|-------|
-| HARD | Changing requires ADR | 14 items locked (3 laws, directory boundaries, async ACCP, etc.), 1 pending (Circuit Breaker as kernel-owned) |
-| SOFT | Can evolve during implementation | 9 items (package names, FSM state names, test runner coverage, etc.) |
-| OPEN | Needs discovery/spike | 7 items (hook reliability, rate-limit ceiling, desktop UX, etc.) |
+| HARD | Changing requires ADR | Product identity (not a coding agent), local Truth Kernel core, plugin-as-bridge, v0.1 scope exclusions, Three Laws preserved |
+| SOFT | Can evolve during implementation | JSONL evidence store format, package names, stack choices, exact CLI interface |
+| OPEN | Needs discovery/spike | Automatic hook loops, repair dispatch automation, MiMo/OpenCode adapter feasibility |
 
-Full tracking in `todo.md`.
+Full tracking in `docs/decisions.md` Section 23.
 
 ---
 
@@ -429,11 +427,14 @@ These packages must NOT be copied into PRAXIS:
 
 | Date | Files | Summary |
 |------|-------|---------|
-| 2026-06-18 | `docs/pipelines/worker-adapter.md` (rewritten), `docs/pipelines/claude-code-adapter.md`, `docs/pipelines/praxis-hook-capture.md`, `docs/pipelines/messages-api-fallback.md` | Created/rewrote four DRAFT_FOR_AUDIT v0.1 pipeline specs: worker-adapter (complete rewrite per user spec with 5-stage pipeline + RunAttemptResult with no verdict + AdapterError normalization + mock adapter), claude-code-adapter (Day 0 Spike S1-S5 GO/NO-GO gates + headless+primary path + two independent loops + NO adapter-owned FinalGate), praxis-hook-capture (hook event capture pipeline + PreToolUse/PostToolUse/Stop + spool fallback + EHC chain feed + 4 design principles), messages-api-fallback (gated on Spike NO-GO + PRAXIS-owned tool loop + what stays same vs. changes + tradeoffs). All respect decisions.md HARD_LOCK decisions and Three Laws. |
+| 2026-06-18 | `README.md` (rewritten), `architecture.md` (rewritten), `docs/identity.md` (new), `docs/index.md` (updated), `docs/pipelines/namespace-ownership.md` (supersession), `docs/contracts/conflict-report.contract.md` (supersession), `ai_summary.md` (updated) | **Plugin-First Rebrand Alignment (ACCP-PRAXIS-PLUGIN-FIRST-REBRAND-DOCS-ALIGNMENT):** Rewrote README.md as public-facing plugin-first overview (local Truth Kernel, Claude Code plugin bridge, manual verify/repair loop, future scope). Rewrote architecture.md as canonical plugin-first v0.1 architecture baseline (high-level flow, core components, package design, gate details, local state model, future architecture, superseded desktop-first section). Created docs/identity.md (product identity + terminology glossary). Updated docs/index.md reading order to include README.md and architecture.md. Added supersession notices to namespace-ownership.md and conflict-report.contract.md (remaining old multi-worker docs). Updated ai_summary.md with current state. Zip: artifacts/praxis-docs-plugin-first-rebrand-aligned-v0.1.zip. Implementation NOT authorized. |
+| 2026-06-18 | `docs/adr/ADR-013-plugin-first-pivot.md` (new), `docs/decisions.md` (updated), `docs/product-scope.md` (rewritten), `docs/phase-map.md` (rewritten), `docs/index.md` (updated), `docs/contracts/praxis-task-yaml.contract.md` (new), `docs/implementation/mvp-v0.1-plugin-first-scope.md` (new), `docs/pipelines/claude-code-plugin-flow.md` (new), `docs/pipelines/local-truth-kernel-flow.md` (new), plus 8 supersession notices | **Plugin-First Pivot Decision Pack:** Repositioned PRAXIS from desktop-first orchestrator to plugin-first local Truth Kernel. ADR-013 with KEEP/FUTURE/KILL. D-127-D-148 decisions. Zip: artifacts/praxis-docs-plugin-first-pivot-v0.1.zip. All 19 ACs passed. |: worker-adapter (complete rewrite per user spec with 5-stage pipeline + RunAttemptResult with no verdict + AdapterError normalization + mock adapter), claude-code-adapter (Day 0 Spike S1-S5 GO/NO-GO gates + headless+primary path + two independent loops + NO adapter-owned FinalGate), praxis-hook-capture (hook event capture pipeline + PreToolUse/PostToolUse/Stop + spool fallback + EHC chain feed + 4 design principles), messages-api-fallback (gated on Spike NO-GO + PRAXIS-owned tool loop + what stays same vs. changes + tradeoffs). All respect decisions.md HARD_LOCK decisions and Three Laws. |
 | 2026-06-18 | `docs/contracts/*.md` (6 files) | Created six DRAFT_FOR_AUDIT v0.1 contract documentation files: task-spec.contract.md (TaskSpec + AcceptanceCriterion + PSAG V1-V14), plan-spec.contract.md (PlanSpec + PlanBudget + PSAG P1-P15), worker-adapter.contract.md (WorkerAdapter + WorkerHealth + RunAttemptInput/Result + MUST/MUST NOT rules), run-attempt.contract.md (RunAttemptResult + AttemptManifest + DivergenceFlag + GateResult), runtime-event.contract.md (RuntimeEvent envelope + 10 event categories + sequencing/gap-detection + SSP replay), runtime-snapshot.contract.md (RuntimeSnapshot + 6 sub-types + UI consumption algorithm). All use conceptual field tables (not TypeScript). Forbidden authority fields enforced per Three Laws. Contract-first development (D-098). docs/decisions.md NOT modified. |
 | 2026-06-18 | `docs/pipelines/overview.md`, `docs/pipelines/taskrun-lifecycle.md`, `docs/pipelines/runtime-event-flow.md` | Created three core pipeline specs DRAFT_FOR_AUDIT v0.1: end-to-end overview (component placement, MVP staging, CB/Governor intervention, ACCP async independence), TaskRun lifecycle FSM (states, transitions, gate positions, repair loop, false-done protection, terminal invariants), RuntimeEvent flow (append-only log, SSE streaming, snapshot, event replay, gap detection, UI state rules). All respect decisions.md HARD_LOCK decisions. |
 | 2026-06-18 | `docs/index.md`, `docs/testing/pipeline-test-strategy.md`, `docs/implementation/p0-entry-gate.md` | Created three DRAFT_FOR_AUDIT v0.1 spec docs: documentation index (4-tier reading order), pipeline test strategy (P0-P6 test categories + CB transition tests + false-done mandates), P0 entry gate (prerequisites + P0.1-P0.4 sub-gates + P0 Exit Gate). All respect decisions.md HARD_LOCK decisions. |
 | 2026-06-18 | `docs/adr/README.md`, `docs/phase-map.md`, `docs/product-scope.md` | Created three DRAFT_FOR_AUDIT v0.1 spec docs: ADR index (resolves numbering collision), phase map (P-1 through P6 canonical), product scope (MVP-A/B/C staging). All respect decisions.md HARD_LOCK decisions. |
+| 2026-06-18 | `docs/decisions.md`, `docs/index.md`, `docs/spikes/day-0-claude-code-spike.md` | Decision register authorization fix: (1) Downgraded D-117 (TypeScript strict) from HARD_LOCK to SOFT_LOCK — all D-117 through D-126 are now SOFT_LOCK stack preference decisions. (2) Added authorization note to Section 18 explaining D-117–D-126 are stack preferences, do not authorize implementation, and may be revised before Final Design Lock. (3) Updated docs/index.md D-ID range from D-125 to D-126. (4) Normalized Day 0 Spike heading from "GO/NO-GO" to "GO / NO-GO Criteria" with spaces. (5) Created artifacts/praxis-docs-v0.1-draft-register-authorized.zip. No source code changed. All 14 acceptance criteria pass. |
+| 2026-06-18 | `docs/index.md`, `docs/pipelines/overview.md`, `docs/pipelines/wave-scheduler.md` | Consistency fix pass: (1) Verified all D-NNN references across all 37 docs against docs/decisions.md — no conflicts found; all known-bad-pattern checks passed. (2) Fixed 2 minor stable_16 qualifications in overview.md and wave-scheduler.md to explicitly state stable_16 is an OPEN hypothesis. (3) Updated index.md Decision ID Integrity section with verified audit status and added checklist exemption note. (4) Created artifacts/praxis-docs-v0.1-draft-fixed.zip. No source code or implementation files changed. All 19 acceptance criteria pass. |
 | 2026-06-17 | `CLAUDE.md`, `ai_summary.md` | Initial agent documentation baseline |
 | 2026-06-17 | `todo.md`, `reports/*.yaml` | Update todo with full phase tracking, add ACCP readiness reports |
 
@@ -442,32 +443,33 @@ These packages must NOT be copied into PRAXIS:
 ## Known Issues
 
 - **Environment mismatch**: `pi/AGENTS.md` references macOS paths and tmux commands — not applicable to this Linux environment
-- **No monorepo scaffold**: Cannot run `bun install` or `bun test` at root yet — P0.1 needed
+- **No monorepo scaffold**: Cannot run `bun install` or `bun test` at root yet — I0 needed (future)
 - **Legacy ai_summary.md**: `pi/ai_summary.md` has 1500+ lines of auto-generated file analysis that may be stale
-- **Circuit Breaker not in README**: Architecture README needs Circuit Breaker section applied (pending)
+- **Post-pivot doc reconciliation**: Old desktop/server/runtime docs exist alongside new plugin-first docs. 8 docs received supersession notices; remaining pipeline/contract docs may need review for v0.1 consistency
+- **Architecture.md updated**: `architecture.md` rewritten to plugin-first v0.1 architecture (post-ADR-013). Old desktop-first architecture preserved in Superseded section for future reference.
 
 ---
 
 ## Active Work
 
-- P-1 documentation: decisions.md, ADR index, phase map, product scope, docs/index.md, pipeline overview + taskrun-lifecycle + runtime-event-flow, pipeline test strategy, P0 entry gate, 6 contract docs, 4 pipeline detail docs (worker-adapter rewritten, claude-code-adapter, praxis-hook-capture, messages-api-fallback) all created DRAFT_FOR_AUDIT v0.1 (2026-06-18). Next: lock matrix, reuse policy ADR (ADR-006), Circuit Breaker section in README, boundary docs.
+- **Plugin-First Pivot (COMPLETE 2026-06-18):** Two-pack documentation: (1) Pivot Decision Pack — ADR-013, decisions.md D-127–D-148, product-scope/phase-map rewrites, 4 new docs, 8 supersession notices. (2) Rebrand Alignment — README.md and architecture.md rewritten, identity.md created, 2 additional supersession notices, index.md updated. Both packs zipped: `artifacts/praxis-docs-plugin-first-pivot-v0.1.zip` and `artifacts/praxis-docs-plugin-first-rebrand-aligned-v0.1.zip`. Implementation NOT authorized.
+- **Next (D2):** Truth Kernel Proof Design — detailed evidence model, false-done test case catalog, RepairPacket schema, TestOutputParser format coverage matrix. Design only, no implementation.
 
 ---
 
 ## Quick Reference
 
 ```
-Completion authority?       →  Truth Engine FinalGate. Never Claude.
-Shared file writer?         →  Deterministic Assembler. Only.
-Completion criteria source? →  TaskSpec (human). Never agent.
-Command transcript source?  →  PRAXIS Hook Layer (kernel). Never worker.
-Bad plan detection?         →  PSAG. Before any work starts.
-Cascade protection?         →  Circuit Breaker.
-Repair learning?            →  RIM (6 strategies + structured signature).
-Token cost tracking?        →  Resource Governor.
-Shared package conflict?    →  PredictedInterface + exclusive lock.
-Rollback recovery?          →  ConflictReport → RepairPacket v2.
-ACCP sync?                  →  Never. Always async.
-Worker self-report?         →  Never trusted. Divergence flagged.
-Concurrency ceiling?        →  stable_16. Architecture review to go higher.
+What is PRAXIS?             →  Local Truth Kernel for agentic coding tools.
+                              Not a coding agent. Not a Claude Code clone.
+Primary interface (v0.1)?   →  Claude Code plugin + praxis CLI.
+Completion authority?       →  Truth Kernel FinalGate. Never agent.
+Completion criteria source? →  .praxis/task.yaml (human-approved). Never agent.
+Truth location?             →  Kernel only. Plugin displays, never decides.
+Evidence store (v0.1)?      →  .praxis/runs/<id>/evidence.jsonl (local files).
+Desktop Mission Control?     →  FUTURE scope for v0.1 (target v0.3+).
+Server/SSE/PostgreSQL?      →  FUTURE scope for v0.1 (target v0.2+).
+Multi-agent orchestration?  →  FUTURE scope for v0.1 (target v0.3+).
+Own agent loop?             →  KILLED from v0.1. Agents run independently.
+Implementation authorized?  →  NO. Design stages (D0-D4) in progress.
 ```

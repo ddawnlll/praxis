@@ -1,6 +1,8 @@
+> **⚠ Future scope for v0.1 (ADR-013 Plugin-First Pivot):** RuntimeEvent and SSE event streaming are FUTURE scope for v0.1. v0.1 uses local JSONL evidence files. See `docs/adr/ADR-013-plugin-first-pivot.md`.
+
 # RuntimeEvent Contract
 
-**Status:** DRAFT_FOR_AUDIT
+**Status:** DRAFT_FOR_AUDIT (FUTURE for v0.1)
 **Version:** v0.1
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Define the RuntimeEvent contract — the universal event envelope for all PRAXIS runtime state changes. Every state mutation in the system emits a RuntimeEvent. Events are append-only, monotonically sequenced, and serve as the source of truth for UI state reconstruction via snapshot + replay.

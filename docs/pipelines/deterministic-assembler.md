@@ -1,6 +1,8 @@
+> **⚠ Future scope for v0.1 (ADR-013 Plugin-First Pivot):** Deterministic Assembler is FUTURE scope for v0.1. v0.1 does not include multi-worker orchestration or shared file assembly. See `docs/adr/ADR-013-plugin-first-pivot.md`.
+
 # Deterministic Assembler Pipeline
 
-**Status:** DRAFT_FOR_AUDIT
+**Status:** DRAFT_FOR_AUDIT (FUTURE for v0.1)
 **Version:** v0.1
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Define the Deterministic Assembler — the only component that writes shared integration files, enforcing Law 2 through atomic, verifiable assembly of verified worker outputs.

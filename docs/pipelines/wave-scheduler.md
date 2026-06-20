@@ -1,6 +1,8 @@
+> **⚠ Future scope for v0.1 (ADR-013 Plugin-First Pivot):** Wave Scheduler and multi-worker orchestration are FUTURE scope for v0.1. v0.1 is single-session manual verification. See `docs/adr/ADR-013-plugin-first-pivot.md`.
+
 # Wave Scheduler Pipeline
 
-**Status:** DRAFT_FOR_AUDIT
+**Status:** DRAFT_FOR_AUDIT (FUTURE for v0.1)
 **Version:** v0.1
 **Canonical decisions:** `docs/decisions.md`
 **Purpose:** Define how PlanSpec waves are scheduled, how task dependencies are resolved, and how Governor and Circuit Breaker control wave admission.
@@ -107,7 +109,7 @@ WAVE_PENDING ────── dependency check ──────► WAVE_READ
 
 ## Governor Concurrency Control
 
-- Governor defines current tier (stable_3 → stable_16)
+- Governor defines current tier (stable_3 → stable_16, where stable_16 is an OPEN hypothesis / aspirational ceiling; MVP-C targets stable_3 only)
 - Max concurrent workers = Governor current tier
 - When active workers < tier: admit next ready task
 - When active workers >= tier: queue task until slot opens
