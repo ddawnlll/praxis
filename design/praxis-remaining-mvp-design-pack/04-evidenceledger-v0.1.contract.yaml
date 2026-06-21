@@ -1,0 +1,338 @@
+# EvidenceLedger v0.1 Contract
+# accp_version: 2.0.0
+# source_format: ACCP-YAML
+# id: EVIDENCE_LEDGER_V0_1_CONTRACT
+# title: "PRAXIS EvidenceLedger v0.1 — JSONL Format Contract"
+# version: 0.1.0
+# status: DESIGN_PROPOSAL
+#
+# Defines the EvidenceLedger v0.1 format: an append-only JSONL file
+# that records all execution evidence for a single attempt.
+
+contract:
+  id: "evidenceledger-v0.1"
+  title: "EvidenceLedger v0.1 Format Contract"
+  version: "0.1.0"
+  status: "DESIGN_PROPOSAL"
+
+  format:
+    type: "jsonl"
+    reason: >-
+      JSONL (newline-delimited JSON) is chosen over YAML because evidence
+      capture is fundamentally streaming and append-only. JSONL gives:
+      (1) trivial line-based appending, (2) standard JSON parsing per record,
+      (3) native Node.js streaming via readline, (4) no YAML anchor/alias
+      complexity for records that are never hand-edited.
+      Each line is a complete JSON object. One record per line.
+
+  file_location:
+    v0_1: ".praxis/runs/<run-id>/evidence.jsonl"
+    note: "Relative to repo root. Run ID is a UUID v4."
+
+  record:
+    description: "Each line in the JSONL file is an EvidenceRecord object."
+    required_fields:
+      - evidence_id
+      - attempt_id
+      - kind
+      - source
+      - content_hash
+      - timestamp
+    optional_fields:
+      - content_ref
+      - previous_hash
+      - chain_hash
+      - metadata
+
+  fields:
+
+    evidence_id:
+      type: string
+      format: "evt-<hex>"
+      description: "Unique identifier for this evidence record."
+      required: true
+      example: "evt-a1b2c3d4"
+
+    attempt_id:
+      type: string
+      description: "The attempt this evidence belongs to."
+      required: true
+      example: "attempt-01"
+
+    kind:
+      type: string
+      enum:
+        - diff
+        - file_change
+        - file_snapshot
+        - command_output
+        - command_start
+        - command_exit
+        - test_output
+        - test_result
+        - transcript
+        - llm_advisory
+        - manual_review
+        - runtime_probe
+        - runner_discovery
+        - div:file: Divergence report — file content mismatch between hook and worker
+        - div:tool: Divergence report — tool call mismatch between hook and worker
+        - div:output: Divergence report — output mismatch between hook and worker
+        - session_start
+        - session_end
+      description: "What kind of event this record represents."
+      required: true
+
+    source:
+      type: string
+      enum:
+        - git
+        - filesystem
+        - kernel_hook
+        - divergence_detector
+        - command_runner
+        - worker_claim
+        - human
+      description: "Who or what captured this evidence."
+      required: true
+
+    content_hash:
+      type: string
+      format: "sha256-hex"
+      pattern: "^[a-f0-9]{64}$"
+      description: "SHA-256 hash of the content. 64 hex characters."
+      required: true
+      example: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+
+    content_ref:
+      type: string
+      description: >-
+        Reference to where the full content is stored. May be a file path
+        relative to .praxis/runs/<run-id>/ or an inline marker.
+        Large content (diffs, command output) is stored in separate files.
+        Small content may be empty string when content_hash alone suffices.
+      optional: true
+      example: "diffs/001.diff"
+
+    timestamp:
+      type: string
+      format: "date-time"
+      description: "ISO 8601 timestamp of when the evidence was captured."
+      required: true
+      example: "2026-06-20T10:00:00.000Z"
+
+    previous_hash:
+      type: string
+      nullable: true
+      format: "sha256-hex"
+      description: "chain_hash of the previous record, or null for first record."
+      optional: true
+
+    chain_hash:
+      type: string
+      nullable: true
+      format: "sha256-hex"
+      description: "SHA-256(prev.chain_hash + content_hash). Null for first record."
+      optional: true
+
+    metadata:
+      type: object
+      description: "Arbitrary metadata key-value pairs."
+      optional: true
+      example:
+        exit_code: 0
+        duration_ms: 1500
+        file_path: "src/index.ts"
+        command: "bun test"
+
+  # Chain Integrity
+  chain:
+    description: "Optional Evidence Hash Chain for tamper-evident logging."
+    first_record:
+      chain_hash: null
+      previous_hash: null
+    subsequent_records:
+      chain_hash: "sha256(previous_record.chain_hash + this_record.content_hash)"
+    verification: "Recompute chain_hash for each record and compare."
+    break_classification:
+      noise: "1 mismatch — log warning"
+      suspected: "2-3 mismatches — flag for review"
+      confirmed: ">3 mismatches or pattern — trigger CB OPEN"
+    v0_1_status: "OPTIONAL"
+    v0_1_note: >-
+      Chain hash fields are optional in v0.1. EvidenceGate v0.1-lite checks
+      for their presence but does not require them. Full mandatory chain
+      enforcement is deferred to v0.2.
+
+  # Evidence Types and Where They Come From
+  evidence_producers:
+    - kind: diff
+      source: git
+      producer: "praxis-hook post-tool or git diff capture"
+      content_ref: "diffs/<id>.diff"
+      description: "Git diff of changes made during attempt."
+
+    - kind: file_change
+      source: filesystem
+      producer: "praxis-hook or filesystem watcher"
+      content_ref: "snapshots/<id>.json"
+      description: "Record of file creation, modification, or deletion."
+
+    - kind: file_snapshot
+      source: filesystem
+      producer: "Beginning-of-session snapshot"
+      content_ref: "snapshots/baseline.json"
+      description: "Full filesystem snapshot at start of attempt."
+
+    - kind: command_output
+      source: command_runner
+      producer: "ExecGate command runner"
+      content_ref: "command-output/<cmd-id>.txt"
+      description: "stdout + stderr from a command execution."
+
+    - kind: command_start
+      source: command_runner
+      producer: "ExecGate command runner"
+      description: "Record that a command was started, with timestamp and args."
+
+    - kind: command_exit
+      source: command_runner
+      producer: "ExecGate command runner"
+      description: "Exit code + duration of a command execution."
+
+    - kind: test_output
+      source: command_runner
+      producer: "ExecGate test runner integration"
+      content_ref: "test-output/<suite-id>.json"
+      description: "Structured test results (pass/fail counts, individual results)."
+
+    - kind: session_start
+      source: kernel_hook
+      producer: "praxis-hook at session init"
+      description: "Marks beginning of an execution session."
+
+    - kind: session_end
+      source: kernel_hook
+      producer: "praxis-hook at session shutdown"
+      description: "Marks end of an execution session."
+
+  # Storage Layout
+  storage_layout:
+    root: ".praxis/runs/<run-id>/"
+    files:
+      - path: "evidence.jsonl"
+        description: "Append-only JSONL evidence records."
+        max_size_v0_1: "100MB (soft limit — warn above this)"
+      - path: "diffs/"
+        description: "Raw diff files referenced by content_ref."
+      - path: "snapshots/"
+        description: "Filesystem snapshot JSON files."
+      - path: "command-output/"
+        description: "Full command stdout/stderr logs."
+      - path: "test-output/"
+        description: "Structured test result files."
+
+  # Reading Model
+  reading:
+    v0_1_reader: "Streaming line-by-line via Node.js readline interface."
+    filter_capability: "Reader MUST support filtering by kind, source, time range."
+    iteration: "Reader MUST support forward-only iteration (no random access in v0.1)."
+    validation: "Each record MUST be validated as a standalone JSON object."
+    malformed_record: "Skip malformed line, emit diagnostic, continue reading."
+
+  # Writing Model
+  writing:
+    mode: "append-only"
+    append_rule: "New records are appended to end of file."
+    immutability: "Existing records MUST NOT be modified or deleted."
+    atomicity: "Each append SHOULD be followed by fsync."
+    concurrency_v0_1: "Single-writer model only. No concurrent appends."
+
+  # Acceptance Criteria
+  acceptance_criteria:
+    - id: "EL-AC-01"
+      description: "EvidenceLedger file is valid JSONL — each line parses as valid JSON."
+      verification: "Parse every line; reject on first invalid JSON."
+
+    - id: "EL-AC-02"
+      description: "Every record has required fields: evidence_id, attempt_id, kind, source, content_hash, timestamp."
+      verification: "Schema validation per record."
+
+    - id: "EL-AC-03"
+      description: "content_hash is valid SHA-256 hex string (64 characters)."
+      verification: "Regex pattern check."
+
+    - id: "EL-AC-04"
+      description: "kind is one of the defined enum values."
+      verification: "Enum validation."
+
+    - id: "EL-AC-05"
+      description: "source is one of the defined enum values."
+      verification: "Enum validation."
+
+    - id: "EL-AC-06"
+      description: "timestamp is valid ISO 8601 and monotonically non-decreasing."
+      verification: "Parse and compare with previous."
+
+    - id: "EL-AC-07"
+      description: "chain_hash, when present, validates as sha256(prev_chain_hash + content_hash)."
+      verification: "Recompute and compare."
+
+    - id: "EL-AC-08"
+      description: "Ledger reader handles malformed lines gracefully (skip + continue)."
+      verification: "Inject malformed line; verify reader returns remaining valid records."
+
+    - id: "EL-AC-09"
+      description: "Ledger reader supports filtering by kind and source."
+      verification: "Create mixed ledger; filter; verify only matching records returned."
+
+    - id: "EL-AC-10"
+      description: "Ledger storage size is bounded (soft limit at 100MB)."
+      verification: "Add records beyond soft limit; verify warning is emitted."
+
+  # Design Decisions
+  decisions:
+
+    - id: "EL-DEC-01"
+      question: "JSONL or YAML for evidence ledger?"
+      answer: "JSONL"
+      rationale: >-
+        Evidence capture is fundamentally streaming (append-only, line-by-line).
+        YAML's multi-line syntax, indentation sensitivity, and anchor/alias
+        support provide no benefit for machine-generated records.
+        JSONL gives 1:1 line-to-record mapping, trivial tailing, and
+        standard Node.js JSON parsing.
+
+    - id: "EL-DEC-02"
+      question: "EHC chain mandatory or optional in v0.1?"
+      answer: "Optional (v0.1-lite)"
+      rationale: >-
+        Full EHC enforcement adds implementation complexity (chain tracking,
+        break classification, Circuit Breaker integration). In v0.1, chain_hash
+        fields are optional. EvidenceGate checks for them when present but does
+        not require them. Mandatory chain enforcement is deferred to v0.2.
+
+    - id: "EL-DEC-03"
+      question: "Inline content or content_ref?"
+      answer: "content_ref with separate storage"
+      rationale: >-
+        Evidence content (diffs, command output) can be large. Embedding in
+        JSONL records bloats the ledger and makes streaming slower.
+        Records store a content_hash for integrity and a content_ref path
+        to the full content. Content files are stored in subdirectories
+        under .praxis/runs/<run-id>/.
+
+    - id: "EL-DEC-04"
+      question: "Single file or split files per evidence kind?"
+      answer: "Single file"
+      rationale: >-
+        One evidence.jsonl file per attempt. Splitting by kind adds
+        complexity without benefit — readers filter by kind field.
+        Simpler file management, simpler cleanup, simpler append logic.
+
+    - id: "EL-DEC-05"
+      question: "File naming convention for content_ref files?"
+      answer: "kind-based subdirectories with sequential or hash-based IDs"
+      rationale: >-
+        diffs/001.diff, command-output/cmd-test-all.txt, snapshots/baseline.json.
+        Predictable paths simplify debugging and cleanup.

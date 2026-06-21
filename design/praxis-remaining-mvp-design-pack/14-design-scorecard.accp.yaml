@@ -1,0 +1,230 @@
+# ACCP Design Scorecard — PRAXIS Remaining MVP Architecture Design Pack
+# accp_version: 2.0.0
+# source_format: ACCP-YAML
+# id: ACCP-PRAXIS-REMAINING-MVP-DESIGN-SCORECARD
+# title: "PRAXIS Remaining MVP Architecture Design Scorecard"
+# created_at: 2026-06-20T00:00:00+03:00
+# execution_mode: design_scorecard
+# analyzer: claude-fable-5-glm-5.2
+
+scorecard:
+  id: "REMAINING_MVP_DESIGN_SCORECARD"
+  status: PASS
+
+  # ---------------------------------------------------------------------------
+  # OVERALL SCORES
+  # ---------------------------------------------------------------------------
+  overall:
+    completeness: 9.0
+    consistency: 8.5
+    implementability: 8.0
+    false_pass_prevention: 8.5
+    clarity: 9.0
+    average: 8.6
+
+  # ---------------------------------------------------------------------------
+  # DIMENSION SCORES
+  # ---------------------------------------------------------------------------
+  dimensions:
+
+    - id: "DIM-COMPLETENESS"
+      name: "Design Completeness"
+      score: 9.0
+      summary: "All required design outputs exist across all 14 documents."
+      strengths:
+        - "All 6 gates are fully designed with inputs, outputs, semantics"
+        - "EvidenceLedger format is specified with full field definitions"
+        - "RepairPacket format is specified with JSON Schema"
+        - "Report model covers both ACCP and runtime reports"
+        - "CLI workflow covers all major user workflows"
+        - "Plugin bridge covers slash commands and hooks"
+        - "Phase roadmap has per-phase ACs and file inventory"
+        - "Risk register covers 28 risks with mitigations"
+      weaknesses:
+        - "EHC chain verification is v0.1-lite (mandatory in v0.2)"
+        - "WiringGate v0.1-lite defers AST analysis"
+        - "Plugin bridge depends on Claude Code plugin API which may change"
+
+    - id: "DIM-CONSISTENCY"
+      name: "Cross-Document Consistency"
+      score: 8.5
+      summary: "Design decisions are consistent across documents and with existing locked artifacts."
+      strengths:
+        - "All documents reference the same PlanSpec schema version (0.1.0)"
+        - "Gate sequence (Schema→Lock→Evidence→Wiring→Exec→Final) is consistent everywhere"
+        - "Reason codes referenced consistently across gate designs and diagnostics"
+        - "Evidence format referenced consistently across EvidenceGate, EvidenceLedger, and ExecGate"
+        - "RepairPacket strategy rotation matches existing repair-policy.contract.md"
+        - "CLI commands map directly to kernel functions — no gate logic in CLI"
+        - "Plugin bridge design explicitly enforces Three Laws"
+      weaknesses:
+        - "Existing gate-verdict.contract.md has some reason codes that differ from this design pack (minor — expected for draft-to-proposal)"
+        - "EvidenceRecord contract (evidence-record.contract.md) is more detailed than EvidenceLedger v0.1-lite — may need alignment pass"
+
+    - id: "DIM-IMPLEMENTABILITY"
+      name: "Implementation Feasibility"
+      score: 8.0
+      summary: "Design is implementable but some phases have significant complexity."
+      strengths:
+        - "Clear file structure with new file paths for each phase"
+        - "Per-phase acceptance criteria provide implementation targets"
+        - "Gate interfaces are cleanly separated with context passing"
+        - "Reuse of existing types (PlanSpecV01, Diagnostic, PlanHashes)"
+        - "CLI is explicitly thin — delegates to kernel"
+      concerns:
+        - "P5 ExecGate cross-platform process handling is complex"
+        - "P6 CLI may need external dependency (commander/yargs)"
+        - "Test isolation for ExecGate tests (process side effects)"
+        - "P3-P6 sequential dependencies block parallel implementation"
+      mitigations:
+        - "Design pack provides full picture — enables parallel planning"
+        - "Per-phase ACs enable incremental testing"
+        - "P5 risk mitigated by using Node.js child_process abstractions"
+
+    - id: "DIM-FALSE-PASS"
+      name: "False PASS Prevention"
+      score: 8.5
+      summary: "Strong false-PASS prevention through deterministic evidence rules and gate separation."
+      strengths:
+        - "FinalGate rejects advisory-only criteria for PASS"
+        - "FinalGate requires at least one deterministic criterion for PASS"
+        - "FinalGate rejects non-human-approved criteria"
+        - "FinalGate rejects zero-criteria plans"
+        - "ExecGate uses exact command matching (not substring)"
+        - "EvidenceGate detects forbidden file mutations"
+        - "LockGate detects hash changes after lock"
+      concerns:
+        - "EHC chain is optional in v0.1 — evidence tampering could go undetected"
+        - "WiringGate export matching is heuristic (string pattern, not AST)"
+        - "Network sandboxing is advisory only"
+        - "Watch mode detection is heuristic"
+      mitigations:
+        - "EHC mandatory in v0.2"
+        - "Wiring gaps are HOLD, not PASS — false negative > false positive"
+        - "Command spoofing further mitigated by shell=false default"
+
+    - id: "DIM-CLARITY"
+      name: "Clarity and Readability"
+      score: 9.0
+      summary: "Documents are well-structured with clear sections, examples, and consistent formatting."
+      strengths:
+        - "Consistent document structure (Purpose, Position, Inputs, Checks, Outputs)"
+        - "Example scenarios for every gate"
+        - "Decision tables and verdict ladders"
+        - "Code-like interface definitions for implementability"
+        - "Risk register is actionable with specific mitigations"
+      weaknesses:
+        - "Some documents are long (evidencegate-design.md at ~250 lines)"
+        - "YAML contract documents are technical — may benefit from more prose explanation"
+
+  # ---------------------------------------------------------------------------
+  # PER-GATE SCORES
+  # ---------------------------------------------------------------------------
+  per_gate:
+
+    - gate: "EvidenceGate"
+      design_quality: 9.0
+      false_pass_risk: 0.15
+      notes: "Strong namespace checking and diff-empty detection. EHC chain optional is the main risk."
+
+    - gate: "EvidenceLedger"
+      design_quality: 8.5
+      false_pass_risk: 0.10
+      notes: "JSONL format is clean and implementable. Content_ref indirection adds complexity but prevents ledger bloat."
+
+    - gate: "WiringGate"
+      design_quality: 7.5
+      false_pass_risk: 0.20
+      notes: "v0.1-lite is pragmatic but pattern-matching exports is the weakest link. Acceptable gap documented."
+
+    - gate: "ExecGate"
+      design_quality: 8.0
+      false_pass_risk: 0.15
+      notes: "Command safety model is solid. Cross-platform risks and sandboxing limitations noted."
+
+    - gate: "FinalGate"
+      design_quality: 9.5
+      false_pass_risk: 0.05
+      notes: "Strongest false-PASS prevention. Deterministic filter, advisory rejection, zero-criteria check. Well-designed."
+
+    - gate: "RepairPacket"
+      design_quality: 8.5
+      false_pass_risk: 0.10
+      notes: "JSON format is appropriate. Strategy rotation prevents infinite loops. Scope constraint enforcement is key."
+
+  # ---------------------------------------------------------------------------
+  # ACCEPTANCE CRITERIA
+  # ---------------------------------------------------------------------------
+  acceptance_criteria:
+    - id: "SC-AC-01"
+      description: "All 14 required design outputs exist."
+      status: "PASS"
+      evidence: "14 files created under design/praxis-remaining-mvp-design-pack/"
+
+    - id: "SC-AC-02"
+      description: "Design covers all 6 pipeline gates."
+      status: "PASS"
+      evidence: "EvidenceGate (doc 03), WiringGate (doc 05), ExecGate (doc 06), FinalGate (doc 07), plus SchemaGate+LockGate (doc 02)"
+
+    - id: "SC-AC-03"
+      description: "EvidenceLedger format specified."
+      status: "PASS"
+      evidence: "04-evidenceledger-v0.1.contract.yaml with full field definitions, reading/writing model"
+
+    - id: "SC-AC-04"
+      description: "RepairPacket format specified."
+      status: "PASS"
+      evidence: "08-repairpacket-v0.1.contract.yaml with JSON Schema, strategy rotation"
+
+    - id: "SC-AC-05"
+      description: "Report model specified."
+      status: "PASS"
+      evidence: "09-report-model.md with ACCP and runtime report formats"
+
+    - id: "SC-AC-06"
+      description: "CLI workflow designed."
+      status: "PASS"
+      evidence: "10-cli-workflow.md with full command tree and workflows"
+
+    - id: "SC-AC-07"
+      description: "Plugin bridge designed."
+      status: "PASS"
+      evidence: "11-claude-plugin-bridge.md with slash commands, hooks, safety boundaries"
+
+    - id: "SC-AC-08"
+      description: "P3-P6 roadmap with per-phase ACs."
+      status: "PASS"
+      evidence: "12-mvp-phase-roadmap.md with 12 ACs for P3, 10 for P4, 12 for P5, 14 for P6"
+
+    - id: "SC-AC-09"
+      description: "Risk register covers false PASS risks."
+      status: "PASS"
+      evidence: "13-risk-register.md with 28 risks, ranked false PASS vectors, response plans"
+
+    - id: "SC-AC-10"
+      description: "Design scorecard is self-assessed."
+      status: "PASS"
+      evidence: "This document (14-design-scorecard.accp.yaml)"
+
+  # ---------------------------------------------------------------------------
+  # COMPLETION GATE
+  # ---------------------------------------------------------------------------
+  completion_gate:
+    done_when:
+      - "All required design outputs exist (14 files): ✓"
+      - "Executive summary provides verdict and top-10 decisions: ✓"
+      - "Current state map accurately reflects locked state: ✓"
+      - "EvidenceGate design complete with HOLD/FAIL/PASS semantics: ✓"
+      - "EvidenceLedger contract specified in YAML: ✓"
+      - "WiringGate v0.1-lite design complete with advanced split: ✓"
+      - "ExecGate design complete with safety model: ✓"
+      - "FinalGate design complete with deterministic filter: ✓"
+      - "RepairPacket contract specified in YAML: ✓"
+      - "Report model covers ACCP and runtime: ✓"
+      - "CLI workflow designed: ✓"
+      - "Plugin bridge designed: ✓"
+      - "P3-P6 roadmap with ACs: ✓"
+      - "Risk register with mitigations: ✓"
+      - "Design scorecard self-assessed: ✓"
+      - "No implementation files modified: ✓"
+    status: "DONE"
