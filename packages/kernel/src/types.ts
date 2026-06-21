@@ -3,6 +3,19 @@
 
 import type { PlanSpecV01, PlanHashes, Diagnostic } from '@praxis/contracts';
 
+// Re-export P3 evidence types from a single barrel
+export type {
+  EvidenceRecordV01,
+  EvidenceLedgerReadResult,
+  EvidenceGateInput,
+  EvidenceGateResult,
+  KernelP3Result,
+  ChangedFile,
+  ChangedFileStatus,
+  EvidenceTypeV01,
+  EvidenceSourceV01,
+} from './evidence/types';
+
 /** Verdict for a single gate evaluation. */
 export type GateVerdictValue = 'PASS' | 'HOLD' | 'FAIL';
 

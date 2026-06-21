@@ -1,0 +1,176 @@
+# P3 Test Plan — shared plan for EvidenceGate fixture tests
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-P3-TEST-001"
+  title: "P3 EvidenceGate Test Plan"
+  description: "Minimal plan for EvidenceGate fixture testing."
+  createdAt: "2026-06-20T00:00:00Z"
+  humanId: "test"
+  status: "draft"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/**"
+    - "test/**"
+    - "fixtures/**"
+  forbiddenFiles:
+    - "package.json"
+    - ".praxis/locks/**"
+    - "secrets/**"
+    - "prod-config/**"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 3
+
+tasks:
+  - id: "task-01"
+    title: "Implement feature"
+    objective: "Write the feature code."
+    implementation:
+      instructions:
+        - "Write src/feature.ts"
+    artifactPolicy:
+      class: "script"
+      wiringRequired: false
+      reachabilityRequired: false
+      executionRequired: false
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+    acceptanceCriteria:
+      - id: "AC-01"
+        description: "Feature file exists."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "file_exists"
+          path: "src/feature.ts"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "diff"
+        requiredEvidence:
+          - "diff"
+      - id: "AC-02"
+        description: "Tests pass."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs:
+            - "test_output"
+        requiredEvidence:
+          - "test_output"
+      - id: "AC-03"
+        description: "Manual review advisory."
+        level: "advisory"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "manual_review"
+          deterministic: false
+          canSatisfyFinalGate: false
+          advisoryOnly: true
+          evidenceRefs:
+            - "manual_review"
+        requiredEvidence:
+          - "manual_review"
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST"
+      kind: "final_validation"
+      command: "bun test"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+  hardDeniedCommands:
+    - command: "rm -rf /"
+      reason: "Destructive operation."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes:
+    - "diff"
+    - "source"
+    - "test_output"
+    - "manual_review"
+  hashWhenAvailable: true
+
+gates:
+  sequence:
+    - "SchemaGate"
+    - "LockGate"
+    - "EvidenceGate"
+    - "WiringGate"
+    - "ExecGate"
+    - "FinalGate"
+  verdicts:
+    - "PASS"
+    - "HOLD"
+    - "FAIL"
+  reasonCodes: {}
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 3
+  reverifyCommand: "bun test"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "integrationContractHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

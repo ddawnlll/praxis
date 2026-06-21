@@ -9,10 +9,10 @@
 | Field | Value |
 |-------|-------|
 | Project | PRAXIS v2.0 |
-| Root | `/home/erfolg/src/praxis` |
+| Root | `/Users/hootie/praxis` |
 | Purpose | Local Truth Kernel for agentic coding tools — verifies whether the agent actually completed the task |
 | Concept | A plugin-first local verification layer: praxis CLI + Truth Kernel + Claude Code plugin UX. Answers "Bitti mi gerçekten?" / "Did the agent actually complete the task?" |
-| Status | Design D0-D1 in progress (~45% design). Implementation 0% — NOT authorized. Post-ADR-013 Plugin-First Pivot. |
+| Status | D3/P1/P2 LOCKED. Remaining MVP architecture design pack COMPLETE. Implementation 0% — NOT authorized. Post-ADR-013 Plugin-First Pivot. |
 | Pi reference | `pi/` contains the old Pi monorepo — reference and selective port source, NOT the active codebase |
 
 ---
@@ -148,26 +148,29 @@ Terminal states: `COMPLETE` (FVR enqueued), `ABORTED` (evidence preserved), `FAI
 |---|-------|-------|--------|
 | D0 | Pivot Decision Lock | ADR-013, decisions.md D-127–D-148 | COMPLETE |
 | D1 | Plugin-First Design Pack | Product scope, phase map, task YAML contract, MVP scope, plugin flow, kernel flow | COMPLETE |
-| D2 | Truth Kernel Proof Design | Evidence model, false-done catalog, RepairPacket schema | Not started |
-| D3 | Claude Code Plugin Spike Spec | Slash command spec, hook design, CLI interface contract | Not started |
-| D4 | Final Design Lock Audit | Cross-doc consistency, decision compliance, readiness assessment | Not started |
+| D3 | PlanSpec v0.1 Schema Pack | Canonical schema, 5 examples, 10 fixtures, validation script | **PASS_LOCKED** 9.2/10 |
+| P1 | @praxis/contracts | Parser, validator, hasher, fixture runner | **PASS_LOCKED** 31/31 tests, 17/17 ACs |
+| P2 | @praxis/kernel — SchemaGate + LockGate | SchemaGate, LockGate, lock helpers, P2 pipeline | **PASS_LOCKED** 28/28 tests, 18/18 ACs |
+| DP | Remaining MVP Architecture Design Pack | EvidenceGate, EvidenceLedger, WiringGate, ExecGate, FinalGate, RepairPacket, reports, CLI, plugin bridge, roadmap | **COMPLETE** 17/17 ACs, 8.6/10 scorecard |
+| P3 | EvidenceGate implementation | EvidenceLedger reader/writer, namespace checker, diff analyzer, evidence gate, P3 pipeline | **PASS** 36/36 tests, 18/18 ACs |
+| P4 | WiringGate implementation | Declared unit matcher, export checker, orphan detector, mode validator | **Design ready** |
+| P5 | ExecGate implementation | Command runner, timeout, safety, test output parsing, evidence capture | **Design ready** |
+| P6 | FinalGate + Repair + Reports + CLI + Plugin | Criterion evaluator, verdict aggregator, report gen, CLI, plugin bridge | **Design ready** |
 | I0 | Implementation Scaffold | Monorepo, contracts, build infra | FUTURE — not authorized |
 | I1 | Manual Verify MVP | init, spec, verify commands | FUTURE — not authorized |
-| I2 | Repair Packet MVP | repair command | FUTURE — not authorized |
-| I3 | Hook Capture MVP | Hook-based evidence capture | FUTURE — not authorized |
-| I4 | Reports / ACCP-lite | Report generation, plugin integration | FUTURE — not authorized |
 
-**Overall design progress:** ~45% (D0-D1 complete, D2-D4 remaining)
-**Overall implementation progress:** 0% (NOT authorized)
+**Overall design progress:** ~90% (D3/P1/P2/P3 locked, P4-P6 designed)
+**Overall implementation progress:** ~30% (P2 + P3 locked, P4-P6 NOT started)
+**Implementation NOT authorized** without explicit human approval per phase.
 
 ### Quick Reference — Next Actions
 
 ```
-1. [P-1] ADR-000: pi reuse policy
-2. [P-1] Architecture lock matrix
-3. [P-1] Circuit Breaker section → README
-4. [P0.1] Monorepo scaffold
-5. [P0.2] Contracts port
+1. [P-0] Review and accept the Remaining MVP Design Pack
+2. [P-1] Tag D3/P1/P2 milestones for traceability
+3. [P-2] Run current tests to confirm baseline (bun test)
+4. [P3] Implement EvidenceGate — first gate after D3/P1/P2 lock
+5. [P4-P6] Sequential implementation per phase roadmap
 ```
 
 See `todo.md` for full task-level tracking.
@@ -186,10 +189,13 @@ See `todo.md` for full task-level tracking.
 | `ai_summary.md` | Meta | This file — project state maintained by agents | Active |
 | `CLAUDE.md` | Meta | Agent instructions: read ai_summary.md first, update on changes | Active |
 | `reports/` | Reports | ACCP readiness reports (pi_reuse_readiness, architecture_lock_readiness) | ACCP YAML |
-| `reports/accp/planspec-v0.1-fitness-audit.accp.yaml` | Report | PlanSpec v0.1 fitness audit (ACCP-YAML) — scores planspec.json 3.6/10 v0.1, 7.0/10 advanced; verdict HOLD; strategy TASK_YAML_PLUS_ADVANCED_PLANSPEC | New 2026-06-20 |
-| `reports/accp/planspec-v0.1-fitness-audit.summary.md` | Report | Markdown summary of the PlanSpec v0.1 fitness audit | New 2026-06-20 |
-| `reports/accp/planspec-v0.1-schema-reanalysis.accp.yaml` | Report | Deep re-analysis of new PRAXIS PlanSpec v0.1 native schema — scores 6.7/10 PASS_WITH_FIXES, identifies dead allOf conditionals (empirically verified), 10 schema patches | New 2026-06-20 |
-| `reports/accp/planspec-v0.1-schema-reanalysis.summary.md` | Report | Markdown summary of schema re-analysis | New 2026-06-20 |
+| `reports/accp/planspec-v0.1-fitness-audit.accp.yaml` | Report | PlanSpec v0.1 fitness audit (ACCP-YAML) — scores planspec.json 3.6/10 v0.1, 7.0/10 advanced; verdict HOLD; strategy TASK_YAML_PLUS_ADVANCED_PLANSPEC | 2026-06-20 |
+| `reports/accp/planspec-v0.1-fitness-audit.summary.md` | Report | Markdown summary of the PlanSpec v0.1 fitness audit | 2026-06-20 |
+| `reports/accp/planspec-v0.1-schema-reanalysis.accp.yaml` | Report | Deep re-analysis of new PRAXIS PlanSpec v0.1 native schema — scores 6.7/10 PASS_WITH_FIXES, identifies dead allOf conditionals (empirically verified), 10 schema patches | 2026-06-20 |
+| `reports/accp/planspec-v0.1-schema-reanalysis.summary.md` | Report | Markdown summary of schema re-analysis | 2026-06-20 |
+| `reports/accp/current-state-audit.accp.yaml` | Report | Full repo state audit after machine switch — D3/P1/P2 confirmed PASS, clean forbidden-future-work check, 59/59 total tests | 2026-06-20 |
+| `reports/accp/remaining-mvp-design-pack.accp.yaml` | Report | Remaining MVP Architecture Design Pack report — 17/17 ACs PASS, design scorecard 8.6/10, next phase recommendation | NEW 2026-06-20 |
+| `design/praxis-remaining-mvp-design-pack/` | Design | Remaining MVP architecture design pack — 16 documents covering EvidenceGate through plugin bridge | NEW 2026-06-20 8.6/10 |
 | `docs/` | Design | Architecture docs, ADRs, specs, phase map, product scope | DRAFT_FOR_AUDIT |
 | `docs/decisions.md` | Design | Canonical decision register — HARD_LOCK/SOFT_LOCK/OPEN/REJECTED | Authoritative |
 | `docs/adr/README.md` | Design | ADR index — resolves numbering collisions, registers all ADRs | v0.1 |
@@ -379,7 +385,14 @@ make test-full
 ## Git History
 
 ```
-cacc073  update todo                                     (2026-06-17)
+cd0acea  feat: implement @praxis/kernel P2 SchemaGate and LockGate   (2026-06-20)
+d6a7d8e  feat: implement @praxis/contracts PlanSpec v0.1 parser/validator/hasher/fixture-runner
+97e24fa  feat: lock PRAXIS PlanSpec v0.1 canonical schema pack
+27628a3  PRAXIS Plugin-First Pivot: rebrand from desktop-first orchestrator to local Truth Kernel
+d554a37  fix
+bc45809  Add PRAXIS design documentation pack v0.1 (DRAFT_FOR_AUDIT)
+85218cd  Add CLAUDE.md and ai_summary.md for agent session continuity
+cacc073  update todo
 92ed8a1  Add Circuit Breaker architecture as kernel-owned safety component v0.2
 311ad17  Add architecture baseline document v0.1
 b055fbc  Initial commit
@@ -431,7 +444,8 @@ These packages must NOT be copied into PRAXIS:
 
 | Date | Files | Summary |
 |------|-------|---------|
-| 2026-06-20 | `reports/accp/planspec-v0.1-fitness-audit.accp.yaml` (new), `reports/accp/planspec-v0.1-fitness-audit.summary.md` (new), `ai_summary.md` (updated) | **PlanSpec v0.1 Fitness Score Audit (ACCP-PRAXIS-PLANSPEC-V0_1-FITNESS-SCORE-AUDIT):** Audit-only/report-only analysis of planspec.json (PlanSpec v5-alpha2, 972 lines). Meta-validated as valid Draft 2020-12 JSON Schema (jsonschema 4.26.0); all 11 $ref resolve. Scored 3.6/10 for PRAXIS plugin-first v0.1 fitness, 7.0/10 as advanced future format. Verdict HOLD. Three structural findings: (1) wrong lineage — planspec.json is Pi P44/v4.11/P45 schema with ZERO field-name overlap with PRAXIS's own contracts (plan_id/tasks[]/plan_budget/human_id/criteria_source/predicted_interfaces and task.yaml fields all absent); (2) forces v0.1-excluded multi-worker weight as required (waves[]/workspaces[]/locking/compatibility/intent.parallelism); (3) missing false-done-prevention layer (no artifactPolicy, no integrationContract, no wiringRequired/reachability, no RepairPacket schema, no formal gate/verdict model, no deterministic/advisory authority; acceptanceCriteria is unstructured additionalProperties:true). WiringGate absent from schema AND design (only Evidence/Exec/Final exist). Recommended strategy TASK_YAML_PLUS_ADVANCED_PLANSPEC: confirm task.yaml (already chosen by ADR-013) as v0.1 format, extend it with artifact/integration/wiring/repair layer (de-facto PlanSpec-lite), realign future PlanSpec to plan-spec.contract.md, archive v5-alpha2. 8/10 and 9/10 improvement paths + minimum viable v0.1 schema defined. 16/16 ACs PASS. planspec.json and all source/docs unchanged (SHA-256 3f0def... verified pre/post). Implementation NOT authorized. |
+| 2026-06-20 | `packages/kernel/src/evidence/` (5 new), `packages/kernel/src/gates/evidenceGate.ts` (new), `packages/kernel/src/runP3Kernel.ts` (new), `packages/kernel/test/evidenceLedger.spec.ts` (new), `packages/kernel/test/evidenceGate.spec.ts` (new), `packages/kernel/test/p3Kernel.spec.ts` (new), `fixtures/kernel/p3/` (11 new), `packages/kernel/src/types.ts` (updated), `packages/kernel/src/diagnostics.ts` (updated), `packages/kernel/src/index.ts` (updated), `reports/accp/p3-kernel-evidencegate-ledger.accp.yaml` (updated), `ai_summary.md` (updated) | **P3 EvidenceLedger + EvidenceGate Implementation (ACCP-PRAXIS-P3-KERNEL-EVIDENCEGATE):** Implemented EvidenceLedger JSONL v0.1 (types, reader/writer/appender, validation) and EvidenceGate (PASS/HOLD/FAIL with namespace checks, required evidence mapping, divergence detection). 18 reason codes. runP3Kernel composes SchemaGate → LockGate → EvidenceGate only. 11 test fixtures (pass/hold/fail scenarios). 36 P3 tests. All regression: P1 31/31, P2 28/28. Total 95/95 tests PASS. 18/18 ACs. No WiringGate, ExecGate, FinalGate, CLI, or plugin created. Enum normalization applied (divergence_file/divergence_tool/divergence_output). Design pack 8.6/10 scorecard unchanged. Next prompt: ACCP-PRAXIS-P4-KERNEL-WIRINGGATE-STATIC. |
+| 2026-06-20 | `design/praxis-remaining-mvp-design-pack/` (16 new files), `reports/accp/remaining-mvp-design-pack.accp.yaml` (new), `design/praxis-remaining-mvp-design-pack.zip` (new), `ai_summary.md` (updated), `CLAUDE.md` (updated), `docs/index.md` (updated) | **Remaining MVP Architecture Design Pack (ACCP-PRAXIS-REMAINING-DESIGN-PACK-GLM52-MAX):** Independently designed the remaining PRAXIS MVP architecture after D3/P1/P2 locked state. 16 design documents: executive summary, current state map, 6-gate pipeline, EvidenceGate design, EvidenceLedger JSONL contract, WiringGate v0.1-lite design, ExecGate safety model, FinalGate deterministic evidence policy, RepairPacket JSON contract, dual-format report model, CLI workflow (20+ subcommands), plugin bridge (9 slash commands + 3 hooks), P3-P6 roadmap (48 ACs), risk register (28 risks), design scorecard (8.6/10). All 17 ACs PASS. No implementation files modified. Design-only — not authorized for implementation. Zip: `design/praxis-remaining-mvp-design-pack.zip`. Next prompt: `ACCP-PRAXIS-P3-KERNEL-EVIDENCEGATE`. |
 | 2026-06-18 | `README.md` (rewritten), `architecture.md` (rewritten), `docs/identity.md` (new), `docs/index.md` (updated), `docs/pipelines/namespace-ownership.md` (supersession), `docs/contracts/conflict-report.contract.md` (supersession), `ai_summary.md` (updated) | **Plugin-First Rebrand Alignment (ACCP-PRAXIS-PLUGIN-FIRST-REBRAND-DOCS-ALIGNMENT):** Rewrote README.md as public-facing plugin-first overview (local Truth Kernel, Claude Code plugin bridge, manual verify/repair loop, future scope). Rewrote architecture.md as canonical plugin-first v0.1 architecture baseline (high-level flow, core components, package design, gate details, local state model, future architecture, superseded desktop-first section). Created docs/identity.md (product identity + terminology glossary). Updated docs/index.md reading order to include README.md and architecture.md. Added supersession notices to namespace-ownership.md and conflict-report.contract.md (remaining old multi-worker docs). Updated ai_summary.md with current state. Zip: artifacts/praxis-docs-plugin-first-rebrand-aligned-v0.1.zip. Implementation NOT authorized. |
 | 2026-06-18 | `docs/adr/ADR-013-plugin-first-pivot.md` (new), `docs/decisions.md` (updated), `docs/product-scope.md` (rewritten), `docs/phase-map.md` (rewritten), `docs/index.md` (updated), `docs/contracts/praxis-task-yaml.contract.md` (new), `docs/implementation/mvp-v0.1-plugin-first-scope.md` (new), `docs/pipelines/claude-code-plugin-flow.md` (new), `docs/pipelines/local-truth-kernel-flow.md` (new), plus 8 supersession notices | **Plugin-First Pivot Decision Pack:** Repositioned PRAXIS from desktop-first orchestrator to plugin-first local Truth Kernel. ADR-013 with KEEP/FUTURE/KILL. D-127-D-148 decisions. Zip: artifacts/praxis-docs-plugin-first-pivot-v0.1.zip. All 19 ACs passed. |: worker-adapter (complete rewrite per user spec with 5-stage pipeline + RunAttemptResult with no verdict + AdapterError normalization + mock adapter), claude-code-adapter (Day 0 Spike S1-S5 GO/NO-GO gates + headless+primary path + two independent loops + NO adapter-owned FinalGate), praxis-hook-capture (hook event capture pipeline + PreToolUse/PostToolUse/Stop + spool fallback + EHC chain feed + 4 design principles), messages-api-fallback (gated on Spike NO-GO + PRAXIS-owned tool loop + what stays same vs. changes + tradeoffs). All respect decisions.md HARD_LOCK decisions and Three Laws. |
 | 2026-06-18 | `docs/contracts/*.md` (6 files) | Created six DRAFT_FOR_AUDIT v0.1 contract documentation files: task-spec.contract.md (TaskSpec + AcceptanceCriterion + PSAG V1-V14), plan-spec.contract.md (PlanSpec + PlanBudget + PSAG P1-P15), worker-adapter.contract.md (WorkerAdapter + WorkerHealth + RunAttemptInput/Result + MUST/MUST NOT rules), run-attempt.contract.md (RunAttemptResult + AttemptManifest + DivergenceFlag + GateResult), runtime-event.contract.md (RuntimeEvent envelope + 10 event categories + sequencing/gap-detection + SSP replay), runtime-snapshot.contract.md (RuntimeSnapshot + 6 sub-types + UI consumption algorithm). All use conceptual field tables (not TypeScript). Forbidden authority fields enforced per Three Laws. Contract-first development (D-098). docs/decisions.md NOT modified. |
@@ -448,19 +462,24 @@ These packages must NOT be copied into PRAXIS:
 ## Known Issues
 
 - **Environment mismatch**: `pi/AGENTS.md` references macOS paths and tmux commands — not applicable to this Linux environment
-- **No monorepo scaffold**: Cannot run `bun install` or `bun test` at root yet — I0 needed (future)
+- **No workspace root package.json**: Cannot run `bun install` or `bun test` at root yet — per-package only
 - **Legacy ai_summary.md**: `pi/ai_summary.md` has 1500+ lines of auto-generated file analysis that may be stale
 - **Post-pivot doc reconciliation**: Old desktop/server/runtime docs exist alongside new plugin-first docs. 8 docs received supersession notices; remaining pipeline/contract docs may need review for v0.1 consistency
-- **Architecture.md updated**: `architecture.md` rewritten to plugin-first v0.1 architecture (post-ADR-013). Old desktop-first architecture preserved in Superseded section for future reference.
-- **planspec.json is a foreign schema**: `planspec.json` (Pi P44/v4.11/P45) scored 3.6/10 for v0.1. NEW `praxis_planspec_v0_1.schema.yaml` (PRAXIS-native) replaces it, scored 6.7/10 in audit → patched to ~8.0+ via 10 fixes (dead allOf conditionals, hardened integrationContract, AC cross-field constraints, wiringRequired string support, GateVerdict $def, structured hardDeniedCommands, commandRef patterns, date-time formats, repair/reports consistency, mode:none loophole). 14 empirical tests pass. Hash: e328683bd...
+- **Architecture.md updated**: `architecture.md` rewritten to plugin-first v0.1 architecture (post-ADR-013). Old desktop-first architecture preserved in Superseded section.
+- **planspec.json is a foreign schema**: `planspec.json` (Pi P44/v4.11/P45) scored 3.6/10 for v0.1. PRAXIS-native `planspec.v0.1.schema.yaml` is the canonical schema.
+- **No git tags for milestones**: D3, P1, P2 milestones have no tags — makes traceability harder
+- **.praxis/ untracked**: `.praxis/locks/current.lock.yaml` exists as artifact from prior kernel LockGate test run — should be gitignored
+- **Design pack is unaccepted**: The remaining MVP design pack has been produced but has NOT been reviewed by the human project owner. Implementation must not start without explicit acceptance.
 
 ---
 
 ## Active Work
 
-- **Plugin-First Pivot (COMPLETE 2026-06-18):** Two-pack documentation: (1) Pivot Decision Pack — ADR-013, decisions.md D-127–D-148, product-scope/phase-map rewrites, 4 new docs, 8 supersession notices. (2) Rebrand Alignment — README.md and architecture.md rewritten, identity.md created, 2 additional supersession notices, index.md updated. Both packs zipped: `artifacts/praxis-docs-plugin-first-pivot-v0.1.zip` and `artifacts/praxis-docs-plugin-first-rebrand-aligned-v0.1.zip`. Implementation NOT authorized.
-- **PlanSpec v0.1 Fitness Audit (COMPLETE 2026-06-20):** Audit-only analysis of planspec.json. Scored 3.6/10 v0.1 / 7.0/10 advanced; verdict HOLD; strategy TASK_YAML_PLUS_ADVANCED_PLANSPEC. Reports at `reports/accp/planspec-v0.1-fitness-audit.accp.yaml` + `.summary.md`. 16/16 ACs pass. No files mutated.
-- **Next (D2):** Truth Kernel Proof Design — detailed evidence model, false-done test case catalog, RepairPacket schema, TestOutputParser format coverage matrix. **Plus (per audit recommendation):** extend `.praxis/task.yaml` with artifactPolicy + integrationContract + structured-AC verification-authority + repair section, and define the WiringGate insertion (Evidence→Wiring→Exec→Final) with HOLD conditions for under-specified runtime_code. Design only, no implementation.
+- **Plugin-First Pivot (COMPLETE 2026-06-18):** Two-pack documentation: (1) Pivot Decision Pack — ADR-013, decisions.md D-127–D-148, product-scope/phase-map rewrites, 4 new docs, 8 supersession notices. (2) Rebrand Alignment — README.md and architecture.md rewritten, identity.md created, 2 additional supersession notices, index.md updated. Both packs zipped.
+- **PlanSpec v0.1 Fitness Audit (COMPLETE 2026-06-20):** Audit-only analysis of planspec.json. Reports at `reports/accp/planspec-v0.1-fitness-audit.accp.yaml` + `.summary.md`. 16/16 ACs pass.
+- **Remaining MVP Architecture Design Pack (COMPLETE 2026-06-20):** Full 16-document design pack for EvidenceGate through plugin bridge. 17/17 ACs pass, 8.6/10 scorecard. Zip at `design/praxis-remaining-mvp-design-pack.zip`. Report at `reports/accp/remaining-mvp-design-pack.accp.yaml`.
+- **Next (P3):** **COMPLETE (2026-06-20)** — EvidenceLedger JSONL v0.1 + EvidenceGate implemented. 36 P3 tests, 95/95 total (31 P1 + 28 P2 + 36 P3). All 18 ACs pass. Report at `reports/accp/p3-kernel-evidencegate-ledger.accp.yaml`.
+- **Next (P4):** WiringGate v0.1 static file/pattern matching. Design ready. Prompt: `ACCP-PRAXIS-P4-KERNEL-WIRINGGATE-STATIC`.
 
 ---
 
@@ -473,10 +492,16 @@ Primary interface (v0.1)?   →  Claude Code plugin + praxis CLI.
 Completion authority?       →  Truth Kernel FinalGate. Never agent.
 Completion criteria source? →  .praxis/task.yaml (human-approved). Never agent.
 Truth location?             →  Kernel only. Plugin displays, never decides.
-Evidence store (v0.1)?      →  .praxis/runs/<id>/evidence.jsonl (local files).
+Evidence store (v0.1)?      →  .praxis/runs/<id>/evidence.jsonl (JSONL format).
 Desktop Mission Control?     →  FUTURE scope for v0.1 (target v0.3+).
 Server/SSE/PostgreSQL?      →  FUTURE scope for v0.1 (target v0.2+).
 Multi-agent orchestration?  →  FUTURE scope for v0.1 (target v0.3+).
 Own agent loop?             →  KILLED from v0.1. Agents run independently.
-Implementation authorized?  →  NO. Design stages (D0-D4) in progress.
+Implementation authorized?  →  NO. Design stages (D3/P1/P2 locked, remaining architecture designed, awaiting human acceptance).
+
+Design pack?                →  design/praxis-remaining-mvp-design-pack/ (16 docs, 8.6/10)
+EvidenceLedger format?      →  JSONL (04-evidenceledger-v0.1.contract.yaml)
+WiringGate v0.1?            →  Static file matching only (05-wiringgate-design.md)
+ExecGate safety?            →  exactAllowedCommands only (06-execgate-design.md)
+Next phase?                 →  P3 EvidenceGate implementation (WAITING for acceptance)
 ```

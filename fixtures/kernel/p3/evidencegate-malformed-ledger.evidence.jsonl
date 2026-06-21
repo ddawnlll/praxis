@@ -1,0 +1,4 @@
+This is not valid JSON at all
+{"evidenceVersion":"praxis-evidence/v0.1","recordId":"EV-mal-002","attemptId":"p3-test-001","planId":"PRAXIS-P3-TEST-001","timestamp":"2026-06-20T10:01:00Z","type":"diff","source":"kernel"}
+
+{"evidenceVersion":"praxis-evidence/v0.1","recordId":"EV-mal-003","attemptId":"p3-test-001","planId":"PRAXIS-P3-TEST-001","timestamp":"2026-06-20T10:02:00Z","type":"diff","source":"kernel"}

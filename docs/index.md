@@ -108,6 +108,29 @@ All documents are `DRAFT_FOR_AUDIT v0.1` -- not final implementation specificati
 |----------|------|--------|
 | This index | `docs/index.md` | DRAFT_FOR_AUDIT v0.1 |
 
+### Remaining MVP Architecture Design Pack (2026-06-20)
+
+| Document | Path | Status |
+|----------|------|--------|
+| Executive Summary | `design/praxis-remaining-mvp-design-pack/00-executive-summary.md` | DESIGN_COMPLETE |
+| Current State Map | `design/praxis-remaining-mvp-design-pack/01-current-state-map.md` | DESIGN_COMPLETE |
+| Truth Kernel Pipeline | `design/praxis-remaining-mvp-design-pack/02-truth-kernel-pipeline.md` | DESIGN_COMPLETE |
+| EvidenceGate Design | `design/praxis-remaining-mvp-design-pack/03-evidencegate-design.md` | DESIGN_COMPLETE |
+| EvidenceLedger Contract | `design/praxis-remaining-mvp-design-pack/04-evidenceledger-v0.1.contract.yaml` | DESIGN_COMPLETE |
+| WiringGate Design | `design/praxis-remaining-mvp-design-pack/05-wiringgate-design.md` | DESIGN_COMPLETE |
+| ExecGate Design | `design/praxis-remaining-mvp-design-pack/06-execgate-design.md` | DESIGN_COMPLETE |
+| FinalGate Design | `design/praxis-remaining-mvp-design-pack/07-finalgate-design.md` | DESIGN_COMPLETE |
+| RepairPacket Contract | `design/praxis-remaining-mvp-design-pack/08-repairpacket-v0.1.contract.yaml` | DESIGN_COMPLETE |
+| Report Model | `design/praxis-remaining-mvp-design-pack/09-report-model.md` | DESIGN_COMPLETE |
+| CLI Workflow | `design/praxis-remaining-mvp-design-pack/10-cli-workflow.md` | DESIGN_COMPLETE |
+| Plugin Bridge | `design/praxis-remaining-mvp-design-pack/11-claude-plugin-bridge.md` | DESIGN_COMPLETE |
+| MVP Phase Roadmap | `design/praxis-remaining-mvp-design-pack/12-mvp-phase-roadmap.md` | DESIGN_COMPLETE |
+| Risk Register | `design/praxis-remaining-mvp-design-pack/13-risk-register.md` | DESIGN_COMPLETE |
+| Design Scorecard | `design/praxis-remaining-mvp-design-pack/14-design-scorecard.accp.yaml` | DESIGN_COMPLETE |
+| Design Pack README | `design/praxis-remaining-mvp-design-pack/README.md` | DESIGN_COMPLETE |
+| ACCP Report | `reports/accp/remaining-mvp-design-pack.accp.yaml` | DESIGN_COMPLETE |
+| Zip Archive | `design/praxis-remaining-mvp-design-pack.zip` | DESIGN_COMPLETE |
+
 ---
 
 ## Recommended Reading Order
@@ -256,6 +279,8 @@ Previous artifacts:
 
 All documents listed in this index are **DRAFT_FOR_AUDIT v0.1**. None have been accepted by the human project owner. None constitute a final design lock. Do not start implementation based on these drafts without explicit human approval.
 
+The Remaining MVP Architecture Design Pack (`design/praxis-remaining-mvp-design-pack/`) is DESIGN_COMPLETE but NOT yet accepted by the human project owner. Implementation phases P3-P6 must not start until each phase's design is reviewed and accepted.
+
 Documents are numbered for purposes of this audit:
 - 1 `decisions.md` (lock/foundation)
 - 1 `adr/README.md` (lock/foundation)
@@ -269,8 +294,9 @@ Documents are numbered for purposes of this audit:
 - 1 spike spec
 - 1 index (this file)
 - 1 `architecture.md` (repo root)
+- 18 Remaining MVP Design Pack documents (`design/praxis-remaining-mvp-design-pack/`)
 
-**Total: 38 DRAFT_FOR_AUDIT documents.**
+**Total: 38 DRAFT_FOR_AUDIT documents + 18 DESIGN_COMPLETE design pack documents = 56 total.**
 
 ---
 

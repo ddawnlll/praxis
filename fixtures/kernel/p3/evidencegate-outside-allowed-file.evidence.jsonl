@@ -1,0 +1,2 @@
+{"evidenceVersion":"praxis-evidence/v0.1","recordId":"EV-outside-001","attemptId":"p3-test-001","planId":"PRAXIS-P3-TEST-001","timestamp":"2026-06-20T10:00:00Z","type":"diff","source":"kernel","taskId":"task-01","path":"prod-config/deploy.sh","summary":"Modified file outside allowed workspace."}
+{"evidenceVersion":"praxis-evidence/v0.1","recordId":"EV-outside-002","attemptId":"p3-test-001","planId":"PRAXIS-P3-TEST-001","timestamp":"2026-06-20T10:01:00Z","type":"changed_file","source":"kernel","changedFile":{"path":"prod-config/deploy.sh","status":"modified"}}

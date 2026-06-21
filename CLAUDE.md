@@ -27,6 +27,8 @@ PRAXIS v2.0 is a parallel runtime for autonomous AI coding execution. The Pi imp
 | `todo.md` | Project todo list |
 | `ai_summary.md` | Project state — update on every change |
 | `pi/` | Pi implementation monorepo |
+| `design/praxis-remaining-mvp-design-pack/` | Remaining MVP architecture design pack (all gates, CLI, plugin) |
+| `design/praxis-remaining-mvp-design-pack/00-executive-summary.md` | Read this first for architecture decisions |
 
 ## Development rules
 
