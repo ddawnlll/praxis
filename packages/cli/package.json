@@ -1,0 +1,38 @@
+{
+  "name": "@praxis/cli",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "description": "PRAXIS CLI — thin orchestrator for the Truth Kernel. No gate logic.",
+  "bin": {
+    "praxis": "./dist/cli.js"
+  },
+  "main": "./src/cli.ts",
+  "types": "./src/cli.ts",
+  "exports": {
+    ".": "./src/cli.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "bun run tsc --noEmit",
+    "test": "bun test",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@praxis/kernel": "file:../kernel",
+    "@praxis/contracts": "file:../contracts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "bun": ">=1.0.0"
+  }
+}

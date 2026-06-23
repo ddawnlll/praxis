@@ -2,6 +2,10 @@
 // Shared types for the Truth Kernel gate runtime.
 
 import type { PlanSpecV01, PlanHashes, Diagnostic } from '@praxis/contracts';
+import type { EvidenceGateResult } from './evidence/types';
+import type { WiringGateResult } from './wiring/types';
+import type { ExecGateResult } from './executor/types';
+import type { FinalGateResult } from './final/types';
 
 // Re-export P3 evidence types from a single barrel
 export type {
@@ -15,6 +19,32 @@ export type {
   EvidenceTypeV01,
   EvidenceSourceV01,
 } from './evidence/types';
+
+// Re-export P4 wiring types from a single barrel
+export type {
+  WiringGateInput,
+  WiringGateResult,
+  DeclaredUnitResult,
+  ExportSurfaceResult,
+  EntrypointResult,
+  IntegrationPointResult,
+} from './wiring/types';
+
+// Re-export P5 executor types from a single barrel
+export type {
+  ExecGateInput,
+  ExecGateResult,
+  CommandResult,
+  CommandVerdict,
+} from './executor/types';
+
+// Re-export P6 final types from a single barrel
+export type {
+  FinalGateInput,
+  FinalGateResult,
+  CriterionResult,
+  CriterionVerdict,
+} from './final/types';
 
 /** Verdict for a single gate evaluation. */
 export type GateVerdictValue = 'PASS' | 'HOLD' | 'FAIL';
@@ -97,5 +127,60 @@ export interface KernelP2Result {
   plan?: PlanSpecV01;
   hashes?: PlanHashes;
   lock?: PlanLockV01;
+  diagnostics: Diagnostic[];
+}
+
+
+/** Union of all gate result types that can appear in gateVerdicts. */
+export type AnyGateResult = GateVerdict | EvidenceGateResult | WiringGateResult | ExecGateResult | FinalGateResult;
+
+/** Result of runP4Kernel (SchemaGate → LockGate → EvidenceGate → WiringGate). */
+export interface KernelP4Result {
+  ok: boolean;
+  verdict: GateVerdictValue;
+  attemptId: string;
+  gateVerdicts: AnyGateResult[];
+  startedAt: string;
+  finishedAt: string;
+  plan?: PlanSpecV01;
+  hashes?: PlanHashes;
+  lock?: PlanLockV01;
+  evidence?: EvidenceGateResult;
+  wiring?: WiringGateResult;
+  diagnostics: Diagnostic[];
+}
+
+/** Result of runP5Kernel (SchemaGate → LockGate → EvidenceGate → WiringGate → ExecGate). */
+export interface KernelP5Result {
+  ok: boolean;
+  verdict: GateVerdictValue;
+  attemptId: string;
+  gateVerdicts: AnyGateResult[];
+  startedAt: string;
+  finishedAt: string;
+  plan?: PlanSpecV01;
+  hashes?: PlanHashes;
+  lock?: PlanLockV01;
+  evidence?: EvidenceGateResult;
+  wiring?: WiringGateResult;
+  exec?: ExecGateResult;
+  diagnostics: Diagnostic[];
+}
+
+/** Result of runKernel / runP6Kernel (full 6-gate pipeline). */
+export interface KernelResult {
+  ok: boolean;
+  verdict: GateVerdictValue;
+  attemptId: string;
+  gateVerdicts: AnyGateResult[];
+  startedAt: string;
+  finishedAt: string;
+  plan?: PlanSpecV01;
+  hashes?: PlanHashes;
+  lock?: PlanLockV01;
+  evidence?: EvidenceGateResult;
+  wiring?: WiringGateResult;
+  exec?: ExecGateResult;
+  final?: FinalGateResult;
   diagnostics: Diagnostic[];
 }

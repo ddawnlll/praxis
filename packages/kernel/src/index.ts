@@ -1,6 +1,6 @@
 // @praxis/kernel — Public API
 // PRAXIS Truth Kernel — gate runtime for PlanSpec v0.1 validation.
-// P3 scope: SchemaGate + LockGate + EvidenceGate.
+// P6 scope: SchemaGate + LockGate + EvidenceGate + WiringGate + ExecGate + FinalGate.
 
 // Types
 export type {
@@ -8,6 +8,10 @@ export type {
   GateVerdict,
   GateVerdictValue,
   KernelP2Result,
+  KernelP4Result,
+  KernelP5Result,
+  KernelResult,
+  AnyGateResult,
   PlanLockV01,
   LockMode,
   SchemaGateInput,
@@ -22,6 +26,23 @@ export type {
   ChangedFileStatus,
   EvidenceTypeV01,
   EvidenceSourceV01,
+  // P4 wiring types
+  WiringGateInput,
+  WiringGateResult,
+  DeclaredUnitResult,
+  ExportSurfaceResult,
+  EntrypointResult,
+  IntegrationPointResult,
+  // P5 executor types
+  ExecGateInput,
+  ExecGateResult,
+  CommandResult,
+  CommandVerdict,
+  // P6 final types
+  FinalGateInput,
+  FinalGateResult,
+  CriterionResult,
+  CriterionVerdict,
 } from './types';
 
 // Diagnostics
@@ -29,6 +50,9 @@ export {
   SCHEMA_REASON_CODES,
   LOCK_REASON_CODES,
   EVIDENCE_REASON_CODES,
+  WIRING_REASON_CODES,
+  EXEC_REASON_CODES,
+  FINAL_REASON_CODES,
   HASH_FIELD_REASON_MAP,
   now,
   kdiag,
@@ -38,6 +62,9 @@ export {
 export { runSchemaGate } from './gates/schemaGate';
 export { runLockGate } from './gates/lockGate';
 export { runEvidenceGate } from './gates/evidenceGate';
+export { runWiringGate } from './gates/wiringGate';
+export { runExecGate } from './gates/execGate';
+export { runFinalGate } from './gates/finalGate';
 
 // Lock helpers
 export { createPlanLock } from './lock/createPlanLock';
@@ -60,3 +87,9 @@ export { runP2Kernel } from './runP2Kernel';
 export type { RunP2Options } from './runP2Kernel';
 export { runP3Kernel } from './runP3Kernel';
 export type { RunP3Options } from './runP3Kernel';
+export { runP4Kernel } from './runP4Kernel';
+export type { RunP4Options } from './runP4Kernel';
+export { runP5Kernel } from './runP5Kernel';
+export type { RunP5Options } from './runP5Kernel';
+export { runP6Kernel, runKernel } from './runP6Kernel';
+export type { RunKernelOptions } from './runP6Kernel';

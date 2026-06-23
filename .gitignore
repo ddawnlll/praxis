@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Runtime / generated data
+.praxis/
+
+# Nested repository — pi/ has its own .git and is managed separately
+pi/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~

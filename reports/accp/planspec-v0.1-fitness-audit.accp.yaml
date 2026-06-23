@@ -1,0 +1,1214 @@
+# ACCP Audit Report — PlanSpec v0.1 Fitness Score Audit
+# accp_version: 2.0.0
+# source_format: ACCP-YAML
+# id: ACCP-PRAXIS-PLANSPEC-V0_1-FITNESS-SCORE-AUDIT
+# title: PRAXIS PlanSpec v0.1 Fitness Score Audit
+# created_at: 2026-06-20T00:00:00+03:00
+# execution_mode: audit_only
+# mutation_policy: report_only
+# analyzer: claude-fable-5 (truth-gated coder, max effort)
+#
+# Scope: Score /home/erfolg/src/praxis/planspec.json against PRAXIS plugin-first v0.1 needs.
+# No source files were modified. planspec.json SHA-256 baseline (pre-audit):
+#   3f0def1184019398a84ec9ff38d2e085d99fb4249ce7f6e747c9237ac12f7dea
+
+report:
+  id: PLANSPEC_V0_1_FITNESS_AUDIT
+  status: HOLD
+  status_meaning: >-
+    Do not use planspec.json (PlanSpec v5-alpha2) directly for v0.1 until the schema
+    strategy is decided. The schema is a valid, strict JSON Schema with strong
+    command/evidence/report primitives, but it is the wrong lineage for PRAXIS v0.1:
+    it forces v0.1-excluded multi-worker fields as required, has zero field-name
+    overlap with PRAXIS's own contracts, leaves acceptanceCriteria unstructured, and
+    lacks the artifact/wiring/integration/repair/gate concepts needed for false-done
+    prevention. The design has already chosen .praxis/task.yaml as the v0.1 input.
+  analyzed_file: /home/erfolg/src/praxis/planspec.json
+  schema_under_audit:
+    planSpecVersion: "5.0.0-alpha2"
+    json_schema_draft: "2020-12"
+    title: "PlanSpec v5 Alpha2 Schema"
+    root_required_count: 17
+    defs_count: 9
+    meta_schema_valid: true
+    all_refs_resolve: true
+    lineage: "Pi P44/v4.11/P45 (pre-pivot), not PRAXIS plan-spec.contract.md"
+
+# ---------------------------------------------------------------------------
+# EXECUTIVE SUMMARY
+# ---------------------------------------------------------------------------
+executive_summary: |
+  planspec.json is a structurally valid Draft 2020-12 JSON Schema (meta-validated;
+  all 11 $ref resolve). As a schema artifact it is well-formed: a strict envelope
+  (additionalProperties:false at root and 22 other objects) wrapping strong
+  command-policy, lock/hash, evidence-ledger, and report-authority primitives.
+
+  But as the PRAXIS plugin-first v0.1 verification format it scores 3.6/10. Three
+  structural facts drive that score:
+
+  1. WRONG LINEAGE / ZERO OVERLAP. planspec.json is the Pi P44/v4.11/P45
+     "PlanSpec v5-alpha2" schema. It shares ZERO field names with PRAXIS's own
+     contracts: plan_id, tasks[], plan_budget, human_id, criteria_source,
+     predicted_interfaces (from docs/contracts/plan-spec.contract.md) and
+     task_id, namespace, acceptance_criteria, required_commands, human_approved,
+     completion_policy, evidence_requirements (from praxis-task-yaml.contract.md)
+     are ALL ABSENT. It carries P44/v4.11/P45 baggage: compatibility.v411AdapterRequired,
+     p45Bridge (implementationAllowed:false, forbiddenRuntimePaths, artifactExports),
+     migration.legacyFieldsMapped (v411/planspec). This is not PRAXIS's PlanSpec.
+
+  2. FORCES v0.1-EXCLUDED WEIGHT. 17 root fields are required, 8 of them heavy
+     multi-worker/runtime concepts that ADR-013 explicitly excludes from v0.1:
+     waves[], workspaces[] (each with waveId/batchSize/gate), intent.parallelism
+     (max 20), locking (workerMustEchoWorkspaceLockHash, hashes, lifecycle),
+     compatibility (runtimeContractVersion, v411AdapterRequired), authority,
+     enforcementRegistry, commands. A single-session manual verify/repair task
+     cannot be expressed without populating all of these.
+
+  3. MISSING THE FALSE-DONE-PREVENTION LAYER. The capabilities that matter most for
+     "did the agent actually complete the task?" are absent: no artifactPolicy /
+     artifact class, no integrationContract, no wiringRequired / reachabilityRequired,
+     no declaredUnits / entrypoints / exportSurfaces / integrationPoints / runtimeProbes,
+     no orphan-module detection, no RepairPacket schema, no formal gate model
+     (no PASS/HOLD/FAIL enum, no WiringGate), no deterministic-vs-advisory verification
+     authority model. Crucially, acceptanceCriteria items are additionalProperties:true
+     — totally unstructured — so the schema cannot enforce id/verification_method/
+     required_evidence/required/human_approved/criteria_source, i.e. FinalGate's
+     Law-3 core is not expressible at the schema level.
+
+  The design has ALREADY decided the v0.1 strategy: .praxis/task.yaml is the
+  verification input (ADR-013, praxis-task-yaml.contract.md, mvp-v0.1-plugin-first-
+  scope.md). PlanSpec is referenced only as an optional plan_ref. So the honest
+  recommendation is to CONFIRM that decision (OPTION_B: task.yaml for v0.1, PlanSpec
+  realigned as a future advanced format), and to close the real gap — which is NOT
+  "adopt planspec.json" but "task.yaml itself lacks the artifact/integration/wiring/
+  repair layer." That extension is the D2 deliverable.
+
+  Verdict: HOLD. Do not use planspec.json directly for v0.1. Extend task.yaml with a
+  minimal artifactPolicy + integrationContract + structured-AC + repair + verification-
+  authority layer. Implementation of code remains NOT authorized (D4 + human gate).
+
+# ---------------------------------------------------------------------------
+# FILES ANALYZED
+# ---------------------------------------------------------------------------
+files_analyzed:
+  - path: planspec.json
+    role: primary_schema_under_audit
+    lines: 972
+    bytes: 21650
+    valid_json: true
+    meta_schema_valid: true
+    mutated: false
+  - path: README.md
+    role: plugin-first identity reference
+    present: true
+    key_finding: >-
+      Defines v0.1 as CLI + local Truth Kernel (EvidenceGate/ExecGate/FinalGate) +
+      Claude Code plugin bridge + .praxis/task.yaml. Lists NOT-v0.1: Desktop,
+      server/runtime, PostgreSQL, SSE, multi-agent, automatic repair. PlanSpec not
+      mentioned as a v0.1 input.
+  - path: architecture.md
+    role: plugin-first architecture baseline (v0.3)
+    present: true
+    key_finding: >-
+      Canonical gate flow EvidenceGate->ExecGate->FinalGate; task.yaml is the
+      verification input; verdict.json shape; RepairPacket generator. No WiringGate,
+      no artifactPolicy, no integrationContract anywhere.
+  - path: docs/adr/ADR-013-plugin-first-pivot.md
+    role: pivot authority
+    present: true
+    key_finding: >-
+      HARD_LOCK: PRAXIS is a local Truth Kernel, not a coding agent. Keeps TaskSpec/
+      task.yaml, Three Laws, gates, RepairPacket. Downgrades to future: Desktop,
+      server/SSE/PostgreSQL, Circuit Breaker, Governor, stable_16, Wave scheduler,
+      Assembler, multi-worker. Kills: own agent loop, provider routing, model hosting.
+  - path: docs/implementation/mvp-v0.1-plugin-first-scope.md
+    role: v0.1 scope authority
+    present: true
+    key_finding: >-
+      v0.1 = 6 CLI commands + 3 gates + TestOutputParser + RepairPacket + report gen
+      + 6 slash commands + .praxis workspace. Non-goals explicitly list multi-worker,
+      waves, assembler, governor, stable_16, server, DB, automatic repair.
+  - path: docs/contracts/praxis-task-yaml.contract.md
+    role: task contract reference (the ACTUAL v0.1 input)
+    present: true
+    key_finding: >-
+      Defines .praxis/task.yaml: task_id/title/description/workspace/namespace/
+      acceptance_criteria/required_commands/allowed_files/forbidden_files/
+      evidence_requirements/completion_policy/human_approved. AcceptanceCriterion has
+      id/description/verification_method/verification_detail/required_evidence/required/
+      human_approved/criteria_source. verification_method enum includes file_exists,
+      test_passes, command_output, diff_contains, no_diff_contains, manual_review,
+      grep variants, archive_contains. plan_ref is the ONLY link to PlanSpec
+      (optional). No artifactPolicy, no integrationContract, no wiringRequired,
+      no reachability. required:true/false is the only deterministic/advisory split.
+  - path: docs/contracts/plan-spec.contract.md
+    role: PRAXIS PlanSpec contract (future/advanced)
+    present: true
+    key_finding: >-
+      Defines PRAXIS's PlanSpec as plan_id/title/description/phases/waves(number)/
+      tasks[](TaskSpec[])/plan_budget/human_id/criteria_source, with PSAG P1-P15,
+      namespace partitioning, predicted_interfaces for shared_package, and an OPEN
+      question Q5 about "no orphan tasks." NONE of these field names exist in
+      planspec.json. So planspec.json does not even match PRAXIS's own PlanSpec
+      contract — it is a different (Pi-vintage) schema.
+  - path: docs/contracts/repair-packet.contract.md
+    role: RepairPacket contract
+    present: true
+    key_finding: >-
+      RepairPacket fields: repair_packet_id/attempt_id/task_run_id/failure_signature/
+      failed_gate/failed_criteria_ids/evidence_refs/strategy/strategy_context/
+      prior_failures/active_criterion/scope_constraints/prompt_additions/generated_at.
+      FailureSignature types: empty_diff/zero_tests/criterion_failed/namespace_violation/
+      missing_evidence/ehc_break/crash/rate_limit. MUST NOT modify criteria, expand
+      namespace, override verdicts, or fire on PASS. This contract exists in docs but
+      has NO representation in planspec.json.
+  - path: docs/contracts/gate-verdict.contract.md
+    role: gate verdict contract
+    present: true
+    key_finding: >-
+      GateVerdict: gate_name(EvidenceGate/ExecGate/FinalGate)/verdict(PASS/HOLD/FAIL)/
+      reason_codes/failed_criteria_ids/evidence_refs/repair_hint/attempt_id/timestamp.
+      Reason-code taxonomies per gate. EvidenceGate checks NAMESPACE_VIOLATION (changes
+      outside declared namespace -> FAIL) and DIFF_EMPTY. NO WiringGate exists in the
+      design. The verdict model lives in docs, not in planspec.json.
+  - path: docs/pipelines/local-truth-kernel-flow.md
+    role: gate flow reference
+    present: true
+    key_finding: >-
+      Three-gate sequence, PASS/HOLD/FAIL ladder, zero-test-ran detection, no model
+      authority in kernel (deterministic checks only). RepairPacket MUST NOT modify
+      criteria. No wiring gate; namespace check is file-path based, not import based.
+  - path: docs/pipelines/claude-code-plugin-flow.md
+    role: plugin bridge reference
+    present: true
+    key_finding: >-
+      Six slash commands are a thin bridge to praxis CLI; plugin never owns truth.
+      /praxis:verify calls praxis verify --task .praxis/task.yaml. Confirms task.yaml
+      (not planspec.json) is the v0.1 verify input.
+
+# ---------------------------------------------------------------------------
+# SCORECARD
+# ---------------------------------------------------------------------------
+scorecard:
+  total_score_out_of_10: 3.6
+  advanced_format_score_out_of_10: 7.0
+  scoring_note: >-
+    v0.1 fitness is below the prompt's non-binding expected range (5.5-6.8) for a
+    concrete, evidence-backed reason: planspec.json is a foreign Pi P44/v4.11/P45
+    schema with ZERO field-name overlap with PRAXIS's own contracts and forces
+    v0.1-excluded multi-worker fields as required. The expected range assumed the
+    schema was PRAXIS's own PlanSpec; it is not. Advanced-format score is also below
+    the expected 7.5-8.5 because the missing artifact/wiring/repair layer and P44
+    legacy baggage matter even at scale, and the schema is misaligned with PRAXIS's
+    own plan-spec.contract.md future PlanSpec.
+  dimensions:
+    - id: S1
+      name: Schema correctness and strictness
+      max_points: 1.0
+      score: 0.60
+      evidence: >-
+        Valid Draft 2020-12 schema (meta-validated via jsonschema 4.26.0); all 11
+        $ref resolve; root additionalProperties:false (intentional strict envelope).
+        Deductions: 17 required root fields too heavy for v0.1; metadata.status enum
+        (draft/validated/locked/admitted/running/completed/superseded) and
+        intent.parallelism(max 20) are multi-worker lifecycle, not v0.1; "strict
+        container, loose payload" — acceptanceCriteria items are
+        additionalProperties:true (unstructured), so strictness does not reach the
+        most important payload; $defs/security is dead code (defined, never $ref'd;
+        root security is an inline duplicate).
+    - id: S2
+      name: Plugin-first v0.1 fit
+      max_points: 1.0
+      score: 0.30
+      evidence: >-
+        Forces v0.1-excluded orchestration as REQUIRED: waves[], workspaces[] (with
+        waveId/batchSize/gate), intent.parallelism, locking (workerMustEchoWorkspace
+        LockHash), compatibility (runtimeContractVersion/v411AdapterRequired),
+        authority, enforcementRegistry. Does not force Desktop/server/PostgreSQL
+        specifically, but does force the multi-worker/runtime substrate ADR-013
+        excludes. A single-session manual verify/repair task cannot be expressed
+        without populating all of these. No plugin coupling (neutral).
+    - id: S3
+      name: Artifact classification
+      max_points: 1.0
+      score: 0.15
+      evidence: >-
+        No artifactPolicy, no artifact class enum, no per-class wiring expectation.
+        Only adjacent concepts: workspace.role (free string), p45Bridge.artifactExports
+        (type/path, P45-specific), reports.artifactDirectory. Cannot distinguish
+        runtime_code from documentation/config/test_only; cannot prevent import checks
+        on non-code artifacts; cannot require explicit policy for runtime_code.
+    - id: S4
+      name: Wiring and integration contract
+      max_points: 1.25
+      score: 0.15
+      evidence: >-
+        No wiringRequired, declaredUnits, entrypoints, integrationPoints, exportSurfaces,
+        usageProofs, runtimeProbes, import-graph, reachability, or orphan-module
+        detection. Only graph-like concepts are workspace.dependencies and
+        wave.dependencies (task/wave dependency arrays) and wave.gate.commandRefs/
+        requiredArtifacts — these are orchestration-level, not code-wiring-level.
+        The single biggest false-done-prevention gap.
+    - id: S5
+      name: Executable evidence and command policy
+      max_points: 1.0
+      score: 0.90
+      evidence: >-
+        Strongest dimension. validation.finalValidationCommandRefs +
+        commands.validationEvidenceRules.finalPromotionRequiresExactAllowedCommand;
+        validation.noTestsFoundIsFailure; discoveryCommandsMayNotSatisfyFinalValidation
+        (distinguishes discovery from final validation); commandEvidenceRequired;
+        exactAllowedCommands; hardDeniedCommands; commandClasses; runtimeCommandGrant;
+        reports.commandEvidenceRequired. Tiny deduction: exactAllowedCommands/
+        commandClasses/hardDeniedCommands items are additionalProperties:true, so
+        command-object shape is not enforced.
+    - id: S6
+      name: Acceptance criteria traceability
+      max_points: 1.0
+      score: 0.25
+      evidence: >-
+        workspace.acceptanceCriteria items are additionalProperties:true — totally
+        unstructured. Schema cannot enforce id/description/verification_method/
+        verification_detail/required_evidence/required/human_approved/criteria_source.
+        No human_approved, no human_id, no criteria_source — FinalGate's Law-3 core
+        is not expressible. Partial credit: validation.forbiddenPatterns,
+        security.forbiddenFiles, workspace.forbiddenFiles give workspace-level
+        negative assertions; validation.finalValidationCommandRefs links validation
+        to commands. (The task.yaml contract DOES structure AC; planspec.json does not.)
+    - id: S7
+      name: Gate model support
+      max_points: 1.0
+      score: 0.35
+      evidence: >-
+        evidence block (ledgerRequired/requiredEvidenceTypes/evidenceItemRequiredFields/
+        hashWhenAvailable) and validation/commands blocks back EvidenceGate/ExecGate
+        conceptually, but there is NO formal gate model in-schema: no gate enum, no
+        PASS/HOLD/FAIL verdict enum, no gate sequencing, no WiringGate, no reason_codes.
+        FinalGate's human-approval core is missing (no human_approved/criteria_source).
+        The gate model lives in docs/contracts/gate-verdict.contract.md, not the schema.
+    - id: S8
+      name: Repair loop support
+      max_points: 0.75
+      score: 0.10
+      evidence: >-
+        No RepairPacket schema, no failedCriteriaOnly, no mayModifyAcceptanceCriteria,
+        no reverifyCommand, no repairInstructions. Only adjacency: workspace.rollback
+        (additionalProperties:true) and reports.rollbackPlanRequiredForMutation
+        (mutation rollback, not criteria repair). The RepairPacket contract exists in
+        docs but is absent from the schema.
+    - id: S9
+      name: Operational simplicity for 1-2 day v0.1
+      max_points: 1.0
+      score: 0.15
+      evidence: >-
+        17 required root fields including waves[]/workspaces[]/locking/compatibility.
+        No lite profile, no profile selection, no single-task mode. Not what
+        /praxis:init generates (design: init generates task.yaml). Too heavy to author
+        or validate quickly for a 1-2 day MVP.
+    - id: S10
+      name: Forward compatibility
+      max_points: 1.0
+      score: 0.60
+      evidence: >-
+        Preserves strong reusable primitives: command policy, evidence ledger, ACCP
+        report authority (reportsAreEvidenceOnly/reportsDoNotAuthorizeExecution/
+        routeSignalsAreAdvisory), lock/hash, allowed/forbidden files, wave/workspace
+        orchestration, dependency graphs, migration mapping. Deductions: already
+        multi-worker-heavy (would infect v0.1 if used); misaligned with PRAXIS's own
+        plan-spec.contract.md future PlanSpec (different field names); carries P44/
+        v4.11/P45 legacy (p45Bridge, v411AdapterRequired) that is not PRAXIS's forward
+        path.
+
+# ---------------------------------------------------------------------------
+# CURRENT STRENGTHS (keep these)
+# ---------------------------------------------------------------------------
+current_strengths:
+  - id: ST-01
+    field: commands.validationEvidenceRules
+    note: >-
+      finalPromotionRequiresExactAllowedCommand + discoveryCommandsMayNotSatisfy
+      FinalValidation + runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStates
+      ValidationPurpose + accpCompileCommandsCanSatisfyAccpValidationOnlyIfArtifact
+      HashRecorded. This is an excellent command-evidence authority model and maps
+      directly to ExecGate. KEEP and port into the v0.1 format.
+  - id: ST-02
+    field: validation (finalValidationCommandRefs, noTestsFoundIsFailure, commandEvidenceRequired, discoveryCommandsMayNotSatisfyFinalValidation, watchModeForbidden, forbiddenPatterns)
+    note: >-
+      Distinguishes discovery from final validation, rejects no-tests-found, requires
+      command evidence. Direct ExecGate support. KEEP.
+  - id: ST-03
+    field: evidence (ledgerRequired, requiredEvidenceTypes, evidenceItemRequiredFields, hashWhenAvailable, accpArtifactHashRequired)
+    note: Evidence-ledger + required-fields + hash model. Direct EvidenceGate support. KEEP.
+  - id: ST-04
+    field: reports (reportsAreEvidenceOnly, reportsDoNotAuthorizeExecution, routeSignalsAreAdvisory, rollbackPlanRequiredForMutation, stableIdsRequired)
+    note: >-
+      Report-authority model: reports are evidence only, never authorize execution,
+      route signals are advisory. Aligns with Law 1. KEEP.
+  - id: ST-05
+    field: security (schemaValidationRequired, lockRequiredForExecution, canonicalJsonHashRequired, signatureRequired, hardStops, forbiddenFiles)
+    note: Plan-level lock/hash/signature + hard stops + forbidden files. Strong integrity model. KEEP (lightweight subset for v0.1).
+  - id: ST-06
+    field: workspace.allowedFiles / workspace.forbiddenFiles / security.forbiddenFiles
+    note: Allowed/forbidden file model with minItems:1 on allowedFiles. KEEP.
+  - id: ST-07
+    field: wave.gate (commandRefs, requiredArtifacts, required)
+    note: Per-wave gate with command refs and required artifacts. Useful pattern for future waves; not v0.1.
+  - id: ST-08
+    field: dependency graphs (workspace.dependencies, wave.dependencies)
+    note: Orchestration-level dependency graph. Useful for future multi-worker; not v0.1 wiring.
+  - id: ST-09
+    field: brief (mission, hardRequirements, antiPatterns, operatorNotes) with instruction/briefNote priority (must/should/may)
+    note: Structured intent + priority levels. The must/should/may priority is a useful pattern for deterministic/advisory distinction. KEEP concept.
+
+# ---------------------------------------------------------------------------
+# CRITICAL GAPS
+# ---------------------------------------------------------------------------
+critical_gaps:
+  - id: CG-01
+    gap: No artifactPolicy / artifact class classification
+    severity: critical
+    impact: >-
+      Cannot distinguish runtime_code from documentation/config/test_only/schema/
+      migration/script/fixture. Cannot prevent false-HOLD on docs/config (which
+      correctly need no import wiring) nor false-PASS on runtime_code that exists
+      but is unwired. Blocks S3.
+  - id: CG-02
+    gap: No integrationContract / wiring / reachability
+    severity: critical
+    impact: >-
+      Cannot express wiringRequired, declaredUnits, entrypoints, exportSurfaces,
+      integrationPoints, usageProofs, runtimeProbes, import-graph verification, or
+      orphan-module detection. This is the core false-done-prevention gap: an agent
+      can produce a file that passes file_exists but is never wired into the
+      architecture. Blocks S4; undermines the audit's central critical_question.
+  - id: CG-03
+    gap: acceptanceCriteria is unstructured (additionalProperties:true)
+    severity: critical
+    impact: >-
+      Schema cannot enforce AC id/description/verification_method/required_evidence/
+      required/human_approved/criteria_source. No AC->evidence mapping, no human-
+      approval semantics (Law 3), no criteria_source enforcement at schema level.
+      Blocks S6; FinalGate's core is not expressible. (task.yaml contracts this;
+      planspec.json does not.)
+  - id: CG-04
+    gap: No RepairPacket schema and no formal gate/verdict model
+    severity: high
+    impact: >-
+      No PASS/HOLD/FAIL enum, no gate enum, no gate sequencing, no WiringGate, no
+      reason_codes, no failedCriteriaOnly repair contract, no mayModifyAcceptance
+      Criteria, no reverifyCommand. Blocks S7/S8. The gate/repair model exists only
+      in docs, not in the schema.
+  - id: CG-05
+    gap: Forced multi-worker weight + wrong lineage
+    severity: high
+    impact: >-
+      17 required root fields incl waves[]/workspaces[]/locking/compatibility
+      (v0.1-excluded). Zero field-name overlap with PRAXIS's own contracts. P44/
+      v4.11/P45 baggage (p45Bridge, v411AdapterRequired, migration.legacyFieldsMapped).
+      Blocks S2/S9; makes direct v0.1 use impractical and misaligned.
+  - id: CG-06
+    gap: No deterministic-vs-advisory verification authority model
+    severity: medium
+    impact: >-
+      No per-verification deterministic/canSatisfyFinalGate/advisoryOnly fields.
+      Cannot state which evidence types can satisfy FinalGate vs which are advisory.
+      (task.yaml has a coarse required:true/false; planspec.json has neither.)
+  - id: CG-07
+    gap: Dead code / strictness unevenness
+    severity: low
+    impact: >-
+      $defs/security is defined but never $ref'd (root security is an inline
+      duplicate). 13 open payload objects (acceptanceCriteria, workspace.validation/
+      reports/rollback/risk, command arrays, authority.*) undermine the strict
+      envelope. Cosmetic + consistency issue.
+
+# ---------------------------------------------------------------------------
+# ARTIFACT POLICY GAP
+# ---------------------------------------------------------------------------
+artifact_policy_gap:
+  present_in_schema: false
+  present_in_docs: false
+  finding: >-
+    No artifactPolicy or artifact_class concept exists anywhere in planspec.json or
+    in any docs/ file (confirmed by per-term grep: artifactPolicy/artifact_policy/
+    artifactClass/artifact_class return zero matches across docs/). The only
+    artifact-adjacent concepts are workspace.role (free string), p45Bridge.
+    artifactExports (P45-specific type/path), and reports.artifactDirectory.
+  required_classes_for_praxis:
+    runtime_code:
+      wiring_expectation: explicit_required
+      required_checks: [defined unit exists, export exists if expected, import/register pattern exists, entrypoint reachability exists, runtime probe or integration test evidence exists]
+    library_code:
+      wiring_expectation: consumer_or_export
+      required_checks: [defined unit exists, public export or consumer import or test usage exists]
+    cli_command:
+      wiring_expectation: required
+      required_checks: [command registered in bin/CLI router, command invocation test or smoke evidence exists]
+    test_only:
+      wiring_expectation: not_import_required
+      required_checks: [test runner discovers it, test command executes it]
+    documentation:
+      wiring_expectation: not_import_required
+      required_checks: [file exists, required content patterns exist, links/anchors if declared]
+    config:
+      wiring_expectation: conditional
+      required_checks: [schema valid if applicable, referenced by configured command or runtime if declared]
+    schema:
+      wiring_expectation: conditional
+      required_checks: [schema validates, validator references it if declared]
+    migration:
+      wiring_expectation: runner_registration_not_import
+      required_checks: [migration file exists, migration runner/listing can discover it]
+    script:
+      wiring_expectation: conditional
+      required_checks: [script is callable through package script/bin if declared]
+    fixture:
+      wiring_expectation: optional_or_test_usage
+      required_checks: [referenced by test if declared]
+    generated_report:
+      wiring_expectation: not_import_required
+      required_checks: [file exists, report is evidence only]
+  proposed_shape:
+    location: ["acceptanceCriteria[].artifactPolicy", "task-level artifactPolicy defaults"]
+    fields:
+      class: { enum: [runtime_code, library_code, cli_command, test_only, documentation, config, schema, migration, script, generated_report, fixture] }
+      wiringRequired: { enum: [true, false, consumer_or_export, runner_discovery, conditional] }
+      reachabilityRequired: { type: boolean }
+      executionRequired: { type: boolean }
+      advisoryReviewAllowed: { type: boolean }
+      deterministicEvidenceRequired: { type: boolean }
+
+# ---------------------------------------------------------------------------
+# INTEGRATION CONTRACT GAP
+# ---------------------------------------------------------------------------
+integration_contract_gap:
+  present_in_schema: false
+  present_in_docs: false
+  finding: >-
+    No integrationContract concept anywhere in planspec.json or docs/ (per-term grep
+    for integrationContract/integration_contract/declaredUnits/exportSurfaces/
+    usageProofs/integrationPoints/runtimeProbe all return zero matches). The only
+    "orphan" mention in the repo is docs/contracts/plan-spec.contract.md Q5, an OPEN
+    question about "no orphan tasks" (task dependency graph), not module orphan
+    detection, and it is not in the schema.
+  proposed_shape:
+    location: ["acceptanceCriteria[].integrationContract", "task-level integrationContract"]
+    required_when: wiringRequired is true OR reachabilityRequired is true OR executionRequired is true
+    fields:
+      mode: { enum: [none, required, consumer_or_export, runner_discovery, runtime_probe, manual_only] }
+      reason: { type: string }
+      declaredUnits: { type: array }
+      integrationPoints: { type: array }
+      entrypoints: { type: array, required_when: reachabilityRequired is true }
+      exportSurfaces: { type: array }
+      usageProofs: { type: array }
+      runtimeProbes: { type: array, required_when: executionRequired is true }
+      forbiddenOrphanModules: { type: boolean }
+
+# ---------------------------------------------------------------------------
+# WIRING GATE GAP
+# ---------------------------------------------------------------------------
+wiring_gate_gap:
+  wiring_gate_in_design: false
+  wiring_gate_in_schema: false
+  finding: >-
+    WiringGate appears NOWHERE in planspec.json or in any docs/ file (confirmed by
+    per-term grep). The PRAXIS design uses exactly three gates — EvidenceGate,
+    ExecGate, FinalGate (docs/contracts/gate-verdict.contract.md,
+    docs/pipelines/local-truth-kernel-flow.md). EvidenceGate does check NAMESPACE_
+    VIOLATION (file-path changes outside declared namespace -> FAIL) and DIFF_EMPTY,
+    but this is a file-path namespace check, NOT import wiring / reachability. So
+    the audit's WiringGate is an aspirational gap, not an existing concept.
+  can_schema_prevent_false_pass_on_unwired_code: false
+  can_schema_prevent_false_hold_on_docs_config: false
+  explanation: >-
+    Because there is no artifactPolicy, the schema cannot say "this AC is for a
+    documentation file, so do not require import wiring" (false-HOLD risk on docs)
+    nor "this AC is for runtime_code, so require import/register + entrypoint
+    reachability" (false-PASS risk on unwired code). The wiring gate is the missing
+    layer that would close both risks.
+  proposed_formal_model:
+    gate_sequence: EvidenceGate -> WiringGate -> ExecGate -> FinalGate
+    verdict_enum: [PASS, HOLD, FAIL]
+    wiring_gate_checks:
+      - declared unit exists for runtime_code/cli_command/library_code
+      - export exists when exportSurfaces declared
+      - import/register pattern exists when wiringRequired=true
+      - entrypoint reachability exists when reachabilityRequired=true
+      - runtime probe / integration test evidence exists when executionRequired=true
+      - no orphan module when forbiddenOrphanModules=true
+    hold_conditions:
+      - class=runtime_code but integrationContract missing
+      - reachabilityRequired=true but no entrypoints declared
+      - executionRequired=true but no runtimeProbes/usageProofs declared
+      - class omitted (under-specified artifact)
+
+# ---------------------------------------------------------------------------
+# GATE FIT SECTIONS
+# ---------------------------------------------------------------------------
+evidence_gate_fit:
+  supportable: partial
+  schema_primitives: [evidence.ledgerRequired, evidence.requiredEvidenceTypes, evidence.evidenceItemRequiredFields, evidence.hashWhenAvailable, validation.commandEvidenceRequired, reports.commandEvidenceRequired]
+  gaps: >-
+    No formal EvidenceGate definition in-schema; no verdict enum; no reason_codes
+    (EVIDENCE_EMPTY/DIFF_EMPTY/NAMESPACE_VIOLATION live only in docs). EvidenceGate's
+    namespace check is file-path based (workspace.allowedFiles/forbiddenFiles +
+    security.forbiddenFiles), not import-based. No empty-diff rule in-schema
+    (validation has noTestsFoundIsFailure but not diffEmptyIsFailure).
+  score_contribution: supports S5/S7 partially.
+
+exec_gate_fit:
+  supportable: strong
+  schema_primitives: [validation.finalValidationCommandRefs, validation.noTestsFoundIsFailure, validation.discoveryCommandsMayNotSatisfyFinalValidation, commands.exactAllowedCommands, commands.hardDeniedCommands, commands.commandClasses, commands.runtimeCommandGrant, commands.validationEvidenceRules]
+  gaps: >-
+    Excellent command/test-execution authority model. Gaps: command objects are
+    additionalProperties:true (shape not enforced); no formal ExecGate/verdict in-
+    schema; zero-test-ran is a boolean flag not a structured detection rule.
+  score_contribution: drives S5=0.90.
+
+final_gate_fit:
+  supportable: weak
+  schema_primitives: [validation.finalValidationCommandRefs, commands.validationEvidenceRules.finalPromotionRequiresExactAllowedCommand, reports.reportsAreEvidenceOnly, reports.reportsDoNotAuthorizeExecution]
+  gaps: >-
+    FinalGate's LAW-3 CORE is not expressible: no human_approved, no human_id, no
+    criteria_source, and acceptanceCriteria is unstructured so per-criterion
+    evaluation cannot be schema-driven. No completion_policy. No verdict enum. The
+    FinalGate model lives entirely in docs (praxis-task-yaml.contract.md,
+    gate-verdict.contract.md), not in planspec.json.
+  score_contribution: limits S6/S7.
+
+repair_packet_fit:
+  supportable: minimal
+  schema_primitives: [workspace.rollback (open), reports.rollbackPlanRequiredForMutation]
+  gaps: >-
+    No RepairPacket schema. The RepairPacket contract (docs/contracts/repair-packet.
+    contract.md) defines repair_packet_id/attempt_id/task_run_id/failure_signature/
+    failed_gate/failed_criteria_ids/evidence_refs/strategy/strategy_context/prior_
+    failures/scope_constraints/prompt_additions/generated_at, plus MUST NOT modify
+    criteria/expand namespace/override verdicts. NONE of this is in planspec.json.
+    The audit's desired repair shape (failedCriteriaOnly, mayModifyAcceptanceCriteria:
+    false, allowedFiles, forbiddenFiles, requiredCommands, repairInstructions,
+    reverifyCommand) is only partially covered by scope_constraints + prompt_additions.
+  score_contribution: limits S8=0.10.
+
+# ---------------------------------------------------------------------------
+# v0.1 WEIGHT AND COMPLEXITY
+# ---------------------------------------------------------------------------
+v0_1_weight_and_complexity:
+  root_required_fields: 17
+  heavy_required_for_v0_1: [compatibility, intent, authority, enforcementRegistry, locking, waves, workspaces, commands]
+  v0_1_excluded_concepts_forced_as_required:
+    - waves[] (multi-worker scheduling) — ADR-013 future (v0.3+)
+    - workspaces[] with waveId/batchSize/gate (multi-worker) — future
+    - intent.parallelism (max 20) (multi-worker) — future
+    - locking.workerMustEchoWorkspaceLockHash (multi-worker lock) — future
+    - compatibility.runtimeContractVersion/v411AdapterRequired (runtime/Pi) — future/killed
+  p44_v411_p45_baggage:
+    - compatibility.v411AdapterRequired / generatedFromV411
+    - p45Bridge (implementationAllowed:false, forbiddenRuntimePaths, artifactExports)
+    - migration.legacyFieldsMapped (v411/planspec)
+    - metadata.status enum (admitted/running/superseded — multi-worker lifecycle)
+  verdict: >-
+    Too heavy for a 1-2 day plugin-first v0.1. A v0.1 author would have to populate
+    waves, workspaces, locking, compatibility, authority, enforcementRegistry, commands,
+    brief, validation, evidence, reports for a single manual verify/repair task. This
+    is the wrong altitude for v0.1.
+
+# ---------------------------------------------------------------------------
+# SCHEMA STRICTNESS RISKS
+# ---------------------------------------------------------------------------
+schema_strictness_risks:
+  - risk: "Strict container, loose payload"
+    detail: >-
+      23 locked objects but 13 open payload objects. The envelope is strict, but the
+      most important payload — acceptanceCriteria items (additionalProperties:true) —
+      is unstructured, as are workspace.validation/reports/rollback/risk, command
+      array items, and authority.* sub-objects. Strictness does not reach the content
+      that gates actually evaluate.
+  - risk: Dead definition
+    detail: $defs/security is defined but never $ref'd; root security is an inline duplicate. Remove or $ref it.
+  - risk: Multi-worker enums in a v0.1 context
+    detail: metadata.status (admitted/running/superseded) and intent.parallelism(max 20) assume multi-worker runtime; misleading if used for v0.1.
+  - risk: Unstructured command objects
+    detail: exactAllowedCommands/commandClasses/hardDeniedCommands items are additionalProperties:true; command identity/args/exit-expectations are not enforceable.
+  - risk: No conditional required logic
+    detail: Plain required arrays; no if/then or dependentSchemas to make integrationContract required only when wiringRequired=true. Adding the wiring layer needs conditional schema constructs.
+
+# ---------------------------------------------------------------------------
+# FUTURE COMPATIBILITY
+# ---------------------------------------------------------------------------
+future_compatibility:
+  preserves_well:
+    - command policy (commands.*)
+    - evidence ledger (evidence.*)
+    - ACCP report authority (reports.reportsAreEvidenceOnly/reportsDoNotAuthorizeExecution/routeSignalsAreAdvisory)
+    - lock/hash/signature integrity (security.*, locking.*)
+    - allowed/forbidden file model
+    - wave/workspace orchestration + dependency graphs (for v0.3 multi-worker)
+  misaligned_with_praxis_future:
+    - field names do not match docs/contracts/plan-spec.contract.md (plan_id/tasks[]/plan_budget/human_id/criteria_source/predicted_interfaces all absent)
+    - P44/v4.11/P45 legacy (p45Bridge, v411AdapterRequired, migration.legacyFieldsMapped) is not PRAXIS's forward path
+    - missing the artifact/wiring/repair layer needed even at scale for false-done prevention
+  recommendation: >-
+    Realign the future advanced PlanSpec to docs/contracts/plan-spec.contract.md
+    (PRAXIS's own contract), not the v5-alpha2 P44 schema. Port the strong primitives
+    (command policy, evidence, report authority, lock/hash) into that realigned
+    schema. Archive planspec.json v5-alpha2 as a historical reference, not the
+    canonical future PlanSpec.
+
+# ---------------------------------------------------------------------------
+# STRATEGY OPTIONS
+# ---------------------------------------------------------------------------
+strategy_options:
+  - id: OPTION_A_FULL_PLANSPEC_V5
+    name: Use current PlanSpec v5 directly for v0.1
+    evaluation:
+      speed: low — 17 required fields, multi-worker structure to populate per task
+      complexity: high — waves/workspaces/locking/compatibility for single-session tasks
+      false_positive_risk: high — unstructured AC + no wiring gate -> unwired code can PASS
+      false_hold_risk: high — no artifactPolicy -> docs/config get import checks they don't need
+      developer_ergonomics: low — heavy, foreign field names, P44 baggage
+      v0_1_fit: poor (S2=0.30, S9=0.15)
+    verdict: REJECT for v0.1
+  - id: OPTION_B_TASK_YAML_PLUS_ADVANCED_PLANSPEC
+    name: Use task.yaml for v0.1 and keep PlanSpec as advanced format
+    evaluation:
+      speed: high — task.yaml is flat, already contracted, already what /praxis:init generates
+      complexity: low — single file, single session, manual loop
+      truth_kernel_strength: medium-high — has structured AC, human_approved, verification_method, required_evidence; BUT lacks artifact/integration/wiring/repair (must be extended)
+      migration_path: clear — plan_ref links task.yaml to future PlanSpec; extend task.yaml incrementally
+      schema_duplication_risk: medium — two formats (task.yaml + future PlanSpec); mitigate by sharing $defs for AC/artifactPolicy/integrationContract
+    verdict: RECOMMENDED (with task.yaml extension)
+  - id: OPTION_C_PLANSPEC_LITE_PROFILE
+    name: Create PlanSpec v0.1-lite profile within the PlanSpec family
+    evaluation:
+      schema_consistency: high — one family, versioned envelope (specVersion/kind/metadata/profile)
+      v0_1_simplicity: medium — new profile to design and implement; envelope adds ceremony
+      future_compatibility: high — profile can graduate to full PlanSpec
+      implementation_effort: medium-high — must design a new lite profile AND migrate task.yaml users (or replace task.yaml)
+    verdict: VIABLE ALTERNATIVE — converges with OPTION_B if task.yaml gains a specVersion/kind/metadata envelope
+  - id: OPTION_D_REWRITE_SCHEMA
+    name: REWRITE_SCHEMA (rewrite from scratch)
+    evaluation:
+      note: Not listed in the prompt's strategy enum but considered. Rewriting discards the strong command/evidence/report primitives. Net cost > benefit vs extending task.yaml.
+    verdict: REJECT (preserve primitives; extend, do not rewrite)
+
+# ---------------------------------------------------------------------------
+# RECOMMENDED STRATEGY
+# ---------------------------------------------------------------------------
+recommended_strategy:
+  strategy: TASK_YAML_PLUS_ADVANCED_PLANSPEC
+  rationale: >-
+    The design has already chosen .praxis/task.yaml as the v0.1 verification input
+    (ADR-013, praxis-task-yaml.contract.md, mvp-v0.1-plugin-first-scope.md,
+    claude-code-plugin-flow.md). planspec.json v5-alpha2 is a foreign Pi P44/v4.11/
+    P45 schema with zero field-name overlap with PRAXIS's own contracts and forces
+    v0.1-excluded multi-worker fields as required — it is not the v0.1 format and is
+    not even PRAXIS's own future PlanSpec (plan-spec.contract.md). Confirming task.yaml
+    avoids rework and schema duplication. The REAL gap is that task.yaml itself lacks
+    the artifact/integration/wiring/repair/verification-authority layer needed for
+    false-done prevention. Close that gap by EXTENDING task.yaml with a minimal
+    artifactPolicy + integrationContract + structured-AC-authority + repair section.
+    This makes task.yaml a de-facto PlanSpec-lite (OPTION_C in spirit) without a
+    second competing format. Reserve the full advanced PlanSpec for the future,
+    realigned to plan-spec.contract.md and porting the strong v5 primitives
+    (command policy, evidence, report authority, lock/hash).
+  convergence_with_option_c: >-
+    If the team wants a formal versioned envelope, add specVersion/kind/metadata/
+    profile fields to task.yaml. task.yaml + that envelope == PlanSpec-lite. OPTION_B
+    and OPTION_C converge; OPTION_B is the lower-friction starting point.
+  next_prompt_recommendation: >-
+    Next prompt: "Design the task.yaml v0.1 extension: add artifactPolicy (class
+    enum + class-default wiringRequired), integrationContract (required when
+    wiringRequired/reachabilityRequired/executionRequired), a deterministic-vs-
+    advisory verification authority model per AC, and a repair section
+    (failedCriteriaOnly/mayModifyAcceptanceCriteria:false/allowedFiles/forbiddenFiles/
+    requiredCommands/repairInstructions/reverifyCommand). Define the WiringGate
+    insertion between EvidenceGate and ExecGate, its HOLD conditions for under-
+    specified runtime_code, and the class-default wiring_required table. Produce a
+    JSON Schema for the extended task.yaml and a PSAG-lite validation rule set. Design
+    only; no implementation."
+
+# ---------------------------------------------------------------------------
+# MINIMUM VIABLE v0.1 SCHEMA
+# ---------------------------------------------------------------------------
+minimum_viable_v0_1_schema:
+  format: .praxis/task.yaml (extended), NOT planspec.json
+  required_top_level_or_task_level_fields:
+    - specVersion (optional envelope; e.g. "praxis-task/0.1")
+    - kind (optional; "Task" | "Plan-lite")
+    - metadata (optional; task_id, title, description, created_at, human_id)
+    - task_id
+    - title
+    - description
+    - workspace
+    - namespace
+    - acceptance_criteria (structured)
+    - required_commands
+    - allowed_files
+    - forbidden_files
+    - evidence_requirements
+    - completion_policy
+    - human_approved
+    - artifactPolicy (task-level defaults; overridable per AC)
+    - integrationContract (required when any AC has wiringRequired=true)
+    - repair (repair-packet contract reference + constraints)
+  artifactPolicy_required_fields: [class, wiringRequired, reachabilityRequired, executionRequired]
+  integrationContract_required_when_wiring_required: [mode, declaredUnits, "integrationPoints or exportSurfaces or usageProofs", "entrypoints when reachabilityRequired is true", "runtimeProbes when executionRequired is true"]
+  acceptanceCriteria_required_fields: [id, description, level, humanApproved, verification, requiredEvidence]
+  verification_required_fields: [type, deterministic, canSatisfyFinalGate, evidenceRefs]
+  repair_required_fields: [failedCriteriaOnly, mayModifyAcceptanceCriteria, allowedFiles, forbiddenFiles, requiredCommands]
+  dropped_from_planspec_for_v0_1: [waves, workspaces, locking, compatibility, p45Bridge, enforcementRegistry, authority, intent.parallelism, migration, renderHints]
+  praxis_init_generates: >-
+    .praxis/task.yaml skeleton (minimal shape above with one example AC + artifactPolicy
+    stub), .praxis/runs/, .praxis/reports/, optional .praxis/config.yaml.
+  praxis_verify_requires_before_pass:
+    - human_approved is true (else FinalGate FAIL immediately)
+    - all required AC met with deterministic evidence (canSatisfyFinalGate=true)
+    - for runtime_code/cli_command ACs: integrationContract satisfied (wiring + reachability) OR explicit wiringRequired=false with reason
+    - no empty diff when changes required (EvidenceGate HOLD/FAIL on DIFF_EMPTY)
+    - no zero-tests when tests required (ExecGate FAIL on TESTS_RAN_ZERO)
+    - required commands present in command log with exit code 0
+    - no namespace violation (changes outside allowed_files)
+    - no forbidden_patterns matched
+
+# ---------------------------------------------------------------------------
+# SCHEMA PATCH RECOMMENDATIONS
+# ---------------------------------------------------------------------------
+schema_patch_recommendations:
+  note: >-
+    Patches target the v0.1 format (extended task.yaml), NOT planspec.json. planspec.json
+    is not modified (mutation_policy: report_only). The strong v5 primitives are PORTED
+    into the extended task.yaml / future realigned PlanSpec.
+  patches:
+    - id: P-01
+      target: acceptance_criteria items
+      change: >-
+        Replace additionalProperties:true with a structured AcceptanceCriterion: id,
+        description, verification_method (enum), verification_detail, required_evidence,
+        required (bool), human_approved (bool), criteria_source (enum human|agent),
+        level (enum hard|soft|advisory), verification (object: type, deterministic,
+        canSatisfyFinalGate, advisoryOnly, evidenceRefs).
+      raises: S6 0.25->0.85; S7 partial
+    - id: P-02
+      target: artifactPolicy (per AC + task-level defaults)
+      change: >-
+        Add class enum (runtime_code/library_code/cli_command/test_only/documentation/
+        config/schema/migration/script/generated_report/fixture), wiringRequired enum
+        (true/false/consumer_or_export/runner_discovery/conditional), reachabilityRequired
+        (bool), executionRequired (bool), advisoryReviewAllowed (bool),
+        deterministicEvidenceRequired (bool).
+      raises: S3 0.15->0.9; S4 partial
+    - id: P-03
+      target: integrationContract (required when wiringRequired/reachability/execution true)
+      change: >-
+        Add mode enum (none/required/consumer_or_export/runner_discovery/runtime_probe/
+        manual_only), reason, declaredUnits[], integrationPoints[], entrypoints[],
+        exportSurfaces[], usageProofs[], runtimeProbes[], forbiddenOrphanModules (bool).
+        Use if/then or dependentSchemas to require entrypoints when reachabilityRequired,
+        runtimeProbes when executionRequired.
+      raises: S4 0.15->0.9
+    - id: P-04
+      target: repair section
+      change: >-
+        Add failedCriteriaOnly (bool, true), mayModifyAcceptanceCriteria (bool, false),
+        allowedFiles[], forbiddenFiles[], requiredCommands[], repairInstructions,
+        reverifyCommand. Port RepairPacket contract from docs into schema.
+      raises: S8 0.10->0.7
+    - id: P-05
+      target: gate + verdict model
+      change: >-
+        Add gate enum (EvidenceGate/WiringGate/ExecGate/FinalGate), verdict enum
+        (PASS/HOLD/FAIL), gate sequencing, reason_codes taxonomy (port from
+        gate-verdict.contract.md). Insert WiringGate between EvidenceGate and ExecGate.
+      raises: S7 0.35->0.95
+    - id: P-06
+      target: drop forced multi-worker required fields for v0.1 profile
+      change: >-
+        Remove waves/workspaces/locking/compatibility/p45Bridge/enforcementRegistry/
+        authority/intent.parallelism from the v0.1 required set; reserve for future
+        advanced PlanSpec profile.
+      raises: S2 0.30->0.8; S9 0.15->0.8
+    - id: P-07
+      target: port strong v5 primitives
+      change: >-
+        Port commands.validationEvidenceRules, validation.finalValidationCommandRefs/
+        noTestsFoundIsFailure/discoveryCommandsMayNotSatisfyFinalValidation,
+        evidence.ledgerRequired/requiredEvidenceTypes/evidenceItemRequiredFields,
+        reports.reportsAreEvidenceOnly/reportsDoNotAuthorizeExecution/
+        routeSignalsAreAdvisory into the extended task.yaml.
+      preserves: S5=0.9, S10
+    - id: P-08
+      target: class-default wiring_required
+      change: >-
+        Auto-derive wiringRequired from class when not explicit: runtime_code->true,
+        cli_command->true, library_code->consumer_or_export, test_only->false,
+        documentation->false, config/schema->conditional, migration->runner_discovery,
+        script->conditional, fixture->optional_or_test_usage, generated_report->false.
+        Missing class for a code artifact -> HOLD (under-specified).
+      raises: S3->1.0; ergonomics
+
+# ---------------------------------------------------------------------------
+# SCORE IMPROVEMENT PLAN
+# ---------------------------------------------------------------------------
+score_improvement_plan:
+  to_8_out_of_10:
+    summary: >-
+      Adopt extended task.yaml as v0.1 format (P-06 drops multi-worker weight;
+      P-01 structures AC; P-02/P-03 add artifactPolicy + integrationContract;
+      P-04 adds repair; P-07 ports strong primitives). Add verification authority
+      model (deterministic/canSatisfyFinalGate per AC).
+    expected_dimension_scores:
+      S1: 0.80
+      S2: 0.80
+      S3: 0.90
+      S4: 0.90
+      S5: 0.95
+      S6: 0.85
+      S7: 0.80
+      S8: 0.70
+      S9: 0.80
+      S10: 0.80
+    expected_total: 8.3
+  to_9_out_of_10:
+    summary: >-
+      Add formal WiringGate + verdict/reason_codes model (P-05); add import_graph
+      + entrypoint_reachability + runtime_probe + orphan_module verification types
+      and forbiddenOrphanModules; add class-default wiring_required (P-08); add
+      HOLD-on-under-specified-runtime_code rule; add profile selection
+      (specVersion + profile: lite|full) for forward compatibility.
+    expected_dimension_scores:
+      S1: 0.85
+      S2: 0.85
+      S3: 1.00
+      S4: 1.00
+      S5: 0.95
+      S6: 0.90
+      S7: 0.95
+      S8: 0.75
+      S9: 0.90
+      S10: 0.90
+    expected_total: 9.05
+
+# ---------------------------------------------------------------------------
+# IMPLEMENTATION READINESS
+# ---------------------------------------------------------------------------
+implementation_readiness:
+  implementation_go_no_go: NO-GO for planspec.json as v0.1 format; GO for task.yaml extension DESIGN (D2)
+  decision: >-
+    Do NOT use planspec.json directly for v0.1. CONFIRM task.yaml as the v0.1 format
+    (already chosen by design). The next deliverable is D2 design work: extend
+    task.yaml with the artifact/integration/wiring/repair/verification-authority
+    layer (design only). Implementation of any code remains NOT authorized until D4
+    (Final Plugin-First Design Lock Audit) is complete AND the human project owner
+    explicitly authorizes it (per ADR-013 and architecture.md Implementation Readiness).
+  schema_strategy_decided: true (OPTION_B + task.yaml extension)
+  schema_extension_design_started: false (next D2 deliverable)
+  code_implementation_authorized: false
+  blocking_gate: D4 Final Plugin-First Design Lock Audit + human authorization
+
+# ---------------------------------------------------------------------------
+# REQUIRED AUDIT LOOPS
+# ---------------------------------------------------------------------------
+required_audit_loops:
+  L1_SCHEMA_STRUCTURE:
+    schema_structure_findings:
+      - valid Draft 2020-12 schema (meta-validated, jsonschema 4.26.0)
+      - 9 $defs (briefNote, commands, compatibility, instruction, intent, metadata, security, wave, workspace)
+      - 11 $ref, all resolve; no unresolvable refs
+      - root additionalProperties:false; 23 locked objects, 13 open payload objects
+      - 17 root required fields; 8 heavy/multi-worker
+    strictness_findings:
+      - strict envelope, loose payload (acceptanceCriteria unstructured)
+      - $defs/security dead code (never $ref'd; inline duplicate at root)
+      - command array items additionalProperties:true (shape not enforced)
+      - multi-worker enums (metadata.status, intent.parallelism) misleading for v0.1
+      - no conditional required logic (no if/then/dependentSchemas)
+    v0_1_weight_findings:
+      - too heavy: waves/workspaces/locking/compatibility/authority/enforcementRegistry required
+      - P44/v4.11/P45 baggage: p45Bridge, v411AdapterRequired, migration.legacyFieldsMapped
+      - zero field-name overlap with PRAXIS contracts
+  L2_PRAXIS_FITNESS:
+    v0_1_fit_score: 3.6
+    missing_v0_1_capabilities:
+      - artifactPolicy / artifact class classification
+      - integrationContract / wiring / reachability
+      - structured acceptanceCriteria with human_approved/criteria_source
+      - deterministic-vs-advisory verification authority model
+      - RepairPacket schema
+      - formal gate model (verdict enum, WiringGate, reason_codes)
+      - PlanSpec-lite / single-task profile
+    overweight_or_future_capabilities:
+      - waves[] / workspaces[] (multi-worker, v0.3+)
+      - intent.parallelism (max 20, multi-worker)
+      - locking.workerMustEchoWorkspaceLockHash (multi-worker)
+      - compatibility.runtimeContractVersion/v411AdapterRequired (runtime/Pi)
+      - p45Bridge (P45-specific)
+      - migration.legacyFieldsMapped (v4.11)
+      - enforcementRegistry, authority routing (runtime control plane)
+  L3_WIRING_GATE_ANALYSIS:
+    wiring_gate_score: 0.15 (S4)
+    artifact_policy_gap_report: see artifact_policy_gap (absent in schema and docs)
+    integration_contract_gap_report: see integration_contract_gap (absent in schema and docs)
+    proposed_schema_fields: see schema_patch_recommendations P-02, P-03, P-08 and wiring_gate_gap.proposed_formal_model
+  L4_EVIDENCE_AND_REPAIR_ANALYSIS:
+    gate_support_score: 0.35 (S7)
+    repair_loop_score: 0.10 (S8)
+    evidence_traceability_gaps:
+      - AC unstructured -> no AC->evidence mapping at schema level
+      - no human_approved/criteria_source -> FinalGate Law-3 core not expressible
+      - no per-verification deterministic/advisory authority
+      - no reason_codes / verdict enum in-schema
+      - RepairPacket absent from schema (only in docs)
+  L5_RECOMMENDATION_SYNTHESIS:
+    final_score: 3.6
+    advanced_format_score: 7.0
+    strategy_choice: TASK_YAML_PLUS_ADVANCED_PLANSPEC
+    priority_roadmap:
+      P0: "Confirm task.yaml as v0.1 format; retire planspec.json v5-alpha2 as v0.1 input"
+      P1: "Structure acceptanceCriteria + add verification authority model (P-01)"
+      P2: "Add artifactPolicy with class enum + class-default wiringRequired (P-02, P-08)"
+      P3: "Add integrationContract required-when-wiring (P-03)"
+      P4: "Add repair section (P-04)"
+      P5: "Add formal gate+verdict model + WiringGate (P-05)"
+      P6: "Port strong v5 primitives into extended task.yaml (P-07)"
+      P7: "Realign future advanced PlanSpec to plan-spec.contract.md; archive v5-alpha2"
+    implementation_go_no_go: "NO-GO for planspec.json as v0.1; GO for task.yaml extension design (D2, design only)"
+
+# ---------------------------------------------------------------------------
+# CRITICAL QUESTION ANSWERS
+# ---------------------------------------------------------------------------
+critical_question_answers:
+  statement: "Can the current PlanSpec express enough machine-checkable intent for PRAXIS to decide whether an LLM-produced change is actually complete?"
+  answer: >-
+    NO, not for the dimensions that matter most. It can express command/evidence
+    intent well (S5=0.9) but cannot express artifact class, wiring, reachability,
+    structured acceptance criteria, human approval, repair, or a formal gate model.
+    It can decide "did the command run / did tests pass" but NOT "is this runtime
+    code actually wired into the architecture" — so it cannot prevent false PASS on
+    unwired code, and without artifactPolicy it cannot prevent false HOLD on docs.
+  subquestions:
+    distinguish_artifact_classes: "NO — no artifactPolicy/class; cannot distinguish runtime_code from docs/config/test_only."
+    import_wiring_required_or_not: "NO — no wiringRequired field; cannot state whether import/wiring is required."
+    integration_points_entrypoints_exports_probes_reachability: "NO — none of integrationPoints/entrypoints/exportSurfaces/usageProofs/runtimeProbes/reachability exist."
+    prevent_false_pass_on_unwired_code: "NO — no wiring gate; file_exists can PASS on unwired code."
+    prevent_false_hold_on_docs_config: "NO — no artifactPolicy; docs/config cannot declare not-import-required."
+    support_evidence_wiring_exec_final_gates_and_repairpacket: "PARTIAL — Evidence/Exec primitives present; WiringGate absent; FinalGate core (human_approved) absent; RepairPacket absent from schema."
+    remain_small_for_v0_1_while_preserving_advanced_power: "NO — it is heavy now (17 required, multi-worker) AND lacks the advanced false-done layer; it fails both ends."
+
+# ---------------------------------------------------------------------------
+# MUST ANSWER QUESTIONS
+# ---------------------------------------------------------------------------
+must_answer_questions:
+  current_planspec_score_v0_1: 3.6
+  current_planspec_score_advanced_future: 7.0
+  strong_fields_to_keep:
+    - commands.validationEvidenceRules (finalPromotionRequiresExactAllowedCommand, discoveryCommandsMayNotSatisfyFinalValidation, runtimeGrant validation-purpose rule, accpCompile accp-hash rule)
+    - validation (finalValidationCommandRefs, noTestsFoundIsFailure, commandEvidenceRequired, discoveryCommandsMayNotSatisfyFinalValidation, forbiddenPatterns)
+    - evidence (ledgerRequired, requiredEvidenceTypes, evidenceItemRequiredFields, hashWhenAvailable, accpArtifactHashRequired)
+    - reports (reportsAreEvidenceOnly, reportsDoNotAuthorizeExecution, routeSignalsAreAdvisory, rollbackPlanRequiredForMutation, stableIdsRequired)
+    - security (schemaValidationRequired, lockRequiredForExecution, canonicalJsonHashRequired, signatureRequired, hardStops, forbiddenFiles)
+    - workspace.allowedFiles/forbiddenFiles (minItems:1)
+    - wave.gate (commandRefs, requiredArtifacts)
+    - brief instruction/briefNote priority (must/should/may)
+  too_pi_p44_runtime_specific:
+    - compatibility (runtimeContractVersion, runtimeTemplateVersion, v411AdapterRequired, generatedFromV411)
+    - p45Bridge (implementationAllowed:false, forbiddenRuntimePaths, artifactExports)
+    - migration.legacyFieldsMapped (v411/planspec)
+    - intent.parallelism (max 20)
+    - metadata.status enum (admitted/running/superseded)
+    - locking.workerMustEchoWorkspaceLockHash
+    - enforcementRegistry, authority.routing (runtime control plane)
+  missing_for_wiring_gate:
+    - wiringRequired, reachabilityRequired, executionRequired
+    - declaredUnits, entrypoints, exportSurfaces, integrationPoints, usageProofs, runtimeProbes
+    - import_graph verification, orphan_module detection, runtime_reachability
+    - gate enum, verdict enum (PASS/HOLD/FAIL), gate sequencing, reason_codes
+    - WiringGate itself (absent from schema AND design)
+  missing_for_artifact_classification:
+    - artifactPolicy, class enum, per-class wiring defaults
+  missing_for_repair_packet:
+    - failedCriteriaOnly, mayModifyAcceptanceCriteria, reverifyCommand, repairInstructions
+    - allowedFiles/forbiddenFiles/requiredCommands in repair context
+    - (RepairPacket contract exists in docs but not in schema)
+  missing_for_deterministic_vs_advisory:
+    - per-verification deterministic/canSatisfyFinalGate/advisoryOnly fields
+    - (task.yaml has coarse required:true/false; planspec.json has neither)
+  should_v0_1_use_full_planspec_task_yaml_or_planspec_lite: >-
+    task.yaml (extended) — OPTION_B. Do NOT use planspec.json v5-alpha2 directly.
+    Extending task.yaml with artifact/integration/wiring/repair makes it a de-facto
+    PlanSpec-lite; OPTION_C converges if a specVersion/kind/metadata envelope is added.
+  exact_changes_to_8_out_of_10: see score_improvement_plan.to_8_out_of_10 and schema_patch_recommendations P-01..P-07
+  exact_changes_to_9_out_of_10: see score_improvement_plan.to_9_out_of_10 and schema_patch_recommendations P-05, P-08 + profile selection
+  minimum_viable_v0_1_schema: see minimum_viable_v0_1_schema
+  what_praxis_init_generates: ".praxis/task.yaml skeleton (minimal extended shape) + runs/ + reports/ + optional config.yaml"
+  what_praxis_verify_requires_before_pass: see minimum_viable_v0_1_schema.praxis_verify_requires_before_pass
+  default_wiring_required_behavior:
+    by_class:
+      runtime_code: true
+      cli_command: true
+      library_code: consumer_or_export
+      test_only: false
+      documentation: false
+      config: conditional
+      schema: conditional
+      migration: runner_discovery
+      script: conditional
+      fixture: optional_or_test_usage
+      generated_report: false
+    missing_class: HOLD (under-specified; do NOT default to true (false-HOLDs docs) or false (false-PASSes code))
+  when_praxis_should_hold_for_under_specified_runtime_code: >-
+    HOLD (not FAIL) when an AC references a runtime_code artifact AND any of:
+    artifactPolicy.class is missing; class=runtime_code with wiringRequired=true but
+    integrationContract missing; reachabilityRequired=true but no entrypoints declared;
+    executionRequired=true but no runtimeProbes/usageProofs declared. The plan is
+    under-specified, not wrong; the repair packet asks the human to add the
+    integrationContract.
+  when_praxis_should_skip_wiring_checks: >-
+    Skip wiring checks when artifactPolicy.class is non-code (documentation, test_only,
+    config, schema, fixture, generated_report) AND wiringRequired is false or
+    conditional-not-triggered. Always run wiring checks for runtime_code/cli_command
+    unless wiringRequired is explicitly false with a stated reason. This prevents
+    false-HOLD on docs/config/reports and false-PASS on unwired code.
+
+# ---------------------------------------------------------------------------
+# ACCEPTANCE CRITERIA RESULTS
+# ---------------------------------------------------------------------------
+acceptance_criteria_results:
+  total: 16
+  passed: 16
+  failed: 0
+  results:
+    - id: AC-001
+      description: Analyzer reads /home/erfolg/src/praxis/planspec.json.
+      verification_type: evidence
+      result: PASS
+      evidence: "planspec.json read in full (972 lines, 21650 bytes); sha256 3f0def..."
+    - id: AC-002
+      description: Analyzer validates whether planspec.json is valid JSON and structurally valid JSON Schema.
+      verification_type: command_or_parser_evidence
+      result: PASS
+      evidence: "python -m json.tool -> JSON_VALID=TRUE; jsonschema 4.26.0 Draft202012Validator.check_schema -> META_SCHEMA_VALID=TRUE; 11 $ref all resolve"
+    - id: AC-003
+      description: Analyzer scores PlanSpec out of 10 using the provided scoring rubric.
+      verification_type: report_section
+      result: PASS
+      evidence: "scorecard.total_score_out_of_10=3.6 with per-dimension S1-S10 scores"
+    - id: AC-004
+      description: Analyzer separately scores current PlanSpec as an advanced future format.
+      verification_type: report_section
+      result: PASS
+      evidence: "scorecard.advanced_format_score_out_of_10=7.0"
+    - id: AC-005
+      description: Analyzer identifies missing artifact_policy / artifactPolicy support.
+      verification_type: report_section
+      result: PASS
+      evidence: artifact_policy_gap section (absent in schema and docs; per-term grep zero matches)
+    - id: AC-006
+      description: Analyzer identifies missing integration_contract / integrationContract support.
+      verification_type: report_section
+      result: PASS
+      evidence: integration_contract_gap section (absent in schema and docs; per-term grep zero matches)
+    - id: AC-007
+      description: Analyzer identifies whether WiringGate can be represented today.
+      verification_type: report_section
+      result: PASS
+      evidence: wiring_gate_gap section (WiringGate absent from schema AND design; only Evidence/Exec/Final exist)
+    - id: AC-008
+      description: Analyzer explains when PRAXIS should skip wiring checks.
+      verification_type: report_section
+      result: PASS
+      evidence: must_answer_questions.when_praxis_should_skip_wiring_checks
+    - id: AC-009
+      description: Analyzer explains when PRAXIS should return HOLD due to under-specified runtime_code.
+      verification_type: report_section
+      result: PASS
+      evidence: must_answer_questions.when_praxis_should_hold_for_under_specified_runtime_code
+    - id: AC-010
+      description: Analyzer compares full PlanSpec v5, task.yaml + advanced PlanSpec, and PlanSpec-lite strategy.
+      verification_type: report_section
+      result: PASS
+      evidence: strategy_options section (OPTION_A/B/C + OPTION_D) and recommended_strategy
+    - id: AC-011
+      description: Analyzer provides exact schema changes needed to reach 8/10.
+      verification_type: report_section
+      result: PASS
+      evidence: score_improvement_plan.to_8_out_of_10 + schema_patch_recommendations P-01..P-07
+    - id: AC-012
+      description: Analyzer provides exact schema changes needed to reach 9/10.
+      verification_type: report_section
+      result: PASS
+      evidence: score_improvement_plan.to_9_out_of_10 + P-05, P-08, profile selection
+    - id: AC-013
+      description: Analyzer defines minimum viable v0.1 schema/profile.
+      verification_type: report_section
+      result: PASS
+      evidence: minimum_viable_v0_1_schema section
+    - id: AC-014
+      description: Analyzer does not modify planspec.json or implementation files.
+      verification_type: git_diff_or_file_list
+      result: PASS
+      evidence: >-
+        mutation_policy report_only; planspec.json sha256 unchanged (3f0def... pre and
+        post); git status shows only pi/ and planspec.json untracked (pre-existing) plus
+        new reports/accp/* files; no source/docs/schema files modified.
+    - id: AC-015
+      description: Analyzer writes reports/accp/planspec-v0.1-fitness-audit.accp.yaml.
+      verification_type: file_exists
+      result: PASS
+      evidence: this file at reports/accp/planspec-v0.1-fitness-audit.accp.yaml
+    - id: AC-016
+      description: Final response summarizes score, verdict, recommended strategy, report path, and AC pass/fail count.
+      verification_type: final_response
+      result: PASS
+      evidence: final response includes score 3.6/10, advanced 7.0/10, verdict HOLD, strategy TASK_YAML_PLUS_ADVANCED_PLANSPEC, report path, AC 16/16 pass
+
+# ---------------------------------------------------------------------------
+# REMAINING OPEN QUESTIONS
+# ---------------------------------------------------------------------------
+remaining_open_questions:
+  - id: OQ-01
+    question: >-
+      Should the v0.1 extended task.yaml carry a formal versioned envelope
+      (specVersion/kind/metadata/profile) — i.e. adopt OPTION_C framing — or stay
+      flat (OPTION_B)?
+    status: OPEN — design decision for D2
+  - id: OQ-02
+    question: >-
+      Should WiringGate be a true fourth gate (Evidence->Wiring->Exec->Final) or a
+      sub-check within EvidenceGate for v0.1 simplicity?
+    status: OPEN — affects gate-verdict.contract.md and S7
+  - id: OQ-03
+    question: >-
+      For v0.1 (no import-graph tooling yet), can reachability/wiring be satisfied by
+      a static_pattern verification (grep for import/register/entrypoint) plus a
+      runtime_probe/command_output, or is a real import-graph required?
+    status: OPEN — verification-method feasibility for 1-2 day MVP
+  - id: OQ-04
+    question: >-
+      Should the future advanced PlanSpec be realigned to plan-spec.contract.md
+      (PRAXIS-native) and planspec.json v5-alpha2 archived, or should v5-alpha2 be
+      evolved in place to match the PRAXIS contract?
+    status: OPEN — future-schema lineage decision
+  - id: OQ-05
+    question: >-
+      RepairPacket: JSON (machine) vs Markdown (human) vs both — ADR-013 Open Question
+      #2 still open; the schema should support both.
+    status: OPEN — carried from ADR-013
+
+# ---------------------------------------------------------------------------
+# COMPLETION GATE
+# ---------------------------------------------------------------------------
+completion_gate:
+  planspec_analyzed: true
+  scorecard_exists: true
+  artifact_wiring_integration_gaps_evaluated: true
+  recommended_strategy_selected: true (TASK_YAML_PLUS_ADVANCED_PLANSPEC)
+  eight_and_nine_paths_provided: true
+  v0_1_minimum_schema_defined: true
+  accp_report_file_exists: true
+  numeric_score_given: true (3.6/10 v0.1; 7.0/10 advanced)
+  wiring_gate_analysis_included: true
+  artifact_class_policy_included: true
+  planspec_not_modified: true
+  implementation_source_not_modified: true
