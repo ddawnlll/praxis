@@ -23,4 +23,5 @@ export interface RuntimeSnapshot {
   serverUptime: string;
   runs: RunSummary[];
   circuitBreaker: { state: string; failureRate: number };
+  governor?: { currentTier: string; maxWorkers: number; activeWorkers: number };
 }

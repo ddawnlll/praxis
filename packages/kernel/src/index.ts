@@ -174,3 +174,19 @@ export type {
   Wave,
   ScheduleResult,
 } from './wave-scheduler';
+
+// Import Analyzer
+export { analyzeImports } from './wiring/importAnalyzer';
+export type {
+  ImportEdge,
+  ExportSymbol,
+  ImportGraphResult,
+} from './wiring/importAnalyzer';
+
+// Coverage Parser
+export { parseCoverageJson, parseCoverageFile } from './coverage';
+export type { CoverageResult, CoverageTotals, FileCoverage } from './coverage';
+
+// Network Sandbox
+export { checkNetworkAccess, createNetworkPolicy } from './executor/networkSandbox';
+export type { NetworkPolicy, SandboxResult } from './executor/networkSandbox';
