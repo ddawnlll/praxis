@@ -1,0 +1,11 @@
+{
+  "claimedActions": [
+    "Write(/tmp/praxis-div-test.txt)"
+  ],
+  "observedEvidence": [
+    "Write tool called"
+  ],
+  "fileExists": true,
+  "fileMatchesClaim": true,
+  "divergence": false
+}
