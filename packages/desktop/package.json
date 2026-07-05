@@ -1,0 +1,28 @@
+{
+  "name": "@praxis/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "PRAXIS Desktop Mission Control — Electron + React dashboard",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently \"bun run dev:renderer\" \"bun run dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "electron .",
+    "build": "vite build",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.0.0",
+    "concurrently": "^9.0.0",
+    "electron": "^33.0.0",
+    "typescript": "^5.9.2",
+    "vite": "^6.0.0"
+  }
+}

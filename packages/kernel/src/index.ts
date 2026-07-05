@@ -137,3 +137,40 @@ export type {
   TestResult,
   TestEntry,
 } from './test-parser';
+
+// Governor
+export {
+  createGovernor,
+  canAdmitWorker,
+  admitWorker,
+  completeWorker,
+  getGovernorState,
+  setWorkerQueue,
+} from './governor';
+export type {
+  Governor,
+  GovernorConfig,
+  GovernorState,
+  GovernorTier,
+} from './governor';
+
+// Assembler
+export { assemble } from './assembler';
+export type {
+  AssemblyInput,
+  AssemblyFile,
+  ConflictReport,
+  AssemblyResult,
+} from './assembler';
+
+// Wave Scheduler
+export {
+  scheduleWaves,
+  validateNoNamespaceCollisions,
+} from './wave-scheduler';
+export type {
+  WavePlan,
+  WaveTask,
+  Wave,
+  ScheduleResult,
+} from './wave-scheduler';
