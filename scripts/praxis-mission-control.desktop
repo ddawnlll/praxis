@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=PRAXIS Mission Control
+Comment=Verify agentic coding task completion — Truth Kernel dashboard
+Exec=/home/daskomputer/src/praxis/scripts/praxis-desktop.sh
+Icon=/home/daskomputer/src/praxis/scripts/praxis-icon.svg
+Terminal=false
+Type=Application
+Categories=Development;Utility;
+StartupNotify=true

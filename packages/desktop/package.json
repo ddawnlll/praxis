@@ -8,8 +8,9 @@
   "scripts": {
     "dev": "concurrently \"bun run dev:renderer\" \"bun run dev:electron\"",
     "dev:renderer": "vite",
-    "dev:electron": "electron .",
+    "dev:electron": "electron . --dev",
     "build": "vite build",
+    "start": "vite build && electron .",
     "test": "bun test"
   },
   "dependencies": {
