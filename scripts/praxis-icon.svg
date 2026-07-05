@@ -1,8 +1,45 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
-  <rect width="256" height="256" rx="32" fill="#0d1117"/>
-  <circle cx="128" cy="100" r="50" fill="none" stroke="#58a6ff" stroke-width="6"/>
-  <polyline points="115,95 125,105 145,85" fill="none" stroke="#3fb950" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="68" y="155" width="120" height="8" rx="4" fill="#30363d"/>
-  <rect x="68" y="175" width="100" height="8" rx="4" fill="#30363d"/>
-  <rect x="68" y="195" width="140" height="8" rx="4" fill="#30363d"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#238636"/>
+      <stop offset="100%" stop-color="#196c2e"/>
+    </linearGradient>
+    <linearGradient id="gate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#58a6ff"/>
+      <stop offset="100%" stop-color="#1f6feb"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="256" height="256" rx="48" fill="url(#bg)"/>
+
+  <!-- Shield outline (truth/verification) -->
+  <path d="M128 28 L212 56 L212 120 C212 176 168 212 128 228 C88 212 44 176 44 120 L44 56 Z"
+        fill="none" stroke="url(#shield)" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Checkmark inside shield (completion/PASS) -->
+  <polyline points="90,128 116,154 166,104"
+            fill="none" stroke="#3fb950" stroke-width="10"
+            stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+
+  <!-- 6 small dots representing the 6 gates at the bottom -->
+  <circle cx="68" cy="198" r="4" fill="url(#gate)"/>
+  <circle cx="92" cy="198" r="4" fill="url(#gate)"/>
+  <circle cx="116" cy="198" r="4" fill="url(#gate)"/>
+  <circle cx="140" cy="198" r="4" fill="url(#gate)"/>
+  <circle cx="164" cy="198" r="4" fill="url(#gate)"/>
+  <circle cx="188" cy="198" r="4" fill="url(#gate)"/>
+
+  <!-- "PRAXIS" label text -->
+  <text x="128" y="236" font-family="system-ui, -apple-system, sans-serif"
+        font-size="11" font-weight="700" fill="#8b949e"
+        text-anchor="middle" letter-spacing="4">PRAXIS</text>
 </svg>
