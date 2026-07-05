@@ -160,7 +160,7 @@ Terminal states: `COMPLETE` (FVR enqueued), `ABORTED` (evidence preserved), `FAI
 | I1 | Manual Verify MVP | init, spec, verify commands | FUTURE — not authorized |
 
 **Overall design progress: ~95% (D3/P1-P6 locked)
-**Overall implementation progress:** ~100% (P2-P6 locked, all 6 gates implemented, report + repair generators complete, CLI + plugin with tests, 167 tests PASS)
+**Overall implementation progress:** ~100% (P2-P6 locked, all 6 gates implemented, report + repair generators complete, CLI + plugin with tests, 179 tests PASS)
 **Implementation NOT authorized** without explicit human approval per phase.
 
 ### Quick Reference — Next Actions
@@ -507,7 +507,7 @@ These packages must NOT be copied into PRAXIS:
 - **P6 FinalGate v0.1 (COMPLETE 2026-06-22):** Criterion evaluator, verdict aggregator, and main gate logic implemented. 3 new files. 21 reason codes. Core safety rules enforced. Tests: 12 tests in finalGate.spec.ts (covering all verdict types, advisory filtering, prior-gate checks).
 - **Unified Kernel Pipeline Runners (COMPLETE 2026-06-22):** runP4Kernel, runP5Kernel, runP6Kernel/runKernel implemented. 3 new files. tsc clean. Tests: 6 tests in p6Kernel.spec.ts (full pipeline flow, stop conditions).
 - **P4 WiringGate Tests (COMPLETE 2026-06-22):** 14 tests in wiringGate.spec.ts covering declared unit matching, export surfaces, entrypoints, integration points, orphan detection, mode validation.
-- **Total test coverage:** 167/167 tests pass (31 contracts + 105 kernel + 11 CLI + 20 plugin). All 6 gates implemented, report generator, repair packet generator, CLI (11 commands), plugin (9 slash commands + 3 hooks).
+- **Total test coverage:** 179/179 tests pass (31 contracts + 117 kernel + 11 CLI + 20 plugin). All 6 gates implemented, 12 end-to-end pipeline tests, report generator, repair packet generator, CLI (11 commands), plugin (9 slash commands + 3 hooks).
 - **PRAXIS Completion Pass (COMPLETE 2026-07-05):** Created report generator, repair packet generator, root workspace monorepo. Implemented CLI status/report show/repair show commands. Wired verify to persist results. Added 11 CLI tests + 20 plugin tests. **Total: 167 tests, all PASS.** All packages typecheck clean.
 
 ---
