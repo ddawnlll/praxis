@@ -150,6 +150,10 @@ Commands:
   report show                 Show verification report
     --run-id <id>             Run ID (required)
 
+  repair show                 Show repair packet for failed run
+    --run-id <id>             Run ID (required)
+    --json                    Output as JSON
+
   help                        Show this help
 
   version                     Show version
@@ -402,7 +406,7 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   }
 
   const planYaml = readFileSync(resolved, 'utf-8');
-  const { runKernel } = await import('@praxis/kernel');
+  const { runKernel, generateReport, generateRepairPacket } = await import('@praxis/kernel');
 
   let result: KernelResult;
   try {
@@ -419,11 +423,73 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
     exit(3);
   }
 
+  // Persist results to .praxis/runs/<attemptId>/
+  const attemptId = result.attemptId;
+  const runDir = resolve(process.cwd(), '.praxis/runs', attemptId);
+  if (!existsSync(runDir)) mkdirSync(runDir, { recursive: true });
+
+  // Save verdict.json
+  const verdictData = {
+    verdict: result.verdict,
+    ok: result.ok,
+    attemptId,
+    planId: result.plan?.metadata?.planId ?? 'unknown',
+    planTitle: result.plan?.metadata?.title ?? '',
+    startedAt: result.startedAt,
+    finishedAt: result.finishedAt,
+    gateVerdicts: result.gateVerdicts.map(gv => ({
+      gateName: gv.gateName,
+      verdict: gv.verdict,
+      reasonCodes: gv.reasonCodes,
+      repairHint: 'repairHint' in gv ? (gv as any).repairHint : undefined,
+    })),
+    totalGates: result.gateVerdicts.length,
+    passedGates: result.gateVerdicts.filter(g => g.verdict === 'PASS').length,
+    heldGates: result.gateVerdicts.filter(g => g.verdict === 'HOLD').length,
+    failedGates: result.gateVerdicts.filter(g => g.verdict === 'FAIL').length,
+    diagnostics: result.diagnostics,
+    final: result.final ? {
+      totalCriteria: result.final.totalCriteria,
+      passedCriteria: result.final.passedCriteria,
+      failedCriteria: result.final.failedCriteria,
+      advisoryCriteria: result.final.advisoryCriteria,
+      criterionResults: result.final.criterionResults,
+    } : null,
+  };
+  writeFileSync(resolve(runDir, 'verdict.json'), JSON.stringify(verdictData, null, 2), 'utf-8');
+
+  // Save report
+  try {
+    const report = generateReport(result);
+    writeFileSync(resolve(runDir, 'report.json'), JSON.stringify(report, null, 2), 'utf-8');
+  } catch {}
+
+  // Save repair packet if not PASS
+  if (result.verdict !== 'PASS') {
+    try {
+      const { generateReport: _, ...rest } = await import('@praxis/kernel');
+      // Use the import we already have
+      const repairPacket = generateRepairPacket(
+        result.plan,
+        result.hashes,
+        attemptId,
+        result.gateVerdicts,
+        result.final?.criterionResults,
+        result.diagnostics,
+      );
+      if (repairPacket) {
+        const repairsDir = resolve(process.cwd(), '.praxis/repairs');
+        if (!existsSync(repairsDir)) mkdirSync(repairsDir, { recursive: true });
+        writeFileSync(resolve(repairsDir, `${attemptId}.json`), JSON.stringify(repairPacket, null, 2), 'utf-8');
+      }
+    } catch {}
+  }
+
   if (asJson) {
     emit({
       verdict: result.verdict,
       ok: result.ok,
-      attemptId: result.attemptId,
+      attemptId,
       gateVerdicts: result.gateVerdicts.map(gv => ({
         gateName: gv.gateName,
         verdict: gv.verdict,
@@ -434,6 +500,7 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   } else {
     emitLine(`Verify: ${verdictLabel(result.verdict)}`);
     emitLine(`  Run ID: ${result.attemptId}`);
+    emitLine(`  Results saved to: ${runDir}`);
     emitLine(`  Gates:`);
     for (const gv of result.gateVerdicts) {
       const icon = gv.verdict === 'PASS' ? '✓' : gv.verdict === 'HOLD' ? '⚠' : '✗';
@@ -461,19 +528,77 @@ async function cmdStatus(flags: Record<string, string | boolean>): Promise<void>
   const runId = getFlag(flags, 'run-id');
   const asJson = hasFlag(flags, 'json');
 
-  if (asJson) {
-    emit({
-      runId: runId ?? 'latest',
-      status: 'not_implemented',
-      note: 'Status command reads from kernel pipeline result; run "praxis verify" first.',
-    });
+  // If no run-id specified, find the latest run from .praxis/runs/
+  const runsDir = resolve(process.cwd(), '.praxis/runs');
+  let targetRunId = runId;
+
+  if (!targetRunId) {
+    try {
+      const { readdirSync } = await import('node:fs');
+      if (existsSync(runsDir)) {
+        const dirs = readdirSync(runsDir, { withFileTypes: true })
+          .filter(d => d.isDirectory())
+          .map(d => d.name)
+          .sort()
+          .reverse();
+        if (dirs.length > 0) targetRunId = dirs[0];
+      }
+    } catch {}
+  }
+
+  if (!targetRunId) {
+    if (asJson) {
+      emit({ status: 'no_runs', message: 'No verification runs found. Run "praxis verify --plan <path>" first.' });
+    } else {
+      emitLine('Status: NO_RUNS');
+      emitLine('No verification runs found.');
+      emitLine('Run "praxis verify --plan <path>" to run a full verification pipeline.');
+    }
     exit(0);
   }
 
-  emitLine('Status: NOT_IMPLEMENTED');
-  emitLine('The status command depends on a persistent runtime state file.');
-  emitLine('Run "praxis verify --plan <path>" to run a full verification pipeline.');
-  if (runId) emitLine(`  Requested run ID: ${runId}`);
+  // Read verdict.json for the target run
+  const verdictPath = resolve(runsDir, targetRunId, 'verdict.json');
+  let verdictData: Record<string, unknown> | null = null;
+  if (existsSync(verdictPath)) {
+    try {
+      verdictData = JSON.parse(readFileSync(verdictPath, 'utf-8'));
+    } catch {}
+  }
+
+  // Read evidence.jsonl for record count
+  const ledgerPath = resolve(runsDir, targetRunId, 'evidence.jsonl');
+  let evidenceCount = 0;
+  if (existsSync(ledgerPath)) {
+    try {
+      const { readEvidenceLedgerJsonl } = await import('@praxis/kernel');
+      const readResult = readEvidenceLedgerJsonl(ledgerPath);
+      evidenceCount = readResult.records.length;
+    } catch {}
+  }
+
+  if (asJson) {
+    emit({
+      runId: targetRunId,
+      verdict: verdictData?.verdict ?? 'unknown',
+      ok: verdictData?.ok ?? false,
+      evidenceCount,
+      planId: verdictData?.planId ?? null,
+      gates: verdictData?.gates ?? null,
+      verdictFound: verdictData !== null,
+    });
+  } else {
+    emitLine(`Status: Run ${targetRunId}`);
+    if (verdictData) {
+      const v = verdictData.verdict ?? 'unknown';
+      emitLine(`  Verdict: ${verdictLabel(v as GateVerdictValue)}`);
+      emitLine(`  OK: ${verdictData.ok}`);
+      if (verdictData.planId) emitLine(`  Plan: ${verdictData.planId}`);
+    } else {
+      emitLine('  Verdict: No verdict file found (run may be incomplete)');
+    }
+    emitLine(`  Evidence records: ${evidenceCount}`);
+  }
   exit(0);
 }
 
@@ -577,20 +702,106 @@ async function cmdReportShow(flags: Record<string, string | boolean>): Promise<v
   const runId = getFlag(flags, 'run-id');
   const asJson = hasFlag(flags, 'json');
 
-  if (asJson) {
-    emit({
-      runId: runId ?? 'latest',
-      status: 'not_implemented',
-      note: 'Report generation is in scope for P6 FinalGate. Run "praxis verify --plan <path>" for gate verdicts.',
-    });
-    exit(0);
+  if (!runId) {
+    if (!asJson) emitLine('Error: --run-id <id> is required for "report show".');
+    else emit({ error: '--run-id <id> is required', exitCode: 3 });
+    exit(3);
   }
 
-  emitLine('Report: NOT_IMPLEMENTED');
-  emitLine('PRAXIS report generation will be delivered in the FinalGate completion phase.');
-  emitLine('Run "praxis verify --plan <path>" for gate-level verdicts and diagnostics.');
-  if (runId) emitLine(`  Requested run ID: ${runId}`);
-  exit(0);
+  // Try to read verdict.json for the run
+  const runsDir = resolve(process.cwd(), '.praxis/runs');
+  const verdictPath = resolve(runsDir, runId, 'verdict.json');
+
+  if (!existsSync(verdictPath)) {
+    if (!asJson) emitLine(`Error: No verdict file found for run "${runId}".`);
+    else emit({ error: `No verdict file found for run "${runId}"`, exitCode: 3 });
+    exit(3);
+  }
+
+  try {
+    const verdictData = JSON.parse(readFileSync(verdictPath, 'utf-8'));
+    const { generateReport, formatReportMarkdown } = await import('@praxis/kernel');
+
+    // We need to reconstruct a KernelResult-compatible object from the JSON
+    // The JSON stored from a verify run should have the right shape.
+    const report = generateReport(verdictData as any);
+
+    if (asJson) {
+      emit(report);
+    } else {
+      emitLine(formatReportMarkdown(report));
+    }
+    exit(0);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!asJson) emitLine(`Error: Failed to generate report — ${msg}`);
+    else emit({ error: msg, exitCode: 3 });
+    exit(3);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Command: repair show
+// ---------------------------------------------------------------------------
+
+async function cmdRepairShow(flags: Record<string, string | boolean>): Promise<void> {
+  const runId = getFlag(flags, 'run-id');
+  const asJson = hasFlag(flags, 'json');
+
+  if (!runId) {
+    if (!asJson) emitLine('Error: --run-id <id> is required for "repair show".');
+    else emit({ error: '--run-id <id> is required', exitCode: 3 });
+    exit(3);
+  }
+
+  // Try reading repair packet from .praxis/repairs/<runId>.json
+  const repairPath = resolve(process.cwd(), '.praxis/repairs', `${runId}.json`);
+  if (existsSync(repairPath)) {
+    try {
+      const content = readFileSync(repairPath, 'utf-8');
+      if (asJson) {
+        emit(JSON.parse(content));
+      } else {
+        const packet = JSON.parse(content);
+        emitLine(`Repair Packet: ${runId}`);
+        emitLine(`  Verdict: ${packet.triggerVerdict}`);
+        emitLine(`  Failed Gates:`);
+        for (const fg of (packet.failedGates ?? [])) {
+          emitLine(`    ${fg.gateName}: ${fg.verdict}`);
+          for (const rc of (fg.reasonCodes ?? [])) emitLine(`      ${rc}`);
+          if (fg.repairHint) emitLine(`      Hint: ${fg.repairHint}`);
+        }
+        if (packet.failedCriteria?.length > 0) {
+          emitLine(`  Failed Criteria:`);
+          for (const fc of packet.failedCriteria) {
+            emitLine(`    ${fc.criterionId}: ${fc.detail}`);
+          }
+        }
+        emitLine(`  Strategies:`);
+        for (const s of (packet.strategies ?? [])) {
+          emitLine(`    [${s.kind}] ${s.description}`);
+          for (const a of (s.actions ?? [])) emitLine(`      → ${a}`);
+        }
+      }
+      exit(0);
+    } catch {}
+  }
+
+  // Try reading verdict instead
+  const verdictPath = resolve(process.cwd(), '.praxis/runs', runId, 'verdict.json');
+  if (existsSync(verdictPath)) {
+    if (!asJson) {
+      emitLine(`No repair packet for run "${runId}". The run may have passed or repair wasn't generated.`);
+      emitLine('Run "praxis verify" with a failing plan to generate a repair packet.');
+    } else {
+      emit({ error: `No repair packet found for run "${runId}"`, exitCode: 3 });
+    }
+    exit(3);
+  }
+
+  if (!asJson) emitLine(`Error: No data found for run "${runId}".`);
+  else emit({ error: `No data found for run "${runId}"`, exitCode: 3 });
+  exit(3);
 }
 
 // ---------------------------------------------------------------------------
@@ -686,6 +897,18 @@ async function main(): Promise<void> {
         default:
           emitLine(`Error: Unknown subcommand "report ${subcommand}".`);
           emitLine('Available: report show');
+          exit(3);
+      }
+      break;
+
+    case 'repair':
+      switch (subcommand) {
+        case 'show':
+          await cmdRepairShow(flags);
+          break;
+        default:
+          emitLine(`Error: Unknown subcommand "repair ${subcommand}".`);
+          emitLine('Available: repair show');
           exit(3);
       }
       break;

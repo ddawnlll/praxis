@@ -93,3 +93,17 @@ export { runP5Kernel } from './runP5Kernel';
 export type { RunP5Options } from './runP5Kernel';
 export { runP6Kernel, runKernel } from './runP6Kernel';
 export type { RunKernelOptions } from './runP6Kernel';
+
+// Report
+export { generateReport, formatReportMarkdown } from './report/reportGenerator';
+export type { VerificationReport, GateReportEntry, CriterionSummary } from './report/reportGenerator';
+
+// Repair
+export { generateRepairPacket } from './repair/repairPacketGenerator';
+export type {
+  RepairPacket,
+  RepairGateEntry,
+  RepairCriterionEntry,
+  RepairStrategy,
+  RepairStrategyKind,
+} from './repair/repairPacketGenerator';

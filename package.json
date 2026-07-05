@@ -1,0 +1,16 @@
+{
+  "name": "praxis-workspace",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/contracts",
+    "packages/kernel",
+    "packages/cli",
+    "packages/claude-plugin"
+  ],
+  "scripts": {
+    "test": "bun run --filter='@praxis/*' test",
+    "typecheck": "bun run --filter='@praxis/*' typecheck",
+    "build": "bun run --filter='@praxis/*' build"
+  }
+}
