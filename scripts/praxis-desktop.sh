@@ -5,7 +5,7 @@ set -Eeuo pipefail
 #   Usage: ./scripts/praxis-desktop.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$SCRIPT_DIR"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 cleanup() { [ -n "${SERVER_PID-}" ] && kill "$SERVER_PID" 2>/dev/null || true; }
 trap cleanup EXIT
@@ -28,4 +28,5 @@ cd "$ROOT/packages/desktop" && bun run build 2>/dev/null
 # 3) Launch Electron
 echo "[3/3] Launching PRAXIS Mission Control..."
 echo ""
-electron "$ROOT/packages/desktop"
+# Use local electron from workspace (not required globally)
+"$ROOT/packages/desktop/node_modules/.bin/electron" "$ROOT/packages/desktop"
