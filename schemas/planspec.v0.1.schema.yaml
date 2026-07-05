@@ -83,6 +83,12 @@ allOf:
           properties:
             enabled:
               const: true
+    else:
+      properties:
+        repair:
+          properties:
+            enabled:
+              type: boolean
 
 $defs:
   metadata:

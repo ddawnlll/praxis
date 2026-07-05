@@ -97,6 +97,8 @@ export type { RunKernelOptions } from './runP6Kernel';
 // Report
 export { generateReport, formatReportMarkdown } from './report/reportGenerator';
 export type { VerificationReport, GateReportEntry, CriterionSummary } from './report/reportGenerator';
+export { formatReportAccpYaml, formatReportAccpSummary } from './report/accpReport';
+export type { AccpYamlReport } from './report/accpReport';
 
 // Repair
 export { generateRepairPacket } from './repair/repairPacketGenerator';
@@ -107,3 +109,31 @@ export type {
   RepairStrategy,
   RepairStrategyKind,
 } from './repair/repairPacketGenerator';
+
+// Circuit Breaker
+export {
+  createCircuitBreaker,
+  recordFailure as cbRecordFailure,
+  recordSuccess as cbRecordSuccess,
+  allowRequest as cbAllowRequest,
+  getStatus as cbGetStatus,
+  reset as cbReset,
+  computeFailureRate,
+} from './circuit-breaker';
+export type {
+  CircuitBreaker,
+  CircuitBreakerConfig,
+  CircuitBreakerState,
+  CircuitBreakerStatus,
+  CircuitBreakerResult,
+} from './circuit-breaker';
+
+// Test Parser
+export {
+  parseTestOutput,
+  detectFramework,
+} from './test-parser';
+export type {
+  TestResult,
+  TestEntry,
+} from './test-parser';

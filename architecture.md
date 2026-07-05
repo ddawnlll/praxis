@@ -490,27 +490,40 @@ The following components are preserved in the roadmap but are NOT v0.1. All are 
 ### v0.2 — Local Control Plane
 
 ```
-praxis CLI
-     │
-     ▼
-┌─────────────────────────────┐
-│  Local Server (Hono)        │
-│  127.0.0.1                  │
-│  REST API + SSE              │
-└──────────┬──────────────────┘
-           │
-           ▼
-┌─────────────────────────────┐
-│  Truth Kernel                │
-│  + Circuit Breaker           │
-└──────────┬──────────────────┘
-           │
-           ▼
-┌─────────────────────────────┐
-│  PostgreSQL Event Log        │
-│  RuntimeEvent / Snapshot     │
-└─────────────────────────────┘
+                     ┌─────────────────────┐
+                     │  Claude Code Plugin   │
+                     │  (slash commands)     │
+                     └─────────┬───────────┘
+                               │
+                     ┌─────────▼───────────┐
+                     │  praxis CLI           │
+                     │  (11 commands)        │
+                     └─────────┬───────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────┐
+│  Local Server (@praxis/server, Hono)                    │
+│  127.0.0.1:3457                                         │
+│  REST: GET /health, GET /api/snapshot, GET /api/events  │
+│  SSE:  GET /api/events/stream                           │
+│  POST: /api/verify (delegates to kernel)                │
+│  Event bus: in-memory ring buffer (1000 events)         │
+└──────────────────────────────┬──────────────────────────┘
+                               │
+┌──────────────────────────────▼──────────────────────────┐
+│  Truth Kernel (@praxis/kernel)                           │
+│  6 gates: Schema → Lock → Evidence → Wiring → Exec →    │
+│  Final                                                    │
+│  Circuit Breaker: CLOSED/OPEN/HALF_OPEN, failure rate    │
+│  threshold (30% in 10min)                                │
+│  TestOutputParser: Vitest, Jest, Pytest                  │
+│  Report formats: JSON, Markdown, ACCP YAML               │
+│  Monitored via: 150+ tests, 3100 MC iterations           │
+└──────────────────────────────────────────────────────────┘
 ```
+
+The `@praxis/server` package provides the local control plane. It runs a Hono HTTP server bound to `127.0.0.1` with REST endpoints and SSE streaming. An in-memory event bus stores the last 1000 events with subscriber notification. The server is a thin dispatch layer — it delegates all gate logic to `@praxis/kernel`.
+
+The **Circuit Breaker** (`packages/kernel/src/circuit-breaker/`) is a kernel-owned safety component that prevents work admission when the system is unstable. Three states: CLOSED (normal), OPEN (rejecting), HALF_OPEN (probing). Transitions are triggered by failure rate exceeding threshold (30% in 10-minute sliding window). The Circuit Breaker is independent of the server — it operates at the kernel level and is consumable by any adapter or bridge.
 
 ### v0.3 — Desktop + Multi-Worker
 
