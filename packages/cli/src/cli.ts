@@ -397,6 +397,7 @@ async function cmdPlanLock(flags: Record<string, string | boolean>): Promise<voi
 async function cmdVerify(flags: Record<string, string | boolean>): Promise<void> {
   const planPath = getFlag(flags, 'plan') ?? '.praxis/plan.yaml';
   const evidencePath = getFlag(flags, 'evidence');
+  const attemptId = getFlag(flags, 'attempt-id') ?? `run-${Date.now()}`;
   const asJson = hasFlag(flags, 'json');
 
   const resolved = resolve(process.cwd(), planPath);
@@ -429,6 +430,7 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
       lockMode: 'create_if_missing',
       stopOnHold: false,
       evidenceLedgerPath,
+      attemptId,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -438,15 +440,16 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   }
 
   // Persist results to .praxis/runs/<attemptId>/
-  const attemptId = result.attemptId;
-  const runDir = resolve(process.cwd(), '.praxis/runs', attemptId);
+  // Use the attemptId from flag or kernel result
+  const resolvedAttemptId = result.attemptId;
+  const runDir = resolve(process.cwd(), '.praxis/runs', resolvedAttemptId);
   if (!existsSync(runDir)) mkdirSync(runDir, { recursive: true });
 
   // Save verdict.json
   const verdictData = {
     verdict: result.verdict,
     ok: result.ok,
-    attemptId,
+    attemptId: resolvedAttemptId,
     planId: result.plan?.metadata?.planId ?? 'unknown',
     planTitle: result.plan?.metadata?.title ?? '',
     startedAt: result.startedAt,
