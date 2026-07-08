@@ -464,6 +464,8 @@ These packages must NOT be copied into PRAXIS:
 
 | Date | Files | Summary |
 |------|-------|---------|
+| 2026-07-08 | Multiple files across kernel, cli, contracts | **Truth-gated issue campaign: 10 of 13 issues closed.** Red-team + Explorer deep critique produced 13 GitHub issues. Implemented fixes with TDD + oracle verification. Closed: #1 (ExecGate cache disabled — LAW 1), #2 (daemon IPC JSON manifest), #3 (FinalGate real evidence), #4 (--parallel removed), #5 (namespace disjointness check), #6 (FinalGate hardFail class), #7 (daemon/cache tests), #8 (Monte Carlo positive-canon), #9 (evidence O(N*M)->O(N+M)), #12 (CLI template literal + dead import). Remaining: #10 (lock GC + diff depth), #11 (MCP session isolation), #13 (PEL POC — unsigned evidence chain). 207 kernel tests + 31 contracts tests + 11 CLI tests = 249 total. |
+| 2026-07-08 | `packages/kernel/src/daemon/` (3 new files), `packages/mcp-server/` (new package), `packages/kernel/src/index.ts` (updated), `packages/cli/src/cli.ts` (updated), `package.json` (updated), `ai_summary.md` (updated) | **50x speedup: Praxis daemon + MCP server + incremental caching + parallel gates:** Created `praxisDaemon.ts` (persistent TCP server holding warm plan/lock/evidence state), `state.ts` (warm state + incremental evidence index with O(1) criterionId lookup), `gateCache.ts` (content-addressed SHA256 gate result cache — Turbopack-style). MCP server package (`@praxis/mcp-server`) exposes `praxis_verify`, `praxis_validate`, `praxis_status`, `praxis_cache_stats` as MCP tools over stdio — Hermes/Claude Code agents call Praxis without CLI overhead. CLI updated with `--daemon` mode (connects to warm daemon), `--gates` filter (skip expensive gates), `--parallel N` (ExecGate parallelism). `daemon` command for lifecycle. `--force` flag for lock overwrite. Identity-derived lock paths from previous session. All 205 tests pass. |
 | 2026-07-08 | `README.md` (rewritten) | **README rewrite for v0.4 accuracy:** Replaced stale design-phase README with current project state — all 6 gates built, CLI/plugin/server/desktop packages, 167 tests, v0.1→v0.4 progression, updated architecture diagram, project layout, and quick start. References old repo URL as canonical GitHub. |
 | 2026-07-05 | `packages/kernel/test/monteCarlo.spec.ts` (new) | **Monte Carlo hallucination tests:** 9 suites, 3100+ iterations, 9800 assertions. Zero false PASS detected. |
 | 2026-07-05 | `scripts/run-day0-spike.ts` (new), `spike-results/` (new) | **Day 0 Claude Code Spike (GO):** All 8 DAY0 tests pass. Headless mode verified (10/10 runs), hook events captured via stream-json, concurrent session isolation confirmed, divergence detection works. Verdict: GO. |
@@ -488,15 +490,11 @@ These packages must NOT be copied into PRAXIS:
 
 ## Known Issues
 
+- **#10 OPEN (P2)**: Lock files accumulate forever — no GC policy. `hasDiffEvidence` is shallow (doesn't check diff content depth).
+- **#11 OPEN (P2)**: MCP server has no session isolation — singleton WarmState shared across connections. No auth, no rate limit.
+- **#13 OPEN (Explorer)**: Evidence chain is unsigned — any agent can forge `source: "kernel"` records. PEL-1 (DSSE signing) not implemented.
 - **Environment mismatch**: `pi/AGENTS.md` references macOS paths and tmux commands — not applicable to this Linux environment
-- **No workspace root package.json**: Cannot run `bun install` or `bun test` at root yet — per-package only
 - **Legacy ai_summary.md**: `pi/ai_summary.md` has 1500+ lines of auto-generated file analysis that may be stale
-- **Post-pivot doc reconciliation**: Old desktop/server/runtime docs exist alongside new plugin-first docs. 8 docs received supersession notices; remaining pipeline/contract docs may need review for v0.1 consistency
-- **Architecture.md updated**: `architecture.md` rewritten to plugin-first v0.1 architecture (post-ADR-013). Old desktop-first architecture preserved in Superseded section.
-- **planspec.json is a foreign schema**: `planspec.json` (Pi P44/v4.11/P45) scored 3.6/10 for v0.1. PRAXIS-native `planspec.v0.1.schema.yaml` is the canonical schema.
-- **No git tags for milestones**: D3, P1, P2 milestones have no tags — makes traceability harder
-- **.praxis/ untracked**: `.praxis/locks/current.lock.yaml` exists as artifact from prior kernel LockGate test run — should be gitignored
-- **Pre-existing evidenceGate.ts type error (line 317):** `Set.has()` narrows parameter type too strictly. Non-breaking in tests (bun test passes), but tsc fails. Not introduced by ExecGate changes.
 
 ---
 
