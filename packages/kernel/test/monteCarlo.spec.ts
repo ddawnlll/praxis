@@ -13,6 +13,7 @@
 
 import { describe, test, expect } from 'bun:test';
 import { resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { runKernel } from '../src/runP6Kernel';
 import { runSchemaGate } from '../src/gates/schemaGate';
 import { runEvidenceGate } from '../src/gates/evidenceGate';
@@ -867,3 +868,65 @@ reports:
     }
   }, 30000);
 });
+
+// ===========================================================================
+// Positive-canon: valid plans MUST get expected verdicts (no false-reject)
+// ===========================================================================
+
+describe('Monte Carlo — Positive Canon (no false-reject)', () => {
+  test('valid example plans pass SchemaGate', () => {
+    const yaml = loadFixtureYaml('examples/planspec/runtime-code.plan.yaml');
+    const result = runSchemaGate({ planYaml: yaml, repoRoot: REPO_ROOT });
+    expect(result.verdict).toBe('PASS');
+    expect(result.plan).toBeDefined();
+    expect(result.hashes).toBeDefined();
+  });
+
+  test('valid plan with evidence produces meaningful FinalGate verdict', () => {
+    const yaml = loadFixtureYaml('examples/planspec/runtime-code.plan.yaml');
+    const schemaResult = runSchemaGate({ planYaml: yaml, repoRoot: REPO_ROOT });
+    expect(schemaResult.verdict).toBe('PASS');
+
+    // Create minimal evidence for the plan's criteria
+    const plan = schemaResult.plan!;
+    const evidenceRecords: EvidenceRecordV01[] = [];
+    for (const task of plan.tasks) {
+      for (const ac of task.acceptanceCriteria) {
+        evidenceRecords.push({
+          evidenceVersion: 'praxis-evidence/v0.1',
+          recordId: `EV-${ac.id}-test`,
+          attemptId: 'canon-test',
+          planId: plan.metadata.planId,
+          timestamp: new Date().toISOString(),
+          type: 'test_output',
+          source: 'test',
+          criterionId: ac.id,
+          taskId: task.id,
+          status: 'pass',
+        });
+      }
+    }
+
+    const finalResult = runFinalGate({
+      plan,
+      hashes: schemaResult.hashes!,
+      attemptId: 'canon-test',
+      repoRoot: REPO_ROOT,
+      evidenceRecords,
+      commandResults: [],
+      priorGateVerdicts: [
+        { gateName: 'SchemaGate', verdict: 'PASS', reasonCodes: [], failedCriteriaIds: [], evidenceRefs: [], attemptId: 'canon-test', timestamp: '' },
+        { gateName: 'EvidenceGate', verdict: 'PASS', reasonCodes: [], failedCriteriaIds: [], evidenceRefs: [], attemptId: 'canon-test', timestamp: '' },
+      ],
+    });
+
+    // Valid plan with evidence should NOT be FAIL
+    expect(finalResult.verdict).not.toBe('FAIL');
+    // Should be PASS or HOLD (depending on criterion configuration)
+    expect(['PASS', 'HOLD']).toContain(finalResult.verdict);
+  });
+});
+
+function loadFixtureYaml(relPath: string): string {
+  return readFileSync(resolve(REPO_ROOT, relPath), 'utf-8');
+}
