@@ -41,10 +41,10 @@ import { kdiag } from '../diagnostics';
  */
 function findPriorGateFail(
   priorGateVerdicts: FinalGateInput['priorGateVerdicts'],
-): { gateName: string; verdict: string } | null {
+): { gateName: string; verdict: string; reasonCodes: string[] } | null {
   for (const gv of priorGateVerdicts) {
     if (gv.verdict === 'FAIL') {
-      return { gateName: gv.gateName, verdict: gv.verdict };
+      return { gateName: gv.gateName, verdict: gv.verdict, reasonCodes: gv.reasonCodes ?? [] };
     }
   }
   return null;
@@ -104,7 +104,7 @@ function isDeterministic(criterion: AcceptanceCriterion): boolean {
 function aggregateVerdict(
   results: CriterionResult[],
   totalCriteria: number,
-  priorFail: { gateName: string; verdict: string } | null,
+  priorFail: { gateName: string; verdict: string; reasonCodes: string[] } | null,
   priorHold: boolean,
 ): {
   verdict: 'PASS' | 'HOLD' | 'FAIL';
@@ -123,12 +123,17 @@ function aggregateVerdict(
     };
   }
 
-  // Rule: Prior gate FAIL → HOLD (cannot PASS, escalated to HOLD not FAIL since
-  // FinalGate itself may still evaluate correctly — but prior gate failure
-  // means the pipeline cannot complete)
+  // Rule: Prior gate FAIL → HOLD or FAIL depending on severity
+  // Hard-fail reason codes (security violations) → FAIL
+  // Other prior failures → HOLD (pipeline cannot complete)
+  const HARD_FAIL_CODES = new Set([
+    'FORBIDDEN_FILE_CHANGED',
+    'DIVERGENCE_DETECTED',
+    'EVIDENCE_LEDGER_PARSE_ERROR',
+  ]);
   if (priorFail) {
+    const isHardFail = priorFail.reasonCodes.some((rc: string) => HARD_FAIL_CODES.has(rc));
     reasonCodes.push(FINAL_REASON_CODES.PRIOR_GATE_NOT_PASS);
-    // Also collect criterion-level reason codes for diagnostics
     for (const r of results) {
       if (!r.advisory && !r.skipped) {
         for (const rc of r.reasonCodes) {
@@ -137,9 +142,11 @@ function aggregateVerdict(
       }
     }
     return {
-      verdict: 'HOLD',
+      verdict: isHardFail ? 'FAIL' : 'HOLD',
       reasonCodes,
-      repairHint: `Prior gate "${priorFail.gateName}" returned ${priorFail.verdict}. All prior gates must PASS before FinalGate can PASS.`,
+      repairHint: isHardFail
+        ? `Prior gate "${priorFail.gateName}" returned ${priorFail.verdict} with hard-fail violation. Pipeline cannot continue.`
+        : `Prior gate "${priorFail.gateName}" returned ${priorFail.verdict}. All prior gates must PASS before FinalGate can PASS.`,
     };
   }
 
