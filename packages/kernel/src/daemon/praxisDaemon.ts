@@ -25,6 +25,7 @@ import { readEvidenceLedgerJsonl } from '../evidence/readEvidenceLedgerJsonl';
 import type { PlanSpecV01, PlanHashes } from '@praxis/contracts';
 import type { GateVerdict, GateVerdictValue, KernelResult, LockMode } from '../types';
 import type { EvidenceRecordV01, EvidenceGateResult, EvidenceGateInput } from '../evidence/types';
+import type { CommandResult } from '../executor/types';
 import { createWarmState, mergeEvidence, type WarmState } from './state';
 import { GateCache, CACHE_NAMESPACES } from './gateCache';
 
@@ -339,7 +340,7 @@ export function createDaemon(config: Partial<DaemonConfig> = {}): DaemonServer {
     // FinalGate PASS = done." A cached PASS from a previous run is not
     // a real PASS — the source code may have changed.
     let execVerdict: Awaited<ReturnType<typeof runExecGate>> | undefined;
-    let execCommandResults: Array<{ command: string; exitCode: number; stdout: string; stderr: string; timedOut: boolean }> = [];
+    let execCommandResults: CommandResult[] = [];
     if (gates.includes('exec')) {
       execVerdict = await runExecGate({
         plan: state.plan,
@@ -491,13 +492,14 @@ export function createDaemon(config: Partial<DaemonConfig> = {}): DaemonServer {
       server.listen(cfg.port, cfg.host, () => {
         const addr = server?.address();
         const port = typeof addr === 'object' && addr ? addr.port : cfg.port;
-        // Write PID file
+        // Write daemon manifest (pid + port + host) for client discovery
         const pidDir = dirname(cfg.pidFile);
         if (!existsSync(pidDir)) {
           const { mkdirSync } = require('node:fs');
           mkdirSync(pidDir, { recursive: true });
         }
-        writeFileSync(cfg.pidFile, String(process.pid));
+        const manifest = { pid: process.pid, port, host: cfg.host };
+        writeFileSync(cfg.pidFile, JSON.stringify(manifest), 'utf-8');
         resolve(port);
       });
     });
