@@ -396,6 +396,7 @@ async function cmdPlanLock(flags: Record<string, string | boolean>): Promise<voi
 
 async function cmdVerify(flags: Record<string, string | boolean>): Promise<void> {
   const planPath = getFlag(flags, 'plan') ?? '.praxis/plan.yaml';
+  const evidencePath = getFlag(flags, 'evidence');
   const asJson = hasFlag(flags, 'json');
 
   const resolved = resolve(process.cwd(), planPath);
@@ -408,6 +409,18 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   const planYaml = readFileSync(resolved, 'utf-8');
   const { runKernel, generateReport, generateRepairPacket } = await import('@praxis/kernel');
 
+  // Resolve evidence ledger path if --evidence provided
+  let evidenceLedgerPath: string | undefined;
+  if (evidencePath) {
+    const ep = resolve(process.cwd(), evidencePath);
+    if (!existsSync(ep)) {
+      if (!asJson) emitLine(`Error: Evidence file not found at ${ep}`);
+      else emit({ error: `Evidence file not found at ${ep}`, exitCode: 3 });
+      exit(3);
+    }
+    evidenceLedgerPath = ep;
+  }
+
   let result: KernelResult;
   try {
     result = await runKernel({
@@ -415,6 +428,7 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
       repoRoot: process.cwd(),
       lockMode: 'create_if_missing',
       stopOnHold: false,
+      evidenceLedgerPath,
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
