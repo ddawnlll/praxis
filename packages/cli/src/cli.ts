@@ -319,7 +319,7 @@ async function cmdDaemon(flags: Record<string, string | boolean>): Promise<void>
     } else {
       emitLine(`Praxis daemon running on ${host}:${assignedPort} (PID ${process.pid})`);
       emitLine(`Warm state: plan=${daemon.state.plan ? 'loaded' : 'empty'}, evidence=${daemon.state.evidenceCount} records`);
-      emitLine('Idle timeout: ${idleTimeoutMs}ms');
+      emitLine(`Idle timeout: ${idleTimeoutMs}ms`);
       emitLine('');
       emitLine('Connect clients with: praxis verify --daemon --plan <path>');
       emitLine('Shutdown with: praxis daemon stop');
@@ -643,8 +643,6 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   // Save repair packet if not PASS
   if (result.verdict !== 'PASS') {
     try {
-      const { generateReport: _, ...rest } = await import('@praxis/kernel');
-      // Use the import we already have
       const repairPacket = generateRepairPacket(
         result.plan,
         result.hashes,
