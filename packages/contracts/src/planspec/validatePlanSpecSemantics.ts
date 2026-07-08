@@ -73,6 +73,9 @@ export function validatePlanSpecSemantics(plan: PlanSpecV01): SemanticValidation
   // --- Repair/report consistency ---
   checkRepairReport(plan, diagnostics);
 
+  // --- Namespace disjointness check (LAW 2 enforcement) ---
+  checkNamespaceDisjointness(plan, diagnostics);
+
   // Determine ok: no errors (warnings and info don't block)
   const hasErr = diagnostics.some(d => d.severity === 'error');
   return { ok: !hasErr, diagnostics };
@@ -485,5 +488,48 @@ function checkRepairReport(plan: PlanSpecV01, diags: Diagnostic[]): void {
       'repair.mayModifyPlan must be false.',
       { path: '/repair/mayModifyPlan' },
     ));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Namespace disjointness (LAW 2 enforcement)
+// ---------------------------------------------------------------------------
+
+function checkNamespaceDisjointness(plan: PlanSpecV01, diags: Diagnostic[]): void {
+  // Collect allowedFiles patterns per task
+  const taskPatterns: Array<{ taskId: string; patterns: string[] }> = [];
+  for (const task of plan.tasks) {
+    const patterns = task.implementation.allowedFiles ?? [];
+    if (patterns.length > 0) {
+      taskPatterns.push({ taskId: task.id, patterns });
+    }
+  }
+
+  // Check for overlapping patterns between tasks
+  for (let i = 0; i < taskPatterns.length; i++) {
+    for (let j = i + 1; j < taskPatterns.length; j++) {
+      const a = taskPatterns[i];
+      const b = taskPatterns[j];
+      for (const pa of a.patterns) {
+        for (const pb of b.patterns) {
+          // Exact match = definite overlap
+          if (pa === pb) {
+            diags.push(error(
+              'NAMESPACE_COLLISION',
+              `Tasks "${a.taskId}" and "${b.taskId}" share allowedFiles pattern "${pa}".`,
+              { taskId: a.taskId, details: { otherTask: b.taskId, pattern: pa } },
+            ));
+          }
+          // Prefix overlap: "src/foo" and "src/foo/bar" overlap
+          if (pa.startsWith(pb + '/') || pb.startsWith(pa + '/')) {
+            diags.push(warning(
+              'NAMESPACE_OVERLAP',
+              `Tasks "${a.taskId}" (${pa}) and "${b.taskId}" (${pb}) have overlapping namespace prefixes.`,
+              { taskId: a.taskId, details: { otherTask: b.taskId, patternA: pa, patternB: pb } },
+            ));
+          }
+        }
+      }
+    }
   }
 }
