@@ -138,7 +138,6 @@ Commands:
     --plan <path>             Path to plan YAML file (default: .praxis/plan.yaml)
     --daemon                  Connect to running daemon for warm cached verification
     --gates <list>            Gate filter: comma-separated (e.g. schema,lock,exec,final)
-    --parallel <n>            Parallelism for ExecGate commands (default: 1)
     --force                   Overwrite existing lock file instead of creating if missing
     --attempt-id <id>         Custom attempt ID
 
@@ -461,7 +460,6 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   const asJson = hasFlag(flags, 'json');
   const useDaemon = hasFlag(flags, 'daemon') && !hasFlag(flags, 'no-daemon');
   const gateFilterRaw = getFlag(flags, 'gates');
-  const parallel = parseInt(getFlag(flags, 'parallel') ?? '1', 10);
 
   const resolved = resolve(process.cwd(), planPath);
   if (!existsSync(resolved)) {
@@ -512,7 +510,6 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
               attemptId,
               lockMode: 'create_if_missing',
               gates,
-              parallel,
             },
           });
           client.write(request);
