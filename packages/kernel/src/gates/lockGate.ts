@@ -10,8 +10,7 @@ import { createPlanLock } from '../lock/createPlanLock';
 import { readPlanLockYaml } from '../lock/readPlanLockYaml';
 import { writePlanLockYaml } from '../lock/writePlanLockYaml';
 import { verifyPlanLock } from '../lock/verifyPlanLock';
-
-const DEFAULT_LOCK_PATH = '.praxis/locks/current.lock.yaml';
+import { resolveLockPath, ensureLockDir } from '../lock/resolveLockPath';
 
 /**
  * Run LockGate — verifies hash consistency with existing lock,
@@ -19,7 +18,10 @@ const DEFAULT_LOCK_PATH = '.praxis/locks/current.lock.yaml';
  */
 export function runLockGate(input: LockGateInput): GateVerdict {
   const attemptId = input.attemptId ?? `lock-${Date.now()}`;
-  const lockPath = input.lockPath ?? DEFAULT_LOCK_PATH;
+  // Derive lock path from plan identity when not explicitly provided.
+  // This gives each plan+content combination its own isolated lock,
+  // eliminating collisions between sequential runs with different plans.
+  const lockPath = input.lockPath ?? resolveLockPath(input.plan.metadata.planId, input.hashes.planHash);
   const mode = input.mode ?? 'verify_existing';
   const timestamp = new Date().toISOString();
   const plan = input.plan;
@@ -211,9 +213,9 @@ function buildVerdict(
     attemptId,
     timestamp,
     repairHint: verdict === 'FAIL'
-      ? 'Plan hashes do not match lock file. Check for unintended plan changes.'
+      ? `Plan hashes do not match lock file at "${lockPath}". Check for unintended plan changes.`
       : verdict === 'HOLD'
-        ? 'Lock file is missing. Create one using create_if_missing mode.'
+        ? `Lock file not found at "${lockPath}". Use create_if_missing mode to create one (or set praxis.lockPath in plan).`
         : undefined,
     diagnostics,
     hashes: lock?.hashes,

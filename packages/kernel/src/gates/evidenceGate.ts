@@ -22,6 +22,10 @@ import { EVIDENCE_REASON_CODES } from '../diagnostics';
 
 /**
  * Collect changed files from explicit input and evidence records.
+ * Treats `diff`-type records (which carry inline diff content) as
+ * implicit file changes — this makes the gate friendlier to agent-generated
+ * work where diffs may be embedded in metadata rather than as separate
+ * changed_file records.
  */
 function collectChangedFiles(
   explicitChangedFiles: ChangedFile[] | undefined,
@@ -40,7 +44,7 @@ function collectChangedFiles(
     }
   }
 
-  // Collect from changed_file evidence records
+  // Collect from changed_file and diff evidence records
   for (const r of records) {
     if (r.type === 'changed_file' && r.changedFile) {
       if (!seen.has(r.changedFile.path)) {
@@ -48,14 +52,34 @@ function collectChangedFiles(
         result.push(r.changedFile);
       }
     }
+    // diff-type records carry inline diff content — treat as implicit change
+    if (r.type === 'diff' && r.path && !seen.has(r.path)) {
+      seen.add(r.path);
+      result.push({ path: r.path, status: 'modified' });
+    }
     // Also check path field as implicit changed file
-    if (r.path && !seen.has(r.path) && r.type !== 'changed_file') {
+    if (r.path && !seen.has(r.path) && r.type !== 'changed_file' && r.type !== 'diff') {
       seen.add(r.path);
       result.push({ path: r.path, status: 'unknown' });
     }
   }
 
   return result;
+}
+
+/**
+ * Check whether there is any diff evidence available, either as
+ * changed_file records, explicit changedFiles input, or diff-type records.
+ * This is a more accurate check than just changedFiles.length === 0
+ * because agents may embed diffs in metadata rather than using
+ * separate changed_file records.
+ */
+function hasDiffEvidence(
+  explicitChangedFiles: ChangedFile[] | undefined,
+  records: EvidenceRecordV01[],
+): boolean {
+  if (explicitChangedFiles && explicitChangedFiles.length > 0) return true;
+  return records.some(r => r.type === 'changed_file' || r.type === 'diff');
 }
 
 /**
@@ -254,9 +278,21 @@ export function runEvidenceGate(input: EvidenceGateInput): EvidenceGateResult {
   // --- Step 3: Changed file namespace check ---
   const changedFiles = collectChangedFiles(input.changedFiles, evidenceRecords);
 
-  if (changedFiles.length === 0 && planExpectsImplementation(plan)) {
+  // Check for diff evidence more thoroughly: look for diff-type records
+  // and changed_file records, not just the parsed ChangedFile list.
+  // This avoids false DIFF_EMPTY when agents embed diffs in metadata
+  // rather than using dedicated changed_file records.
+  if (!hasDiffEvidence(input.changedFiles, evidenceRecords) && planExpectsImplementation(plan)) {
     diffEmpty = true;
     reasonCodes.push(EVIDENCE_REASON_CODES.DIFF_EMPTY);
+    allDiagnostics.push({
+      code: 'DIFF_EMPTY',
+      severity: 'info',
+      message: 'No diff or changed_file evidence found for an implementation plan. '
+        + 'This is expected if the agent is still working or the plan produces '
+        + 'documentation/config-only artifacts. '
+        + 'To satisfy this gate, include changed_file or diff-type evidence records.',
+    });
   }
 
   for (const cf of changedFiles) {
