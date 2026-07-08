@@ -154,3 +154,19 @@ describe('CLI — status', () => {
     expect(stdout).toContain('No verdict file found');
   });
 });
+
+describe('CLI — plan gc', () => {
+  test('shows dry run when no --keep-latest', async () => {
+    const { stdout, exitCode } = await runCli('plan', 'gc');
+    // Should either show "No lock files found" or list files
+    expect(exitCode).toBe(0);
+    // Output depends on whether lock files exist
+    expect(stdout.length).toBeGreaterThan(0);
+  });
+
+  test('shows help includes plan gc', async () => {
+    const { stdout } = await runCli('help');
+    expect(stdout).toContain('plan gc');
+    expect(stdout).toContain('--keep-latest');
+  });
+});
