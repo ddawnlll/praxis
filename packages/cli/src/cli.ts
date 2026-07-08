@@ -134,6 +134,9 @@ Commands:
     --plan <path>             Path to plan YAML file (required)
     --lock-path <path>        Override default identity-derived lock path
 
+  plan gc                     Garbage collect old lock files
+    --keep-latest             Keep only the newest lock file, remove the rest
+
   verify                      Run the Truth Kernel verification pipeline
     --plan <path>             Path to plan YAML file (default: .praxis/plan.yaml)
     --daemon                  Connect to running daemon for warm cached verification
@@ -447,6 +450,72 @@ async function cmdPlanLock(flags: Record<string, string | boolean>): Promise<voi
   }
 
   exit(exitCodeForVerdict(lockVerdict.verdict));
+}
+
+// ---------------------------------------------------------------------------
+// Command: plan gc (garbage collect old lock files)
+// ---------------------------------------------------------------------------
+
+async function cmdPlanLockGc(flags: Record<string, string | boolean>): Promise<void> {
+  const asJson = hasFlag(flags, 'json');
+  const keepLatest = hasFlag(flags, 'keep-latest');
+  const lockDir = resolve(process.cwd(), '.praxis/locks');
+
+  if (!existsSync(lockDir)) {
+    if (!asJson) emitLine('No lock directory found. Nothing to clean.');
+    else emit({ status: 'no_locks', cleaned: 0 });
+    exit(0);
+  }
+
+  const { readdirSync, statSync } = await import('node:fs');
+  const lockFiles = readdirSync(lockDir)
+    .filter(f => f.endsWith('.lock.yaml'))
+    .map(f => ({
+      name: f,
+      path: resolve(lockDir, f),
+      mtime: statSync(resolve(lockDir, f)).mtimeMs,
+    }))
+    .sort((a, b) => b.mtime - a.mtime); // newest first
+
+  if (lockFiles.length === 0) {
+    if (!asJson) emitLine('No lock files found.');
+    else emit({ status: 'no_locks', cleaned: 0 });
+    exit(0);
+  }
+
+  if (keepLatest) {
+    // Keep only the newest lock file, remove the rest
+    const toRemove = lockFiles.slice(1);
+    let cleaned = 0;
+    for (const f of toRemove) {
+      try {
+        const { unlinkSync } = await import('node:fs');
+        unlinkSync(f.path);
+        cleaned++;
+        if (!asJson) emitLine(`  Removed: ${f.name}`);
+      } catch (err) {
+        if (!asJson) emitLine(`  Failed to remove ${f.name}: ${err}`);
+      }
+    }
+    if (!asJson) {
+      emitLine(`Lock GC: kept ${lockFiles[0].name}, removed ${cleaned} old lock files.`);
+    } else {
+      emit({ status: 'ok', kept: lockFiles[0].name, cleaned });
+    }
+  } else {
+    // Just list what would be removed
+    if (!asJson) {
+      emitLine(`Found ${lockFiles.length} lock files:`);
+      for (const f of lockFiles) {
+        emitLine(`  ${f.name} (${new Date(f.mtime).toISOString()})`);
+      }
+      emitLine('Use --keep-latest to remove all but the newest.');
+    } else {
+      emit({ status: 'dry_run', files: lockFiles.map(f => f.name) });
+    }
+  }
+
+  exit(0);
 }
 
 // ---------------------------------------------------------------------------
@@ -1040,9 +1109,12 @@ async function main(): Promise<void> {
         case 'lock':
           await cmdPlanLock(flags);
           break;
+        case 'gc':
+          await cmdPlanLockGc(flags);
+          break;
         default:
           emitLine(`Error: Unknown subcommand "plan ${subcommand}".`);
-          emitLine('Available: plan validate, plan lock');
+          emitLine('Available: plan validate, plan lock, plan gc');
           exit(3);
       }
       break;

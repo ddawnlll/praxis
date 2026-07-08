@@ -68,18 +68,23 @@ function collectChangedFiles(
 }
 
 /**
- * Check whether there is any diff evidence available, either as
- * changed_file records, explicit changedFiles input, or diff-type records.
- * This is a more accurate check than just changedFiles.length === 0
- * because agents may embed diffs in metadata rather than using
- * separate changed_file records.
+ * Check whether there is meaningful diff evidence available.
+ * Checks for:
+ * - Explicit changedFiles input (non-empty)
+ * - changed_file records with actual path info
+ * - diff records with content (not just empty type markers)
+ * - Any record with a path field (implicit file change)
  */
 function hasDiffEvidence(
   explicitChangedFiles: ChangedFile[] | undefined,
   records: EvidenceRecordV01[],
 ): boolean {
   if (explicitChangedFiles && explicitChangedFiles.length > 0) return true;
-  return records.some(r => r.type === 'changed_file' || r.type === 'diff');
+  return records.some(r =>
+    (r.type === 'changed_file' && r.changedFile?.path) ||
+    (r.type === 'diff' && r.path) ||
+    (r.path && r.type !== 'changed_file' && r.type !== 'diff'),
+  );
 }
 
 /**
