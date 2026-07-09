@@ -8,21 +8,25 @@ PRAXIS is **not a coding agent**. It does not write code, run its own agent loop
 
 ---
 
-## Project Status — v0.4
+## Project Status — v0.5
 
 | Milestone | Status | Components |
 |-----------|--------|------------|
 | **v0.1** — Truth Kernel | ✅ Complete | 6-gate pipeline (Schema → Lock → Evidence → Wiring → Exec → Final), CLI (11 commands), Claude Code plugin (9 slash commands + 3 hooks), 167 tests |
 | **v0.2** — Control Plane | ✅ Complete | Hono HTTP/SSE server (`@praxis/server`), Circuit Breaker, TestOutputParser, ACCP reports |
 | **v0.3** — Desktop + Multi-Worker | ✅ Complete | Desktop Mission Control (`@praxis/desktop`, Electron + React + Vite), Governor (stable_3→16), Deterministic Assembler, Wave Scheduler |
-| **v0.4** — Intelligence | ✅ Latest | AST import analysis, coverage gates, stable_16 concurrency, multi-agent desktop orchestration |
+| **v0.4** — Intelligence | ✅ Complete | AST import analysis, coverage gates, stable_16 concurrency, multi-agent desktop orchestration |
+| **v0.5** — Daemon + MCP + Attestation | ✅ Latest | Daemon mode (warm state), MCP server (agent integration), evidence attestation (PEL-1), lock GC, 259 tests |
 
 ---
 
 ## What Is PRAXIS?
 
 - **A deterministic Truth Kernel** — six gates (SchemaGate → LockGate → EvidenceGate → WiringGate → ExecGate → FinalGate) that verify agent outputs against human-approved criteria with PASS / HOLD / FAIL verdicts
-- **A CLI tool** — `praxis init`, `praxis plan validate`, `praxis plan lock`, `praxis verify`, `praxis status`, `praxis ledger show`, `praxis report show`, `praxis repair show`, `praxis help`, `praxis version`
+- **A daemon mode** — persistent warm server that caches plan state, evidence index, and gate results for near-instant re-verification (`praxis daemon`, `praxis verify --daemon`)
+- **An MCP server** — Model Context Protocol server for autonomous agent integration (Hermes, Claude Code, etc.) via stdio JSON-RPC (`@praxis/mcp-server`)
+- **Evidence attestation (PEL-1)** — HMAC-SHA256 DSSE envelope signing for evidence records, preventing agent forgery of deterministic source claims
+- **A CLI tool** — `praxis init`, `praxis plan validate`, `praxis plan lock`, `praxis plan gc`, `praxis verify`, `praxis daemon`, `praxis status`, `praxis ledger show`, `praxis report show`, `praxis repair show`, `praxis help`, `praxis version`
 - **A Claude Code plugin** — slash commands (`/praxis:verify`, `/praxis:repair`, etc.) plus PreToolUse / PostToolUse / Stop hooks for automatic evidence capture
 - **A local control plane** — Hono HTTP server with SSE streaming (`@praxis/server`, `127.0.0.1:3457`)
 - **A Desktop Mission Control** — Electron + React dashboard for rich observability (`@praxis/desktop`)
@@ -215,10 +219,12 @@ praxis/
 ├─ packages/
 │  ├─ contracts/                @praxis/contracts — shared types, parsers, validators
 │  ├─ kernel/                   @praxis/kernel — Truth Kernel (all 6 gates, evidence,
-│  │                              wiring, executor, final, report, repair, lock)
-│  ├─ cli/                      @praxis/cli — CLI binary (11 commands)
+│  │                              wiring, executor, final, report, repair, lock, daemon, attestation)
+│  ├─ cli/                      @praxis/cli — CLI binary (13 commands)
 │  ├─ claude-plugin/            @praxis/claude-plugin — Claude Code plugin
 │  │                              (9 slash commands + 3 hooks)
+│  ├─ mcp-server/               @praxis/mcp-server — MCP server for agent integration
+│  │                              (stdio JSON-RPC, Content-Length framing)
 │  ├─ server/                   @praxis/server — Hono HTTP + SSE control plane (v0.2)
 │  └─ desktop/                  @praxis/desktop — Electron + React Mission Control (v0.3)
 │
@@ -245,10 +251,11 @@ praxis/
 | Package | Location | Tests | Status |
 |---------|----------|-------|--------|
 | `@praxis/contracts` | `packages/contracts/` | 31/31 | ✅ PASS_LOCKED |
-| `@praxis/kernel` | `packages/kernel/` | 105/105 | ✅ PASS_LOCKED |
-| `@praxis/cli` | `packages/cli/` | 11/11 | ✅ COMPLETE |
+| `@praxis/kernel` | `packages/kernel/` | 212/212 | ✅ PASS_LOCKED |
+| `@praxis/cli` | `packages/cli/` | 13/13 | ✅ COMPLETE |
 | `@praxis/claude-plugin` | `packages/claude-plugin/` | 20/20 | ✅ COMPLETE |
-| **Total** | | **167** | **ALL PASS** |
+| `@praxis/mcp-server` | `packages/mcp-server/` | 3/3 | ✅ COMPLETE |
+| **Total** | | **279** | **ALL PASS** |
 
 ### CLI Commands
 
@@ -257,7 +264,11 @@ praxis/
 | `praxis init` | Initialize PlanSpec YAML template |
 | `praxis plan validate` | Validate PlanSpec schema + semantics |
 | `praxis plan lock` | Create/verify plan lock file |
+| `praxis plan gc` | Garbage collect old lock files (`--keep-latest`) |
 | `praxis verify` | Run 6-gate pipeline, persist results |
+| `praxis verify --daemon` | Connect to warm daemon for fast re-verification |
+| `praxis verify --gates` | Gate filter (e.g., `--gates=schema,lock,exec,final`) |
+| `praxis daemon` | Start persistent daemon server |
 | `praxis status` | Show current/previous run status |
 | `praxis ledger show` | Display evidence ledger records |
 | `praxis report show` | Generate verification report |
@@ -288,15 +299,54 @@ bun run typecheck
 # Initialize PRAXIS in a project
 praxis init
 
-# Validate a task spec
-praxis plan validate --task .praxis/task.yaml
+# Validate a plan
+praxis plan validate --plan .praxis/plan.yaml
 
 # Lock the plan (freezes acceptance criteria)
-praxis plan lock
+praxis plan lock --plan .praxis/plan.yaml
 
-# Run verification
-praxis verify --task .praxis/task.yaml --workspace .
+# Run verification (cold path)
+praxis verify --plan .praxis/plan.yaml
+
+# Start daemon for fast re-verification (warm path)
+praxis daemon
+
+# Verify via daemon (near-instant after first run)
+praxis verify --daemon --plan .praxis/plan.yaml
+
+# Garbage collect old lock files
+praxis plan gc --keep-latest
 ```
+
+### Daemon Mode
+
+The daemon keeps plan state, evidence index, and gate results in memory across verify calls. First run is cold (~2-3s), subsequent runs are near-instant (~50ms for cached gates).
+
+```bash
+# Start daemon (background)
+praxis daemon
+
+# Verify via daemon
+praxis verify --daemon --plan .praxis/plan.yaml
+
+# Skip expensive gates during development
+praxis verify --daemon --gates=schema,lock,exec,final --plan .praxis/plan.yaml
+```
+
+### MCP Server (Agent Integration)
+
+The MCP server exposes PRAXIS verification as MCP tools for autonomous agents:
+
+```bash
+# Start MCP server (stdio transport)
+bun run packages/mcp-server/src/index.ts
+```
+
+Tools available:
+- `praxis_verify` — full 6-gate pipeline
+- `praxis_validate` — schema-only validation (fast path)
+- `praxis_status` — daemon status
+- `praxis_cache_stats` — gate cache hit/miss statistics
 
 ### Manual Verify/Repair Loop
 
@@ -332,8 +382,9 @@ praxis verify --task .praxis/task.yaml --workspace .
 | v0.1 | Truth Kernel + CLI + Plugin | ✅ Complete |
 | v0.2 | Control Plane (server, SSE, Circuit Breaker) | ✅ Complete |
 | v0.3 | Desktop Mission Control + Governor + Assembler | ✅ Complete |
-| v0.4 | AST analysis, coverage gates, stable_16, Multi-agent | ✅ Latest |
-| v0.5+ | Cloud dashboard, network sandboxing, postgres persistence | 🔜 Future |
+| v0.4 | AST analysis, coverage gates, stable_16, Multi-agent | ✅ Complete |
+| v0.5 | Daemon, MCP server, Evidence Attestation (PEL-1), Lock GC | ✅ Latest |
+| v0.6+ | PEL-2 (Merkle log), cloud dashboard, postgres persistence | 🔜 Future |
 
 ---
 
