@@ -83,6 +83,10 @@ export { appendEvidenceRecordJsonl } from './evidence/appendEvidenceRecordJsonl'
 export { validateEvidenceLedger } from './evidence/validateEvidenceLedger';
 export type { EvidenceValidationResult } from './evidence/validateEvidenceLedger';
 
+// Attestation (PEL-1)
+export { signEvidenceRecord, verifyAttestation, extractRecord, isAttestedDeterministicSource } from './evidence/attestation';
+export type { DsseEnvelope } from './evidence/attestation';
+
 // Pipeline
 export { runP2Kernel } from './runP2Kernel';
 export type { RunP2Options } from './runP2Kernel';
