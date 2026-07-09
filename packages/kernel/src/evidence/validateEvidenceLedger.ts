@@ -131,6 +131,20 @@ export function validateEvidenceLedger(
   }
 
   // Check required evidence mapping
+  // Build single-pass index: Map<criterionId, Map<type, Record[]>>
+  // This eliminates O(N*M) scanning — now O(N+M) total
+  const recordsByCriterion = new Map<string, EvidenceRecordV01[]>();
+  for (const r of records) {
+    if (r.criterionId) {
+      const existing = recordsByCriterion.get(r.criterionId);
+      if (existing) {
+        existing.push(r);
+      } else {
+        recordsByCriterion.set(r.criterionId, [r]);
+      }
+    }
+  }
+
   const missingRequiredEvidence: EvidenceValidationResult['missingRequiredEvidence'] = [];
   const deterministicEvidenceMissing: string[] = [];
 
@@ -138,11 +152,10 @@ export function validateEvidenceLedger(
     for (const ac of task.acceptanceCriteria) {
       if (ac.level !== 'required') continue;
 
+      const criterionRecords = recordsByCriterion.get(ac.id) ?? [];
       const missingTypes: string[] = [];
       for (const reqType of ac.requiredEvidence) {
-        const hasRecord = records.some(
-          r => r.criterionId === ac.id && r.type === reqType,
-        );
+        const hasRecord = criterionRecords.some(r => r.type === reqType);
         if (!hasRecord) {
           missingTypes.push(reqType);
         }
@@ -157,16 +170,11 @@ export function validateEvidenceLedger(
 
       // Check deterministic evidence requirement
       if (ac.verification.deterministic) {
-        const hasDeterministicRecord = records.some(
-          r =>
-            r.criterionId === ac.id &&
-            DETERMINISTIC_SOURCES.has(r.source) &&
-            !WEAK_SOURCES.has(r.source),
+        const hasDeterministicRecord = criterionRecords.some(
+          r => DETERMINISTIC_SOURCES.has(r.source) && !WEAK_SOURCES.has(r.source),
         );
         if (!hasDeterministicRecord) {
-          const hasWeakRecord = records.some(
-            r => r.criterionId === ac.id,
-          );
+          const hasWeakRecord = criterionRecords.length > 0;
           if (hasWeakRecord) {
             deterministicEvidenceMissing.push(ac.id);
             diagnostics.push({

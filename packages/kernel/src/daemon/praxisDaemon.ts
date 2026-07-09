@@ -77,8 +77,6 @@ export interface VerifyRequest {
   stopOnHold?: boolean;
   /** Gate filter: only run these gates (e.g., ['schema','lock','exec','final']). */
   gates?: string[];
-  /** Parallelism for ExecGate commands. */
-  parallel?: number;
 }
 
 export interface VerifyResponse {

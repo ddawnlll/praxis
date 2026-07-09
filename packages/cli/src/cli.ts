@@ -138,7 +138,6 @@ Commands:
     --plan <path>             Path to plan YAML file (default: .praxis/plan.yaml)
     --daemon                  Connect to running daemon for warm cached verification
     --gates <list>            Gate filter: comma-separated (e.g. schema,lock,exec,final)
-    --parallel <n>            Parallelism for ExecGate commands (default: 1)
     --force                   Overwrite existing lock file instead of creating if missing
     --attempt-id <id>         Custom attempt ID
 
@@ -320,7 +319,7 @@ async function cmdDaemon(flags: Record<string, string | boolean>): Promise<void>
     } else {
       emitLine(`Praxis daemon running on ${host}:${assignedPort} (PID ${process.pid})`);
       emitLine(`Warm state: plan=${daemon.state.plan ? 'loaded' : 'empty'}, evidence=${daemon.state.evidenceCount} records`);
-      emitLine('Idle timeout: ${idleTimeoutMs}ms');
+      emitLine(`Idle timeout: ${idleTimeoutMs}ms`);
       emitLine('');
       emitLine('Connect clients with: praxis verify --daemon --plan <path>');
       emitLine('Shutdown with: praxis daemon stop');
@@ -461,7 +460,6 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   const asJson = hasFlag(flags, 'json');
   const useDaemon = hasFlag(flags, 'daemon') && !hasFlag(flags, 'no-daemon');
   const gateFilterRaw = getFlag(flags, 'gates');
-  const parallel = parseInt(getFlag(flags, 'parallel') ?? '1', 10);
 
   const resolved = resolve(process.cwd(), planPath);
   if (!existsSync(resolved)) {
@@ -512,7 +510,6 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
               attemptId,
               lockMode: 'create_if_missing',
               gates,
-              parallel,
             },
           });
           client.write(request);
@@ -646,8 +643,6 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   // Save repair packet if not PASS
   if (result.verdict !== 'PASS') {
     try {
-      const { generateReport: _, ...rest } = await import('@praxis/kernel');
-      // Use the import we already have
       const repairPacket = generateRepairPacket(
         result.plan,
         result.hashes,
