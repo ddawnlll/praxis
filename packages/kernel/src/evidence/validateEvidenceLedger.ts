@@ -114,7 +114,8 @@ export function validateEvidenceLedger(
       diagnostics.push({
         code: 'UNSUPPORTED_EVIDENCE_TYPE',
         severity: 'error',
-        message: `Evidence record ${record.recordId}: type "${record.type}" is not in plan.evidence.requiredEvidenceTypes or bookkeeping types.`,
+        message: `Evidence record ${record.recordId}: type "${record.type}" is not supported. `
+          + `Must be one of plan.evidence.requiredEvidenceTypes or bookkeeping types: ${[...BOOKKEEPING_TYPES].join(', ')}.`,
       });
     }
 
@@ -168,6 +169,13 @@ export function validateEvidenceLedger(
           );
           if (hasWeakRecord) {
             deterministicEvidenceMissing.push(ac.id);
+            diagnostics.push({
+              code: 'DETERMINISTIC_EVIDENCE_MISSING',
+              severity: 'warning',
+              message: `Criterion "${ac.id}" requires deterministic evidence but only weak/agent-claim sources found. `
+                + `Accepted deterministic sources: ${[...DETERMINISTIC_SOURCES].join(', ')}. `
+                + `Accepted weak sources (excluded from deterministic check): ${[...WEAK_SOURCES].join(', ')}.`,
+            });
           }
         }
       }

@@ -132,10 +132,15 @@ Commands:
 
   plan lock                   Create or verify a plan lock file
     --plan <path>             Path to plan YAML file (required)
+    --lock-path <path>        Override default identity-derived lock path
 
   verify                      Run the Truth Kernel verification pipeline
     --plan <path>             Path to plan YAML file (default: .praxis/plan.yaml)
-    --all-gates               Run all 6 gates (default: yes)
+    --daemon                  Connect to running daemon for warm cached verification
+    --gates <list>            Gate filter: comma-separated (e.g. schema,lock,exec,final)
+    --parallel <n>            Parallelism for ExecGate commands (default: 1)
+    --force                   Overwrite existing lock file instead of creating if missing
+    --attempt-id <id>         Custom attempt ID
 
   status                      Show current verification status
     --run-id <id>             Specific run ID
@@ -153,6 +158,10 @@ Commands:
   repair show                 Show repair packet for failed run
     --run-id <id>             Run ID (required)
     --json                    Output as JSON
+
+  daemon                      Start the Praxis daemon (warm server for fast re-verification)
+    --port <n>                TCP port (default: auto-assigned)
+    --idle-timeout <ms>       Auto-shutdown after idle ms (default: 600000 = 10 min)
 
   help                        Show this help
 
@@ -286,6 +295,52 @@ function cmdInit(flags: Record<string, string | boolean>): void {
 }
 
 // ---------------------------------------------------------------------------
+// Command: daemon
+// ---------------------------------------------------------------------------
+
+async function cmdDaemon(flags: Record<string, string | boolean>): Promise<void> {
+  const port = parseInt(getFlag(flags, 'port') ?? '0', 10);
+  const host = getFlag(flags, 'host') ?? '127.0.0.1';
+  const idleTimeoutMs = parseInt(getFlag(flags, 'idle-timeout') ?? '600000', 10);
+  const asJson = hasFlag(flags, 'json');
+
+  const { createDaemon } = await import('@praxis/kernel');
+
+  const daemon = createDaemon({
+    port,
+    host,
+    repoRoot: process.cwd(),
+    idleTimeoutMs,
+  });
+
+  try {
+    const assignedPort = await daemon.start();
+    if (asJson) {
+      emit({ status: 'running', port: assignedPort, pid: process.pid });
+    } else {
+      emitLine(`Praxis daemon running on ${host}:${assignedPort} (PID ${process.pid})`);
+      emitLine(`Warm state: plan=${daemon.state.plan ? 'loaded' : 'empty'}, evidence=${daemon.state.evidenceCount} records`);
+      emitLine('Idle timeout: ${idleTimeoutMs}ms');
+      emitLine('');
+      emitLine('Connect clients with: praxis verify --daemon --plan <path>');
+      emitLine('Shutdown with: praxis daemon stop');
+    }
+
+    // Keep alive — wait for shutdown signal
+    process.on('SIGINT', () => { daemon.stop(); process.exit(0); });
+    process.on('SIGTERM', () => { daemon.stop(); process.exit(0); });
+
+    // Block forever
+    await new Promise(() => {});
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!asJson) emitLine(`Error: Failed to start daemon — ${msg}`);
+    else emit({ error: msg, exitCode: 3 });
+    exit(3);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Command: plan validate
 // ---------------------------------------------------------------------------
 
@@ -367,10 +422,15 @@ async function cmdPlanLock(flags: Record<string, string | boolean>): Promise<voi
     exit(exitCodeForVerdict(schemaVerdict.verdict));
   }
 
-  // LockGate
-  const lockDir = resolve(process.cwd(), '.praxis/locks');
+  // LockGate — use identity-derived path by default for collision-free isolation.
+  // Each plan+content combination gets its own lock file.
+  const explicitLockPath = getFlag(flags, 'lock-path');
+  const lockPath = explicitLockPath
+    ? resolve(process.cwd(), explicitLockPath)
+    : resolve(process.cwd(), schemaVerdict.plan.metadata.planId + '-' + schemaVerdict.hashes.planHash.substring(0, 12) + '.lock.yaml');
+
+  const lockDir = dirname(lockPath);
   if (!existsSync(lockDir)) mkdirSync(lockDir, { recursive: true });
-  const lockPath = resolve(lockDir, 'current.lock.yaml');
 
   const lockVerdict = runLockGate({
     plan: schemaVerdict.plan,
@@ -399,6 +459,9 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   const evidencePath = getFlag(flags, 'evidence');
   const attemptId = getFlag(flags, 'attempt-id') ?? `run-${Date.now()}`;
   const asJson = hasFlag(flags, 'json');
+  const useDaemon = hasFlag(flags, 'daemon') && !hasFlag(flags, 'no-daemon');
+  const gateFilterRaw = getFlag(flags, 'gates');
+  const parallel = parseInt(getFlag(flags, 'parallel') ?? '1', 10);
 
   const resolved = resolve(process.cwd(), planPath);
   if (!existsSync(resolved)) {
@@ -408,6 +471,105 @@ async function cmdVerify(flags: Record<string, string | boolean>): Promise<void>
   }
 
   const planYaml = readFileSync(resolved, 'utf-8');
+
+  // Parse gate filter: --gates=schema,lock,exec,final
+  const gates = gateFilterRaw
+    ? gateFilterRaw.split(',').map(g => g.trim().toLowerCase())
+    : undefined;
+
+  if (useDaemon) {
+    // -----------------------------------------------------------------------
+    // Daemon mode: connect to the running Praxis daemon via TCP
+    // -----------------------------------------------------------------------
+    const host = getFlag(flags, 'daemon-host') ?? '127.0.0.1';
+    const port = parseInt(getFlag(flags, 'daemon-port') ?? '0', 10);
+
+    // Read daemon manifest for actual port
+    const pidFile = resolve(process.cwd(), '.praxis/daemon.pid');
+    let daemonPort = port;
+    if (daemonPort === 0 && existsSync(pidFile)) {
+      try {
+        const manifest = JSON.parse(readFileSync(pidFile, 'utf-8'));
+        daemonPort = typeof manifest.port === 'number' ? manifest.port : 0;
+      } catch {}
+    }
+
+    if (daemonPort === 0 || isNaN(daemonPort)) {
+      if (!asJson) emitLine('Error: No running Praxis daemon found. Start one with "praxis daemon" or omit --daemon.');
+      else emit({ error: 'No running Praxis daemon', exitCode: 3 });
+      exit(3);
+    }
+
+    try {
+      const { connect } = await import('node:net');
+      const result = await new Promise<unknown>((resolvePromise, reject) => {
+        const client = connect(daemonPort, host, () => {
+          const request = JSON.stringify({
+            type: 'verify',
+            payload: {
+              planYaml,
+              evidenceLedgerPath: evidencePath ? resolve(process.cwd(), evidencePath) : undefined,
+              attemptId,
+              lockMode: 'create_if_missing',
+              gates,
+              parallel,
+            },
+          });
+          client.write(request);
+          client.end();
+        });
+
+        let data = '';
+        client.on('data', (chunk: Buffer) => { data += chunk.toString(); });
+        client.on('end', () => {
+          try { resolvePromise(JSON.parse(data)); }
+          catch { resolvePromise({ error: 'Failed to parse daemon response' }); }
+        });
+        client.on('error', reject);
+      });
+
+      const response = result as Record<string, unknown>;
+      if (response.error) {
+        if (!asJson) emitLine(`Error: Daemon returned — ${response.error}`);
+        else emit({ error: response.error, exitCode: 3 });
+        exit(3);
+      }
+
+      type GateResult = { gateName: string; verdict: string; reasonCodes: string[]; cached: boolean };
+
+      if (asJson) {
+        emit(response);
+      } else {
+        emitLine(`Verify (daemon): ${verdictLabel(response.verdict as GateVerdictValue)}`);
+        emitLine(`  Run ID: ${response.attemptId}`);
+        emitLine(`  Time: ${(response.timeMs as number).toFixed(0)}ms`);
+        emitLine(`  Cache hits: ${(response.cacheHitGates as number)}/${(response.gateCount as number)} gates`);
+        emitLine(`  Gates:`);
+        for (const g of (response.gateResults as GateResult[])) {
+          const icon = g.verdict === 'PASS' ? '✓' : g.verdict === 'HOLD' ? '⚠' : '✗';
+          emitLine(`    ${icon} ${g.gateName}: ${g.verdict}${g.cached ? ' (cached)' : ''}`);
+          for (const rc of g.reasonCodes) emitLine(`      ${rc}`);
+        }
+        if ((response.diagnostics as Array<unknown>).length > 0) {
+          emitLine(`  Diagnostics:`);
+          for (const d of (response.diagnostics as Array<{ code: string; severity: string; message: string }>)) {
+            emitLine(`    [${d.severity}] ${d.message}`);
+          }
+        }
+      }
+
+      exit(exitCodeForVerdict(response.verdict as GateVerdictValue));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!asJson) emitLine(`Error: Failed to connect to daemon — ${msg}`);
+      else emit({ error: `Daemon connection failed: ${msg}`, exitCode: 3 });
+      exit(3);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Cold mode (default): run the pipeline directly
+  // -----------------------------------------------------------------------
   const { runKernel, generateReport, generateRepairPacket } = await import('@praxis/kernel');
 
   // Resolve evidence ledger path if --evidence provided
@@ -869,6 +1031,10 @@ async function main(): Promise<void> {
 
     case 'init':
       cmdInit(flags);
+      break;
+
+    case 'daemon':
+      await cmdDaemon(flags);
       break;
 
     case 'plan':

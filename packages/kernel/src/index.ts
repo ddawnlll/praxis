@@ -71,6 +71,7 @@ export { createPlanLock } from './lock/createPlanLock';
 export { readPlanLockYaml } from './lock/readPlanLockYaml';
 export { writePlanLockYaml } from './lock/writePlanLockYaml';
 export { verifyPlanLock } from './lock/verifyPlanLock';
+export { resolveLockPath, ensureLockDir } from './lock/resolveLockPath';
 export type { LockReadResult } from './lock/readPlanLockYaml';
 export type { LockWriteResult } from './lock/writePlanLockYaml';
 export type { LockVerifyResult } from './lock/verifyPlanLock';
@@ -190,3 +191,22 @@ export type { CoverageResult, CoverageTotals, FileCoverage } from './coverage';
 // Network Sandbox
 export { checkNetworkAccess, createNetworkPolicy } from './executor/networkSandbox';
 export type { NetworkPolicy, SandboxResult } from './executor/networkSandbox';
+
+// Daemon
+export { createDaemon, autoSpawnDaemon } from './daemon/praxisDaemon';
+export type {
+  DaemonConfig,
+  DaemonServer,
+  VerifyRequest,
+  VerifyResponse,
+  ValidateRequest,
+  ValidateResponse,
+} from './daemon/praxisDaemon';
+
+// Gate Cache
+export { GateCache, createGateCache, CACHE_NAMESPACES } from './daemon/gateCache';
+export type { GateCacheStats, CacheNamespace } from './daemon/gateCache';
+
+// Daemon State
+export { createWarmState, indexEvidence, mergeEvidence } from './daemon/state';
+export type { WarmState } from './daemon/state';
