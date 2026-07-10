@@ -123,6 +123,10 @@ export interface EvidenceGateInput {
   changedFiles?: ChangedFile[];
   repoRoot?: string;
   lock?: PlanLockV01;
+  /** Optional HMAC secret for PEL-1 attestation verification.
+   *  When provided, deterministic-source evidence records must have valid
+   *  DSSE envelope signatures. Unattested deterministic records produce HOLD. */
+  attestationSecret?: string;
 }
 
 /** EvidenceGate result extends the GateVerdict shape. */

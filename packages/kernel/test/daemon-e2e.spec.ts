@@ -65,7 +65,7 @@ describe('Daemon E2E — cold vs daemon verdict', () => {
 
     // Cleanup
     daemon.stop();
-  });
+  }, 240000); // ExecGate runs CMD-TEST (120s) + CMD-CURL (30s) × 2 runs
 
   test('daemon IPC manifest format is correct JSON', () => {
     const manifestPath = resolve(REPO_ROOT, '.praxis/daemon.pid');
@@ -115,5 +115,5 @@ describe('Daemon E2E — cold vs daemon verdict', () => {
     expect(execResult2?.cached).toBe(false);
 
     daemon.stop();
-  });
+  }, 120000); // ExecGate runs CMD-TEST (120s) + CMD-CURL (30s) × 2 runs
 });

@@ -6,7 +6,8 @@
     "packages/contracts",
     "packages/kernel",
     "packages/cli",
-    "packages/claude-plugin"
+    "packages/claude-plugin",
+    "packages/mcp-server"
   ],
   "scripts": {
     "test": "bun run --filter='@praxis/*' test",

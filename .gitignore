@@ -16,10 +16,16 @@ pi/
 .DS_Store
 Thumbs.db
 
+# Misc / agent detritus
+.mimocode/
+
+# Bun lockfiles (generated, not committed in workspace monorepo)
+bun.lock
+**/bun.lock
+
 # IDE / editor
 .vscode/settings.json
 .idea/
 *.swp
 *.swo
 *~
-packages/server/bun.lock

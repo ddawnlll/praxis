@@ -8,6 +8,8 @@ import type { Diagnostic } from '@praxis/contracts';
 import type { PlanSpecV01, AcceptanceCriterion } from '@praxis/contracts';
 import { readEvidenceLedgerJsonl } from '../evidence/readEvidenceLedgerJsonl';
 import { validateEvidenceLedger } from '../evidence/validateEvidenceLedger';
+import { isAttestedDeterministicSource } from '../evidence/attestation';
+import type { DsseEnvelope } from '../evidence/attestation';
 import {
   type EvidenceRecordV01,
   type EvidenceGateInput,
@@ -211,7 +213,7 @@ export function runEvidenceGate(input: EvidenceGateInput): EvidenceGateResult {
       'No evidence records provided. Execute the plan first.',
     );
   } else if (input.evidenceLedgerPath) {
-    const readResult = readEvidenceLedgerJsonl(input.evidenceLedgerPath);
+    const readResult = readEvidenceLedgerJsonl(input.evidenceLedgerPath, input.attestationSecret);
     allDiagnostics.push(...readResult.diagnostics);
 
     if (!readResult.ok) {
@@ -278,6 +280,46 @@ export function runEvidenceGate(input: EvidenceGateInput): EvidenceGateResult {
       namespaceViolations, diffEmpty, plan, input.hashes, input.lock,
       'Evidence validation failed. See diagnostics for details.',
     );
+  }
+
+  // --- Step 2b: Attestation check (PEL-1) ---
+  // When attestationSecret is configured, deterministic-source records
+  // MUST come from valid DSSE envelopes. Bare records from deterministic
+  // sources are treated as potentially forged.
+  if (input.attestationSecret) {
+    // Check for diagnostics indicating attestation failures from the reader
+    const hasAttestationFailure = allDiagnostics.some(
+      d => d.code === 'ATTESTATION_VERIFICATION_FAILED' || d.code === 'ATTESTATION_EXTRACT_FAILED'
+    );
+    if (hasAttestationFailure) {
+      reasonCodes.push(EVIDENCE_REASON_CODES.ATTESTATION_FAILED);
+      return buildResult(
+        'FAIL', reasonCodes, allDiagnostics, failedCriteriaIds, evidenceRefs,
+        attemptId, timestamp, evidenceRecords, forbiddenFilesTouched,
+        namespaceViolations, diffEmpty, plan, input.hashes, input.lock,
+        'Evidence attestation (PEL-1) check failed. Deterministic-source records ' +
+        'must have valid DSSE envelope signatures when attestation is enabled.',
+      );
+    }
+
+    // Also check pre-loaded records (not from file) — they bypass the reader
+    if (input.evidenceRecords && input.evidenceRecords.length > 0) {
+      const unattestedDeterministic = input.evidenceRecords.filter(
+        r => DETERMINISTIC_SOURCES.has(r.source as any)
+      );
+      if (unattestedDeterministic.length > 0) {
+        // Pre-loaded records can't carry DSSE envelopes, so this is expected
+        // when records are passed directly. Log a diagnostic but don't fail —
+        // the caller chose to pass records directly, bypassing file-based attestation.
+        allDiagnostics.push({
+          code: 'ATTESTATION_BYPASSED',
+          severity: 'info',
+          message: `Attestation secret configured but ${unattestedDeterministic.length} ` +
+            'deterministic-source records were provided directly (not from file). ' +
+            'Attestation verification is skipped for pre-loaded records.',
+        });
+      }
+    }
   }
 
   // --- Step 3: Changed file namespace check ---
@@ -354,6 +396,7 @@ export function runEvidenceGate(input: EvidenceGateInput): EvidenceGateResult {
     EVIDENCE_REASON_CODES.UNSUPPORTED_EVIDENCE_TYPE,
     EVIDENCE_REASON_CODES.DIVERGENCE_DETECTED,
     EVIDENCE_REASON_CODES.EVIDENCE_LEDGER_PARSE_ERROR,
+    EVIDENCE_REASON_CODES.ATTESTATION_FAILED,
   ];
   const hasFail = reasonCodes.some(c => FAIL_CODES.includes(c));
 

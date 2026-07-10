@@ -16,7 +16,7 @@ PRAXIS is **not a coding agent**. It does not write code, run its own agent loop
 | **v0.2** — Control Plane | ✅ Complete | Hono HTTP/SSE server (`@praxis/server`), Circuit Breaker, TestOutputParser, ACCP reports |
 | **v0.3** — Desktop + Multi-Worker | ✅ Complete | Desktop Mission Control (`@praxis/desktop`, Electron + React + Vite), Governor (stable_3→16), Deterministic Assembler, Wave Scheduler |
 | **v0.4** — Intelligence | ✅ Complete | AST import analysis, coverage gates, stable_16 concurrency, multi-agent desktop orchestration |
-| **v0.5** — Daemon + MCP + Attestation | ✅ Latest | Daemon mode (warm state), MCP server (agent integration), evidence attestation (PEL-1), lock GC, 259 tests |
+| **v0.5** — Daemon + MCP + Attestation | ✅ Latest | Daemon mode (warm state), MCP server (agent integration), evidence attestation (PEL-1), lock GC, 279 tests |
 
 ---
 
@@ -25,7 +25,7 @@ PRAXIS is **not a coding agent**. It does not write code, run its own agent loop
 - **A deterministic Truth Kernel** — six gates (SchemaGate → LockGate → EvidenceGate → WiringGate → ExecGate → FinalGate) that verify agent outputs against human-approved criteria with PASS / HOLD / FAIL verdicts
 - **A daemon mode** — persistent warm server that caches plan state, evidence index, and gate results for near-instant re-verification (`praxis daemon`, `praxis verify --daemon`)
 - **An MCP server** — Model Context Protocol server for autonomous agent integration (Hermes, Claude Code, etc.) via stdio JSON-RPC (`@praxis/mcp-server`)
-- **Evidence attestation (PEL-1)** — HMAC-SHA256 DSSE envelope signing for evidence records, preventing agent forgery of deterministic source claims
+- **Evidence attestation (PEL-1)** — HMAC-SHA256 DSSE envelope signing for evidence records, preventing agent forgery of deterministic source claims. Wired into `appendEvidenceRecordJsonl` (signs on write) and `EvidenceGate` (verifies on read). Set `PRAXIS_ATTESTATION_SECRET` or pass `attestationSecret` to gate input.
 - **A CLI tool** — `praxis init`, `praxis plan validate`, `praxis plan lock`, `praxis plan gc`, `praxis verify`, `praxis daemon`, `praxis status`, `praxis ledger show`, `praxis report show`, `praxis repair show`, `praxis help`, `praxis version`
 - **A Claude Code plugin** — slash commands (`/praxis:verify`, `/praxis:repair`, etc.) plus PreToolUse / PostToolUse / Stop hooks for automatic evidence capture
 - **A local control plane** — Hono HTTP server with SSE streaming (`@praxis/server`, `127.0.0.1:3457`)
@@ -251,7 +251,7 @@ praxis/
 | Package | Location | Tests | Status |
 |---------|----------|-------|--------|
 | `@praxis/contracts` | `packages/contracts/` | 31/31 | ✅ PASS_LOCKED |
-| `@praxis/kernel` | `packages/kernel/` | 212/212 | ✅ PASS_LOCKED |
+|| `@praxis/kernel` | `packages/kernel/` | 212/212 + 3 e2e¹ | ✅ PASS_LOCKED |
 | `@praxis/cli` | `packages/cli/` | 13/13 | ✅ COMPLETE |
 | `@praxis/claude-plugin` | `packages/claude-plugin/` | 20/20 | ✅ COMPLETE |
 | `@praxis/mcp-server` | `packages/mcp-server/` | 3/3 | ✅ COMPLETE |
