@@ -1,0 +1,314 @@
+# PRAXIS PlanSpec v0.1 — PulseQueue T02: Retry ve Dead-Letter State Machine
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-PQ-T02"
+  title: "Retry and Dead-Letter State Machine"
+  description: "Add automatic retry with attempt counting and dead-letter state to the worker."
+  createdAt: "2026-07-10T12:00:00Z"
+  humanId: "benchmark"
+  status: "locked"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/queue/worker.ts"
+    - "src/queue/service.ts"
+    - "src/queue/repository.ts"
+    - "src/queue/types.ts"
+    - "src/__tests__/*.test.ts"
+    - "src/clock.ts"
+  forbiddenFiles:
+    - "src/index.ts"
+    - "src/server.ts"
+    - "package.json"
+    - "bun.lock"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 3
+
+tasks:
+  - id: "task-retry-deadletter"
+    title: "Retry and Dead-Letter State Machine"
+    objective: "Worker basarisiz job'lari otomatik retry etmeli, max 3 attempt, sonra dead."
+
+    implementation:
+      instructions:
+        - "Update Worker.executeJob to support retry: on failure increment attemptCount, if < maxAttempts set status to retrying and schedule retry."
+        - "Add queued -> running -> retrying -> dead state transitions."
+        - "Ensure retry timer uses Clock interface (FakeClock in tests, RealClock in prod)."
+        - "Ensure concurrent safety: a retrying job cannot be picked by another worker."
+        - "Write tests: attempt counting, dead after 3 failures, success after retry, no real sleep."
+        - "Run full suite to verify no regressions."
+      suggestedSteps:
+        - "Read src/queue/worker.ts and types.ts to understand current state machine."
+        - "Add retry scheduling in the catch block."
+        - "Add dead state transition on final failure."
+        - "Add concurrent claim check (locked_by or atomic status update)."
+        - "Write tests using FakeClock."
+        - "Run tests and typecheck."
+      antiPatterns:
+        - "Do not use real setTimeout in unit tests."
+        - "Do not modify types.ts JobStatus enum (retrying already defined)."
+        - "Do not add new dependencies."
+      dependencies:
+        - "src/queue/worker.ts"
+        - "src/queue/types.ts"
+      expectedOutputs:
+        - "Worker retries failed jobs up to 3 times."
+        - "Job goes dead after 3 failures."
+        - "Tests pass with FakeClock (no real sleep)."
+
+    artifactPolicy:
+      class: "runtime_code"
+      wiringRequired: false
+      reachabilityRequired: false
+      executionRequired: true
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+
+    integrationContract:
+      mode: "required"
+      reason: "Worker must integrate with Clock for deterministic timing and Repository for status updates."
+      declaredUnits:
+        - id: "worker-module"
+          path: "src/queue/worker.ts"
+          kind: "runtime_module"
+          expectedExports:
+            - "Worker"
+            - "JobHandler"
+
+    acceptanceCriteria:
+      - id: "AC-state-transitions"
+        description: "Status transitions are queued -> running -> retrying -> dead (or completed on success)."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T02"
+          patterns:
+            - "pass"
+            - "retry"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-max-attempts"
+        description: "Max 3 execution attempts; 3rd failure moves job to dead."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T02"
+          patterns:
+            - "pass"
+            - "dead"
+            - "attempt"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-retry-success"
+        description: "Successful retry moves job to completed."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T02"
+          patterns:
+            - "pass"
+            - "completed"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-no-real-sleep"
+        description: "Tests use FakeClock, no real setTimeout/sleep."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T02"
+          patterns:
+            - "pass"
+            - "fake"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-concurrent-safe"
+        description: "Retrying job cannot be picked by two workers simultaneously."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T02"
+          patterns:
+            - "pass"
+            - "concurrent"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-full-suite"
+        description: "Full test suite passes with no regressions."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-FULL"
+          patterns:
+            - "0 fail"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-typecheck"
+        description: "TypeScript type check passes."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "command_output"
+          commandRef: "CMD-TYPECHECK"
+          patterns:
+            - "0 errors"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["command"]
+        requiredEvidence: ["command"]
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST-T02"
+      kind: "final_validation"
+      command: "bun test src/__tests__/worker.test.ts"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-TEST-FULL"
+      kind: "final_validation"
+      command: "bun test"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-TYPECHECK"
+      kind: "typecheck"
+      command: "bun run typecheck"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      expectedOutputPatterns: ["0 errors", "0 warnings"]
+      networkAllowed: false
+      shellAllowed: true
+
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
+
+  hardDeniedCommands:
+    - command: "rm -rf /"
+      reason: "Destructive."
+    - command: "git push --force"
+      reason: "Force push prohibited."
+    - command: "npm install"
+      reason: "No new dependencies."
+    - command: "bun add"
+      reason: "No new dependencies."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes: ["diff", "source", "command", "test_output"]
+  hashWhenAvailable: true
+
+gates:
+  sequence: ["SchemaGate", "LockGate", "EvidenceGate", "WiringGate", "ExecGate", "FinalGate"]
+  verdicts: ["PASS", "HOLD", "FAIL"]
+  reasonCodes:
+    SchemaGate: ["SCHEMA_INVALID", "SCHEMA_MISSING_REQUIRED", "SCHEMA_ADDITIONAL_PROPERTIES"]
+    LockGate: ["LOCK_MISSING", "LOCK_HASH_MISMATCH", "LOCK_CRITERIA_CHANGED_AFTER_LOCK"]
+    EvidenceGate: ["EVIDENCE_EMPTY", "DIFF_EMPTY", "NAMESPACE_VIOLATION", "FILES_CHANGED_MISMATCH"]
+    WiringGate: ["WIRING_DECLARED_UNIT_MISSING", "WIRING_ENTRYPOINT_UNREACHABLE", "WIRING_EXPORT_MISMATCH", "WIRING_ORPHAN_MODULE", "WIRING_RUNTIME_PROBE_FAILED"]
+    ExecGate: ["TESTS_RAN_ZERO", "TESTS_FAILURES", "EXIT_CODE_NONZERO", "FORBIDDEN_COMMAND"]
+    FinalGate: ["ALL_CRITERIA_MET", "CRITERIA_PARTIAL", "CRITERIA_NONE_MET", "CRITERIA_NOT_HUMAN_APPROVED", "FILE_NOT_FOUND"]
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 3
+  reverifyCommand: "bun test src/__tests__/worker.test.ts"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "integrationContractHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

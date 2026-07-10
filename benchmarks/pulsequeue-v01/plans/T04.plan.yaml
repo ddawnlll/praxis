@@ -1,0 +1,325 @@
+# PRAXIS PlanSpec v0.1 — PulseQueue T04: Cancellation and Concurrency
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-PQ-T04"
+  title: "Job Cancellation and Concurrency"
+  description: "Job cancellation endpoint + concurrent safety."
+  createdAt: "2026-07-10T12:00:00Z"
+  humanId: "benchmark"
+  status: "locked"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/routes/*.ts"
+    - "src/queue/*.ts"
+    - "src/server.ts"
+    - "src/index.ts"
+    - "src/__tests__/*.test.ts"
+  forbiddenFiles:
+    - "package.json"
+    - "bun.lock"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 3
+
+tasks:
+  - id: "task-cancellation"
+    title: "Job Cancellation Endpoint"
+    objective: "POST /jobs/:id/cancel endpoint, state machine integration, concurrent safety."
+
+    implementation:
+      instructions:
+        - "Create POST /jobs/:id/cancel route handler."
+        - "Only queued or retrying jobs can be cancelled (cancelled -> 409 for others)."
+        - "Running job cancel request returns 409 Conflict."
+        - "Ensure cancel + start race condition is handled (atomic status check)."
+        - "Wire cancel route into server."
+        - "Integrate with persistence (T03) so cancelled state survives restart."
+        - "Update worker to check for cancellation signal before executing."
+        - "Write tests: cancel queued, cancel retrying, cancel running (409), double cancel, concurrent cancel+start."
+        - "Run full suite."
+      suggestedSteps:
+        - "Create cancel route handler in src/routes/jobs.ts or a new file."
+        - "Add cancel method to QueueService."
+        - "Wire route in server.ts."
+        - "Write tests."
+        - "Run bun test, bun run typecheck."
+      antiPatterns:
+        - "Do not allow cancellation of completed/dead jobs."
+        - "Do not add new dependencies."
+      dependencies:
+        - "src/queue/service.ts"
+        - "src/server.ts"
+        - "src/queue/worker.ts"
+
+    artifactPolicy:
+      class: "runtime_code"
+      wiringRequired: true
+      reachabilityRequired: true
+      executionRequired: true
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+
+    integrationContract:
+      mode: "required"
+      reason: "Cancel route must be wired into server and reachable via HTTP."
+      declaredUnits:
+        - id: "cancel-route"
+          path: "src/routes/jobs.ts"
+          kind: "runtime_module"
+          expectedExports:
+            - "createJobRouter"
+      integrationPoints:
+        - id: "server-cancel"
+          path: "src/server.ts"
+          expectedRegistrationPatterns:
+            - "app.route('/jobs'"
+            - "/:id/cancel"
+
+    acceptanceCriteria:
+      - id: "AC-cancel-queued"
+        description: "Queued job can be cancelled."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T04"
+          patterns:
+            - "pass"
+            - "cancel.*queued"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-cancel-retrying"
+        description: "Retrying job can be cancelled."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T04"
+          patterns:
+            - "pass"
+            - "cancel.*retry"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-cancel-running-409"
+        description: "Running job cancel returns 409."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T04"
+          patterns:
+            - "pass"
+            - "409"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-cancel-idempotent"
+        description: "Already cancelled/completed/dead jobs reject cancel."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T04"
+          patterns:
+            - "pass"
+            - "idempotent"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-cancel-concurrent"
+        description: "Concurrent cancel + start is consistent."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T04"
+          patterns:
+            - "pass"
+            - "concurrent"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-cancel-persistence"
+        description: "Cancelled state survives restart."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T04"
+          patterns:
+            - "pass"
+            - "persist"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-full-suite"
+        description: "Full test suite passes."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-FULL"
+          patterns:
+            - "0 fail"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-typecheck"
+        description: "TypeScript type check passes."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "command_output"
+          commandRef: "CMD-TYPECHECK"
+          patterns:
+            - "0 errors"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["command"]
+        requiredEvidence: ["command"]
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST-T04"
+      kind: "final_validation"
+      command: "bun test src/__tests__/cancellation.test.ts"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-TEST-FULL"
+      kind: "final_validation"
+      command: "bun test"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-TYPECHECK"
+      kind: "typecheck"
+      command: "bun run typecheck"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      expectedOutputPatterns: ["0 errors", "0 warnings"]
+      networkAllowed: false
+      shellAllowed: true
+
+  hardDeniedCommands:
+    - command: "rm -rf /"
+      reason: "Destructive."
+    - command: "git push --force"
+      reason: "Force push prohibited."
+    - command: "npm install"
+      reason: "No new dependencies."
+    - command: "bun add"
+      reason: "No new dependencies."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes: ["diff", "source", "wiring", "command", "test_output"]
+  hashWhenAvailable: true
+
+gates:
+  sequence: ["SchemaGate", "LockGate", "EvidenceGate", "WiringGate", "ExecGate", "FinalGate"]
+  verdicts: ["PASS", "HOLD", "FAIL"]
+  reasonCodes:
+    SchemaGate: ["SCHEMA_INVALID", "SCHEMA_MISSING_REQUIRED", "SCHEMA_ADDITIONAL_PROPERTIES"]
+    LockGate: ["LOCK_MISSING", "LOCK_HASH_MISMATCH", "LOCK_CRITERIA_CHANGED_AFTER_LOCK"]
+    EvidenceGate: ["EVIDENCE_EMPTY", "DIFF_EMPTY", "NAMESPACE_VIOLATION", "FILES_CHANGED_MISMATCH"]
+    WiringGate: ["WIRING_DECLARED_UNIT_MISSING", "WIRING_ENTRYPOINT_UNREACHABLE", "WIRING_EXPORT_MISMATCH", "WIRING_ORPHAN_MODULE", "WIRING_RUNTIME_PROBE_FAILED"]
+    ExecGate: ["TESTS_RAN_ZERO", "TESTS_FAILURES", "EXIT_CODE_NONZERO", "FORBIDDEN_COMMAND"]
+    FinalGate: ["ALL_CRITERIA_MET", "CRITERIA_PARTIAL", "CRITERIA_NONE_MET", "CRITERIA_NOT_HUMAN_APPROVED", "FILE_NOT_FOUND"]
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 3
+  reverifyCommand: "bun test src/__tests__/cancellation.test.ts"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "integrationContractHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

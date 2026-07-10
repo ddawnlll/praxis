@@ -1,0 +1,344 @@
+# PRAXIS PlanSpec v0.1 — PulseQueue T05: Metrics and Dead-Job Replay CLI
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-PQ-T05"
+  title: "Metrics Endpoint and replay-dead CLI"
+  description: "GET /metrics endpoint and replay-dead CLI command."
+  createdAt: "2026-07-10T12:00:00Z"
+  humanId: "benchmark"
+  status: "locked"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/routes/*.ts"
+    - "src/cli/*.ts"
+    - "src/queue/*.ts"
+    - "src/server.ts"
+    - "src/index.ts"
+    - "src/__tests__/*.test.ts"
+    - "README.md"
+  forbiddenFiles:
+    - "package.json"
+    - "bun.lock"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 3
+
+tasks:
+  - id: "task-metrics-cli"
+    title: "Metrics and Dead-Job Replay CLI"
+    objective: "GET /metrics endpoint and replay-dead CLI command."
+
+    implementation:
+      instructions:
+        - "Create GET /metrics route returning job counts by status."
+        - "Metrics must read live data from repository (not a stale cache)."
+        - "Implement replay-dead CLI: reads repo, finds dead jobs, sets them to queued with attemptCount=0."
+        - "CLI must use the same repository implementation as the server."
+        - "CLI must use state file directly (or repository that reads it)."
+        - "Wire metrics route into server."
+        - "Update README with working commands only."
+        - "Write tests: metrics counts, replay-dead functionality, CLI output format."
+        - "Run full suite and typecheck."
+      suggestedSteps:
+        - "Read src/cli/replay-queue.ts — understand the stub."
+        - "Create metrics route in src/routes/jobs.ts or new file."
+        - "Implement CLI replay-dead using repository."
+        - "Wire metrics route in server.ts."
+        - "Write tests."
+        - "Update README."
+        - "Run bun test, bun run typecheck."
+      antiPatterns:
+        - "Do not create orphan CLI that bypasses repository."
+        - "Do not document commands that don't work."
+        - "Do not add new dependencies."
+      dependencies:
+        - "src/queue/repository.ts"
+        - "src/queue/service.ts"
+        - "src/server.ts"
+        - "src/cli/replay-queue.ts"
+
+    artifactPolicy:
+      class: "runtime_code"
+      wiringRequired: true
+      reachabilityRequired: true
+      executionRequired: true
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+
+    integrationContract:
+      mode: "required"
+      reason: "Metrics route and CLI must be wired and reachable."
+      declaredUnits:
+        - id: "metrics-route"
+          path: "src/routes/jobs.ts"
+          kind: "runtime_module"
+          expectedExports:
+            - "createJobRouter"
+        - id: "cli-module"
+          path: "src/cli/replay-queue.ts"
+          kind: "cli_module"
+          expectedExports: []
+      integrationPoints:
+        - id: "server-metrics"
+          path: "src/server.ts"
+          expectedRegistrationPatterns:
+            - "app.route('/metrics'"
+
+    acceptanceCriteria:
+      - id: "AC-metrics-endpoint"
+        description: "GET /metrics returns correct job counts by status."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T05"
+          patterns:
+            - "pass"
+            - "metrics"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-metrics-readonly"
+        description: "Metrics endpoint is read-only (GET only)."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T05"
+          patterns:
+            - "pass"
+            - "readonly"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-cli-replay"
+        description: "replay-dead CLI replays dead jobs to queued."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T05"
+          patterns:
+            - "pass"
+            - "replay"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-cli-deterministic"
+        description: "CLI exit code and output are deterministic."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T05"
+          patterns:
+            - "pass"
+            - "deterministic"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-cli-not-orphan"
+        description: "CLI uses real repository, not orphan implementation."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T05"
+          patterns:
+            - "pass"
+            - "orphan"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-readme-accuracy"
+        description: "README documents only working commands."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "command_output"
+          commandRef: "CMD-CHECK-README"
+          patterns:
+            - "OK"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["command", "source"]
+        requiredEvidence: ["command", "source"]
+
+      - id: "AC-full-suite"
+        description: "Full test suite passes."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-FULL"
+          patterns:
+            - "0 fail"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-typecheck"
+        description: "TypeScript type check passes."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "command_output"
+          commandRef: "CMD-TYPECHECK"
+          patterns:
+            - "0 errors"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["command"]
+        requiredEvidence: ["command"]
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST-T05"
+      kind: "final_validation"
+      command: "bun test src/__tests__/metrics-cli.test.ts"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-TEST-FULL"
+      kind: "final_validation"
+      command: "bun test"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-TYPECHECK"
+      kind: "typecheck"
+      command: "bun run typecheck"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      expectedOutputPatterns: ["0 errors", "0 warnings"]
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-CHECK-README"
+      kind: "final_validation"
+      command: "grep -E 'bun run' README.md | while read line; do cmd=$(echo $line | sed 's/.*`//;s/`.*//'); if ! grep -q $cmd package.json; then echo MISSING: $cmd not in package.json; exit 1; fi; done; echo OK"
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+  hardDeniedCommands:
+    - command: "rm -rf /"
+      reason: "Destructive."
+    - command: "git push --force"
+      reason: "Force push prohibited."
+    - command: "npm install"
+      reason: "No new dependencies."
+    - command: "bun add"
+      reason: "No new dependencies."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes: ["diff", "source", "wiring", "command", "test_output"]
+  hashWhenAvailable: true
+
+gates:
+  sequence: ["SchemaGate", "LockGate", "EvidenceGate", "WiringGate", "ExecGate", "FinalGate"]
+  verdicts: ["PASS", "HOLD", "FAIL"]
+  reasonCodes:
+    SchemaGate: ["SCHEMA_INVALID", "SCHEMA_MISSING_REQUIRED", "SCHEMA_ADDITIONAL_PROPERTIES"]
+    LockGate: ["LOCK_MISSING", "LOCK_HASH_MISMATCH", "LOCK_CRITERIA_CHANGED_AFTER_LOCK"]
+    EvidenceGate: ["EVIDENCE_EMPTY", "DIFF_EMPTY", "NAMESPACE_VIOLATION", "FILES_CHANGED_MISMATCH"]
+    WiringGate: ["WIRING_DECLARED_UNIT_MISSING", "WIRING_ENTRYPOINT_UNREACHABLE", "WIRING_EXPORT_MISMATCH", "WIRING_ORPHAN_MODULE", "WIRING_RUNTIME_PROBE_FAILED"]
+    ExecGate: ["TESTS_RAN_ZERO", "TESTS_FAILURES", "EXIT_CODE_NONZERO", "FORBIDDEN_COMMAND"]
+    FinalGate: ["ALL_CRITERIA_MET", "CRITERIA_PARTIAL", "CRITERIA_NONE_MET", "CRITERIA_NOT_HUMAN_APPROVED", "FILE_NOT_FOUND"]
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 3
+  reverifyCommand: "bun test src/__tests__/metrics-cli.test.ts"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "integrationContractHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

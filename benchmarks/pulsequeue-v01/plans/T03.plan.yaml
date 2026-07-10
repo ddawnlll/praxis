@@ -1,0 +1,324 @@
+# PRAXIS PlanSpec v0.1 — PulseQueue T03: Restart Persistence
+planSpecVersion: "0.1.0"
+kind: "ImplementationPlan"
+profile: "praxis-v0.1"
+
+metadata:
+  planId: "PRAXIS-2026-PQ-T03"
+  title: "Restart Persistence"
+  description: "Job state diske kaydedilecek ve restart sonrasi geri yuklenecek."
+  createdAt: "2026-07-10T12:00:00Z"
+  humanId: "benchmark"
+  status: "locked"
+
+authority:
+  executor: "ClaudeCode"
+  completionAuthority: "PraxisTruthKernel"
+  agentSelfReportIsClaimOnly: true
+  criteriaSourceRequired: "human"
+  reportsAreEvidenceOnly: true
+  pluginOwnsTruth: false
+
+workspace:
+  root: "."
+  allowedFiles:
+    - "src/queue/repository.ts"
+    - "src/queue/service.ts"
+    - "src/queue/types.ts"
+    - "src/index.ts"
+    - "src/__tests__/*.test.ts"
+  forbiddenFiles:
+    - "src/server.ts"
+    - "package.json"
+    - "bun.lock"
+
+execution:
+  mode: "single_session"
+  agent: "claude-code"
+  autonomy: "implementation_allowed"
+  canModifyCode: true
+  canModifyPlan: false
+  canModifyAcceptanceCriteria: false
+  maxRepairLoops: 3
+
+tasks:
+  - id: "task-persistence"
+    title: "Disk Persistence and Restart Recovery"
+    objective: "Job state diske atomic write ile kaydedilecek, restart'ta geri yuklenecek."
+
+    implementation:
+      instructions:
+        - "Create a PersistentJobRepository that wraps InMemoryJobRepository with disk persistence."
+        - "State file: process.env.STATE_PATH or ./pulsequeue-state.json by default."
+        - "Write on every status change: use temp file + rename for atomicity."
+        - "On start: load state from disk; missing file = empty state; corrupt JSON = log error + empty state."
+        - "Running jobs on restart -> requeued."
+        - "Concurrent writes must not corrupt the file."
+        - "Write tests: persistence, atomic write, corrupt JSON, running->queued on restart."
+        - "Run full suite."
+      suggestedSteps:
+        - "Read InMemoryJobRepository to understand the interface."
+        - "Create PersistentJobRepository implementing JobRepository."
+        - "Wire it into src/index.ts."
+        - "Write persistence tests."
+        - "Run bun test, bun run typecheck."
+      antiPatterns:
+        - "Do not use sync filesystem operations (use fs.promises)."
+        - "Do not leave .tmp files on successful writes."
+        - "Do not add new dependencies."
+      dependencies:
+        - "src/queue/repository.ts"
+        - "src/index.ts"
+      expectedOutputs:
+        - "Jobs persist across restarts."
+        - "Running jobs become queued on restart."
+        - "Atomic writes prevent corruption."
+
+    artifactPolicy:
+      class: "runtime_code"
+      wiringRequired: true
+      reachabilityRequired: false
+      executionRequired: true
+      deterministicEvidenceRequired: true
+      advisoryReviewAllowed: false
+
+    integrationContract:
+      mode: "required"
+      reason: "Persistence layer must be wired into the server entrypoint."
+      declaredUnits:
+        - id: "persistent-repo"
+          path: "src/queue/repository.ts"
+          kind: "runtime_module"
+          expectedExports:
+            - "PersistentJobRepository"
+            - "InMemoryJobRepository"
+
+    acceptanceCriteria:
+      - id: "AC-state-persists"
+        description: "Jobs persist to disk and reload correctly on restart."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T03"
+          patterns:
+            - "pass"
+            - "persist"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-running-to-queued"
+        description: "Running jobs on restart become queued (crash recovery)."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T03"
+          patterns:
+            - "pass"
+            - "running.*queued"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-atomic-write"
+        description: "Writes use temp file + rename for atomicity."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T03"
+          patterns:
+            - "pass"
+            - "atomic"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-corrupt-json"
+        description: "Corrupt JSON file produces controlled error, not crash."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T03"
+          patterns:
+            - "pass"
+            - "corrupt"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-missing-file"
+        description: "Missing state file = empty state (not error)."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T03"
+          patterns:
+            - "pass"
+            - "missing"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-concurrent-write"
+        description: "Concurrent writes do not corrupt state file."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-T03"
+          patterns:
+            - "pass"
+            - "concurrent.*write"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-full-suite"
+        description: "Full test suite passes."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "test_output"
+          commandRef: "CMD-TEST-FULL"
+          patterns:
+            - "0 fail"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["test_output", "command"]
+        requiredEvidence: ["test_output", "command"]
+
+      - id: "AC-typecheck"
+        description: "TypeScript type check passes."
+        level: "required"
+        humanApproved: true
+        criteriaSource: "human"
+        verification:
+          type: "command_output"
+          commandRef: "CMD-TYPECHECK"
+          patterns:
+            - "0 errors"
+          deterministic: true
+          canSatisfyFinalGate: true
+          advisoryOnly: false
+          evidenceRefs: ["command"]
+        requiredEvidence: ["command"]
+
+commands:
+  exactAllowedCommands:
+    - id: "CMD-TEST-T03"
+      kind: "final_validation"
+      command: "bun test src/__tests__/persistence.test.ts"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-TEST-FULL"
+      kind: "final_validation"
+      command: "bun test"
+      evidenceRequired: true
+      timeoutSeconds: 120
+      noTestsFoundIsFailure: true
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-TYPECHECK"
+      kind: "typecheck"
+      command: "bun run typecheck"
+      evidenceRequired: true
+      timeoutSeconds: 60
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      expectedOutputPatterns: ["0 errors", "0 warnings"]
+      networkAllowed: false
+      shellAllowed: true
+
+  hardDeniedCommands:
+    - command: "rm -rf /"
+      reason: "Destructive."
+    - command: "git push --force"
+      reason: "Force push prohibited."
+    - command: "npm install"
+      reason: "No new dependencies."
+    - command: "bun add"
+      reason: "No new dependencies."
+
+evidence:
+  ledgerRequired: true
+  requiredEvidenceTypes: ["diff", "source", "command", "test_output"]
+  hashWhenAvailable: true
+
+gates:
+  sequence: ["SchemaGate", "LockGate", "EvidenceGate", "WiringGate", "ExecGate", "FinalGate"]
+  verdicts: ["PASS", "HOLD", "FAIL"]
+  reasonCodes:
+    SchemaGate: ["SCHEMA_INVALID", "SCHEMA_MISSING_REQUIRED", "SCHEMA_ADDITIONAL_PROPERTIES"]
+    LockGate: ["LOCK_MISSING", "LOCK_HASH_MISMATCH", "LOCK_CRITERIA_CHANGED_AFTER_LOCK"]
+    EvidenceGate: ["EVIDENCE_EMPTY", "DIFF_EMPTY", "NAMESPACE_VIOLATION", "FILES_CHANGED_MISMATCH"]
+    WiringGate: ["WIRING_DECLARED_UNIT_MISSING", "WIRING_ENTRYPOINT_UNREACHABLE", "WIRING_EXPORT_MISMATCH", "WIRING_ORPHAN_MODULE", "WIRING_RUNTIME_PROBE_FAILED"]
+    ExecGate: ["TESTS_RAN_ZERO", "TESTS_FAILURES", "EXIT_CODE_NONZERO", "FORBIDDEN_COMMAND"]
+    FinalGate: ["ALL_CRITERIA_MET", "CRITERIA_PARTIAL", "CRITERIA_NONE_MET", "CRITERIA_NOT_HUMAN_APPROVED", "FILE_NOT_FOUND"]
+
+repair:
+  enabled: true
+  failedCriteriaOnly: true
+  mayModifyAcceptanceCriteria: false
+  mayModifyPlan: false
+  allowedFilesFromFailedTasksOnly: true
+  maxRepairLoops: 3
+  reverifyCommand: "bun test src/__tests__/persistence.test.ts"
+  repairPacketFormat:
+    json: true
+    markdown: true
+
+locking:
+  lockRequired: true
+  canonicalHashRequired: true
+  planLockFile: ".praxis/planspec.lock"
+  hashes:
+    - "planHash"
+    - "acceptanceCriteriaHash"
+    - "artifactPolicyHash"
+    - "integrationContractHash"
+    - "commandPolicyHash"
+    - "allowedFilesHash"
+    - "forbiddenFilesHash"
+
+reports:
+  protocol: "ACCP"
+  artifactDirectory: "reports/"
+  reportsAreEvidenceOnly: true
+  reportsDoNotAuthorizeExecution: true
+  commandEvidenceRequired: true
+  repairPacketRequiredOnHoldOrFail: true

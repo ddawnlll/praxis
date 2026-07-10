@@ -1,0 +1,22 @@
+{
+  "benchmark": "pulsequeue-v01",
+  "version": "0.1.0",
+  "seed": {
+    "repo": "pulsequeue-seed",
+    "commit": "83ec9ef566ba6a191656efd896da0d83e0cf2faa",
+    "tag": "seed-v0.1",
+    "description": "TypeScript + Bun job queue service with Hono HTTP server",
+    "dependencies": ["hono@^4.0.0"],
+    "devDependencies": ["@types/node", "typescript"]
+  },
+  "tasks": ["T01-idempotency", "T02-retry", "T03-persistence", "T04-cancellation", "T05-metrics-cli"],
+  "arms": ["baseline", "praxis"],
+  "repetitions": 2,
+  "total_runs": 20,
+  "artifacts": {
+    "benchmarkDir": "benchmarks/pulsequeue-v01/",
+    "seedDir": "pulsequeue-seed/",
+    "hiddenEvaluatorDir": "benchmarks/pulsequeue-v01/hidden-evaluator/",
+    "resultsDir": "benchmarks/pulsequeue-v01/results/"
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxis.local/benchmarks/result.schema.json",
+  "title": "PRAXIS Benchmark Result v0.1",
+  "type": "object",
+  "required": [
+    "benchmark", "version", "runId", "taskId", "arm",
+    "model", "provider", "timestamp",
+    "hiddenEval", "praxisVerdict",
+    "metrics"
+  ],
+  "properties": {
+    "benchmark": { "type": "string", "const": "pulsequeue-v01" },
+    "version": { "type": "string" },
+    "runId": { "type": "string" },
+    "taskId": { "type": "string", "enum": ["T01", "T02", "T03", "T04", "T05"] },
+    "arm": { "type": "string", "enum": ["baseline", "praxis"] },
+    "repNumber": { "type": "integer" },
+    "model": { "type": "string" },
+    "provider": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "doneClaims": { "type": "integer", "description": "Number of times agent said 'done'" },
+    "repairLoops": { "type": "integer", "description": "Number of repair loops actually used" },
+    "hiddenEval": {
+      "type": "object",
+      "required": ["results", "summary"],
+      "properties": {
+        "results": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "summary": {
+          "type": "object",
+          "required": ["pass", "fail", "total"],
+          "properties": {
+            "pass": { "type": "integer" },
+            "fail": { "type": "integer" },
+            "total": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "praxisVerdict": {
+      "type": ["object", "null"],
+      "properties": {
+        "verdict": { "type": "string", "enum": ["PASS", "HOLD", "FAIL"] },
+        "repairPackets": { "type": "array" },
+        "gates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "gate": { "type": "string" },
+              "verdict": { "type": "string" },
+              "reasonCodes": { "type": "array" }
+            }
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["totalTokens", "wallClockMs", "agentCommands", "testCommands"],
+      "properties": {
+        "totalTokens": { "type": "integer" },
+        "wallClockMs": { "type": "integer" },
+        "agentCommands": { "type": "integer" },
+        "testCommands": { "type": "integer" },
+        "modelCostUsd": { "type": "number" },
+        "praxisVerifyMs": { "type": "integer" }
+      }
+    },
+    "scopeChecks": {
+      "type": "object",
+      "properties": {
+        "filesChangedOutsideAllowed": { "type": "integer" },
+        "testsSkipped": { "type": "integer" },
+        "orphanModules": { "type": "integer" }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}
