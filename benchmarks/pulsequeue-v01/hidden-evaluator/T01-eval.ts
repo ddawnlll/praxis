@@ -35,10 +35,11 @@ async function main() {
   // 1. Route file exists
   check("AC-route-file-exists", existsSync(join(workspace, "src/routes/jobs.ts")));
 
-  // 2. Route is wired in server.ts
+  // 2. Route is wired in server.ts (flexible quote matching)
   try {
     const serverContent = await $`cat ${join(workspace, "src/server.ts")}`.text();
-    check("AC-route-wired-server", serverContent.includes("app.route('/jobs'") || serverContent.includes(".route('/jobs'"));
+    const wired = serverContent.includes("app.route('/jobs'") || serverContent.includes('app.route("/jobs"') || serverContent.includes(".route('/jobs'") || serverContent.includes('.route("/jobs"');
+    check("AC-route-wired-server", wired);
   } catch {
     check("AC-route-wired-server", false);
   }
@@ -54,7 +55,11 @@ async function main() {
   // 4. Full test suite passes
   try {
     const testOutput = await $`cd ${workspace} && bun test 2>&1`.text();
-    check("AC-full-suite", testOutput.includes("0 fail") && !testOutput.includes("fail\n"));
+    // "0 fail" with " pass" confirms success; reject explicit failure lines
+    const passCount = (testOutput.match(/\d+ pass/g) || []).reduce((s, m) => s + parseInt(m), 0);
+    const failLine = testOutput.match(/(\d+) fail/);
+    const failCount = failLine ? parseInt(failLine[1]) : -1;
+    check("AC-full-suite", passCount > 0 && failCount === 0);
   } catch (e: any) {
     check("AC-full-suite", false);
   }

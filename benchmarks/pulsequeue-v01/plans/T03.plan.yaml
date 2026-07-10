@@ -92,6 +92,15 @@ tasks:
           expectedExports:
             - "PersistentJobRepository"
             - "InMemoryJobRepository"
+          requiredPatterns:
+            - "export.*PersistentJobRepository"
+            - "export.*InMemoryJobRepository"
+          language: "TypeScript"
+      usageProofs:
+        - id: "persistence-usage"
+          commandRef: "CMD-CHECK-EXPORT-PERSIST"
+          proves:
+            - "PersistentJobRepository and InMemoryJobRepository exports exist"
 
     acceptanceCriteria:
       - id: "AC-state-persists"
@@ -263,6 +272,22 @@ commands:
       expectedOutputPatterns: ["0 errors", "0 warnings"]
       networkAllowed: false
       shellAllowed: true
+
+    - id: "CMD-CHECK-EXPORT-PERSIST"
+      kind: "final_validation"
+      command: "bun run /workspace/praxis/benchmarks/pulsequeue-v01/scripts/check-export.ts . src/queue/repository.ts PersistentJobRepository InMemoryJobRepository"
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
 
   hardDeniedCommands:
     - command: "rm -rf /"

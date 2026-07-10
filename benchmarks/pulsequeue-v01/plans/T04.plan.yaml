@@ -87,12 +87,26 @@ tasks:
           kind: "runtime_module"
           expectedExports:
             - "createJobRouter"
+          requiredPatterns:
+            - "export.*createJobRouter"
+          language: "TypeScript"
       integrationPoints:
         - id: "server-cancel"
           path: "src/server.ts"
           expectedRegistrationPatterns:
-            - "app.route('/jobs'"
-            - "/:id/cancel"
+            - "app.route"
+            - "cancel"
+      entrypoints:
+        - id: "post-cancel"
+          path: "POST /jobs/:id/cancel"
+          kind: "http_endpoint"
+          requiredReachabilityFrom:
+            - "server entrypoint"
+      usageProofs:
+        - id: "cancel-usage"
+          commandRef: "CMD-CHECK-EXPORT"
+          proves:
+            - "createJobRouter export verified (cancel route in same module)"
 
     acceptanceCriteria:
       - id: "AC-cancel-queued"
@@ -264,6 +278,22 @@ commands:
       expectedOutputPatterns: ["0 errors", "0 warnings"]
       networkAllowed: false
       shellAllowed: true
+
+    - id: "CMD-CHECK-EXPORT"
+      kind: "final_validation"
+      command: "bun run /workspace/praxis/benchmarks/pulsequeue-v01/scripts/check-export.ts . src/routes/jobs.ts createJobRouter"
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      networkAllowed: false
+      shellAllowed: true
+
+  validationEvidenceRules:
+    finalPromotionRequiresExactAllowedCommand: true
+    discoveryCommandsMayNotSatisfyFinalValidation: true
+    runtimeGrantCommandsCanSatisfyValidationOnlyIfGrantStatesValidationPurpose: true
 
   hardDeniedCommands:
     - command: "rm -rf /"

@@ -93,6 +93,15 @@ tasks:
           expectedExports:
             - "Worker"
             - "JobHandler"
+          requiredPatterns:
+            - "export.*Worker"
+            - "export.*JobHandler"
+          language: "TypeScript"
+      usageProofs:
+        - id: "worker-usage"
+          commandRef: "CMD-CHECK-EXPORT-WORKER"
+          proves:
+            - "Worker and JobHandler exports exist in worker.ts"
 
     acceptanceCriteria:
       - id: "AC-state-transitions"
@@ -246,6 +255,17 @@ commands:
       watchModeForbidden: true
       expectedExitCode: 0
       expectedOutputPatterns: ["0 errors", "0 warnings"]
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-CHECK-EXPORT-WORKER"
+      kind: "final_validation"
+      command: "bun run /workspace/praxis/benchmarks/pulsequeue-v01/scripts/check-export.ts . src/queue/worker.ts Worker JobHandler"
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
       networkAllowed: false
       shellAllowed: true
 

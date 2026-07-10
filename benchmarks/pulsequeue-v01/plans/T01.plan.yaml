@@ -90,20 +90,36 @@ tasks:
           kind: "runtime_module"
           expectedExports:
             - "createJobRouter"
+          requiredPatterns:
+            - "export.*createJobRouter"
+          language: "TypeScript"
       integrationPoints:
         - id: "server-setup"
           path: "src/server.ts"
           expectedImports:
             - "createJobRouter"
           expectedRegistrationPatterns:
-            - "app.route('/jobs',"
-            - "jobRouter"
+            - "app.route"
+            - "/jobs"
       entrypoints:
         - id: "post-jobs"
           path: "POST /jobs"
           kind: "http_endpoint"
           requiredReachabilityFrom:
             - "server entrypoint"
+      runtimeProbes:
+        - id: "create-job-probe"
+          commandRef: "CMD-PROBE-CREATE"
+          expectedOutputPatterns:
+            - "201"
+          expectedExitCode: 0
+          proves:
+            - "POST /jobs returns 201 for valid payload with Idempotency-Key."
+      usageProofs:
+        - id: "route-export-proved"
+          commandRef: "CMD-CHECK-EXPORT"
+          proves:
+            - "createJobRouter is exported from routes/jobs.ts"
 
     acceptanceCriteria:
       - id: "AC-route-file"
@@ -252,6 +268,30 @@ commands:
       watchModeForbidden: true
       expectedExitCode: 0
       expectedOutputPatterns: ["0 errors", "0 warnings"]
+      networkAllowed: false
+      shellAllowed: true
+
+    - id: "CMD-PROBE-CREATE"
+      kind: "runtime_probe"
+      command: "bun run /workspace/praxis/benchmarks/pulsequeue-v01/scripts/probe-create.ts ."
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
+      expectedOutputPatterns:
+        - "201"
+      networkAllowed: true
+      shellAllowed: true
+
+    - id: "CMD-CHECK-EXPORT"
+      kind: "final_validation"
+      command: "bun run /workspace/praxis/benchmarks/pulsequeue-v01/scripts/check-export.ts . src/routes/jobs.ts createJobRouter"
+      evidenceRequired: true
+      timeoutSeconds: 30
+      noTestsFoundIsFailure: false
+      watchModeForbidden: true
+      expectedExitCode: 0
       networkAllowed: false
       shellAllowed: true
 

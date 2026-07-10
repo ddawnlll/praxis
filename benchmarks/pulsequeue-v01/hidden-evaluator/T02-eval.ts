@@ -53,7 +53,10 @@ async function main() {
   // 4. Full test suite passes
   try {
     const testOutput = await $`cd ${workspace} && bun test 2>&1`.text();
-    check("AC-full-suite", testOutput.includes("0 fail"));
+    const passCount = (testOutput.match(/\d+ pass/g) || []).reduce((s, m) => s + parseInt(m), 0);
+    const failLine = testOutput.match(/(\d+) fail/);
+    const failCount = failLine ? parseInt(failLine[1]) : -1;
+    check("AC-full-suite", passCount > 0 && failCount === 0);
   } catch { check("AC-full-suite", false); }
 
   // 5. Typecheck passes
