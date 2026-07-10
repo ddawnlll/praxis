@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // @praxis/cli — Thin CLI orchestrator for PRAXIS Truth Kernel.
 // All gate logic lives in @praxis/kernel. This file only parses args,
 // delegates to kernel functions, and formats output.

@@ -35,15 +35,10 @@ dual purpose:
 - `commandRef` fields must match `^CMD-[A-Za-z0-9_.-]+$` (reference `exactAllowedCommand.id`).
 - `reports.repairPacketRequiredOnHoldOrFail: true` requires `repair.enabled: true`.
 
-### Legacy
-
-The old `planspec.json` (PlanSpec v5-alpha2, Pi P44/v4.11/P45 lineage) is preserved
-at the repository root as a historical reference. It is **not** the canonical PRAXIS
-v0.1 schema. See `docs/contracts/legacy-planspec-deprecation.md`.
-
 ### Related
 
 - Examples: `../examples/planspec/`
 - Fixtures: `../fixtures/planspec/`
-- Contracts: `../docs/contracts/`
+- Contracts: `../packages/contracts/src/planspec/types.ts`
 - Validation: `../scripts/validate-planspec-v0.1.py`
+- Schema source: `../praxis_planspec_v0_1.schema.yaml`

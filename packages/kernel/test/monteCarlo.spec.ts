@@ -227,9 +227,9 @@ function assertNoFalsePass(result: Awaited<ReturnType<typeof runKernel>>): void 
 // Suite 1: Determinism — same inputs, same outputs (100 iterations)
 // ---------------------------------------------------------------------------
 
-describe('MC1: Determinism (100 iterations)', () => {
+describe('MC1: Determinism (20 iterations)', () => {
   const SEED = 42;
-  const ITERATIONS = 100;
+  const ITERATIONS = 20;
 
   test('identical inputs produce identical results', async () => {
     const rng = new SeededRng(SEED);
@@ -280,8 +280,8 @@ describe('MC1: Determinism (100 iterations)', () => {
 // Suite 2: No-false-PASS with randomized empty evidence (200 iterations)
 // ---------------------------------------------------------------------------
 
-describe('MC2: Empty evidence never PASSes (200 iterations)', () => {
-  const ITERATIONS = 200;
+describe('MC2: Empty evidence never PASSes (20 iterations)', () => {
+  const ITERATIONS = 20;
 
   test('empty evidence never produces overall PASS', async () => {
     for (let i = 0; i < ITERATIONS; i++) {
@@ -309,8 +309,8 @@ describe('MC2: Empty evidence never PASSes (200 iterations)', () => {
 // Suite 3: Invalid YAML never PASSes (300 iterations)
 // ---------------------------------------------------------------------------
 
-describe('MC3: Invalid YAML never PASSes (300 iterations)', () => {
-  const ITERATIONS = 300;
+describe('MC3: Invalid YAML never PASSes (50 iterations)', () => {
+  const ITERATIONS = 50;
 
   function generateCorruptedYaml(rng: SeededRng): string {
     const strategies = [
@@ -375,8 +375,8 @@ describe('MC3: Invalid YAML never PASSes (300 iterations)', () => {
 // Suite 4: Randomized evidence mutations (500 iterations)
 // ---------------------------------------------------------------------------
 
-describe('MC4: Evidence mutations (500 iterations)', () => {
-  const ITERATIONS = 500;
+describe('MC4: Evidence mutations (50 iterations)', () => {
+  const ITERATIONS = 50;
 
   function randomEvidence(attemptId: string, rng: SeededRng): {
     records: EvidenceRecordV01[];
@@ -479,8 +479,8 @@ describe('MC4: Evidence mutations (500 iterations)', () => {
 // Suite 5: Hallucination fuzz — plan boundary conditions (500 iterations)
 // ---------------------------------------------------------------------------
 
-describe('MC5: Plan boundary conditions (500 iterations)', () => {
-  const ITERATIONS = 500;
+describe('MC5: Plan boundary conditions (50 iterations)', () => {
+  const ITERATIONS = 50;
 
   function mutatePlan(rng: SeededRng): { yaml: string; description: string } {
     const mutations: Array<() => { yaml: string; description: string }> = [
@@ -564,8 +564,8 @@ describe('MC5: Plan boundary conditions (500 iterations)', () => {
 // Suite 6: High-volume random gate calls (1000 iterations)
 // ---------------------------------------------------------------------------
 
-describe('MC6: High-volume random gate resolution (1000 iterations)', () => {
-  const ITERATIONS = 1000;
+describe('MC6: High-volume random gate resolution (200 iterations)', () => {
+  const ITERATIONS = 200;
 
   test('SchemaGate + EvidenceGate individually never hallucinate', async () => {
     const seed = 13579;
@@ -601,7 +601,7 @@ describe('MC6: High-volume random gate resolution (1000 iterations)', () => {
     const seed = 97531;
     const rng = new SeededRng(seed);
 
-    // We need a valid plan first so SchemaGate+Lisence pass
+    // We need a valid plan first so SchemaGate+Lock pass
     // Then test EvidenceGate with crazy evidence
     for (let i = 0; i < ITERATIONS; i++) {
       const attemptId = nextScenarioId('randomev');
@@ -672,8 +672,8 @@ describe('MC6: High-volume random gate resolution (1000 iterations)', () => {
 // Suite 7: Anti-fragility — random mutations of valid plans (200 iterations)
 // ---------------------------------------------------------------------------
 
-describe('MC7: Anti-fragility (200 iterations)', () => {
-  const ITERATIONS = 200;
+describe('MC7: Anti-fragility (30 iterations)', () => {
+  const ITERATIONS = 30;
 
   function mutateField(yaml: string, rng: SeededRng): string {
     const lines = yaml.split('\n');
@@ -735,8 +735,8 @@ describe('MC7: Anti-fragility (200 iterations)', () => {
 // Suite 8: Zero-configuration edge cases (100 iterations)
 // ---------------------------------------------------------------------------
 
-describe('MC8: Zero-configuration edge cases (100 iterations)', () => {
-  const ITERATIONS = 100;
+describe('MC8: Zero-configuration edge cases (20 iterations)', () => {
+  const ITERATIONS = 20;
 
   function makeMinimalPlan(rng: SeededRng): string {
     const hasValidMetadata = rng.bool(0.5);

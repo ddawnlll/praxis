@@ -5,7 +5,7 @@
   "type": "module",
   "description": "PRAXIS CLI — thin orchestrator for the Truth Kernel. No gate logic.",
   "bin": {
-    "praxis": "./dist/cli.js"
+    "praxis": "./src/cli.ts"
   },
   "main": "./src/cli.ts",
   "types": "./src/cli.ts",
@@ -18,7 +18,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "bun build ./src/cli.ts --outdir ./dist --target bun",
     "typecheck": "bun run tsc --noEmit",
     "test": "bun test",
     "prepublishOnly": "npm run build"
