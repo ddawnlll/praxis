@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxis.local/schemas/verification-policy-v1.schema.json",
+  "title": "VerificationPolicy",
+  "description": "praxis-protocol/v1 — human-owned verification policy that binds scope, effect classes, and authority requirements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "policyId",
+    "blastRadius",
+    "effectClasses",
+    "authority"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "praxis-protocol/v1"
+    },
+    "policyId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "blastRadius": {
+      "type": "string",
+      "enum": ["sandbox", "repo", "workspace", "staging", "production"]
+    },
+    "effectClasses": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reversible", "compensable", "irreversible"],
+      "properties": {
+        "reversible": { "$ref": "#/$defs/effectRule" },
+        "compensable": { "$ref": "#/$defs/effectRule" },
+        "irreversible": { "$ref": "#/$defs/effectRule" }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredIdentityId", "humanApprovalRequired"],
+      "properties": {
+        "requiredIdentityId": { "type": "string", "minLength": 1 },
+        "humanApprovalRequired": { "type": "boolean" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "allowedGlobs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "forbiddenGlobs": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exactAllowed": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "hardDenied": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "effectRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed", "requiresCompensationPlan"],
+      "properties": {
+        "allowed": { "type": "boolean" },
+        "requiresCompensationPlan": { "type": "boolean" },
+        "maxSteps": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    }
+  }
+}
