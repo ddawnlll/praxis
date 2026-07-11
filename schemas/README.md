@@ -2,43 +2,42 @@
 
 This directory contains canonical JSON Schema definitions for PRAXIS.
 
-## PlanSpec v0.1
+## PlanSpec v5-alpha2 (current)
 
-**File:** `planspec.v0.1.schema.yaml`
-**Version:** 0.1.0
-**Profile:** `praxis-v0.1`
+**File:** `planspec.v5alpha2.schema.json` (symlink → `../../planspec.json`)
+**Version:** `5.0.0-alpha2`
+**Profile:** `praxis-v5-alpha2`
 **Kind:** `ImplementationPlan`
 **JSON Schema Draft:** 2020-12
 
-The PlanSpec v0.1 schema is the PRAXIS-native implementation plan format. It serves
-dual purpose:
-
-1. **Implementation instructions for Claude Code** — tasks with `implementation.instructions`, suggested steps, anti-patterns, dependencies, and expected outputs.
-2. **Verification contract for PRAXIS Truth Kernel** — artifactPolicy, integrationContract, acceptanceCriteria, commands, evidence, gates (SchemaGate→LockGate→EvidenceGate→WiringGate→ExecGate→FinalGate), repair constraints, locking hashes, and ACCP reports.
+The v5-alpha2 schema is the active PRAXIS plan format. v0.1 is archived
+in `archive/v0.1/` for historical reference and to keep prior plan files
+(`issue-*.plan.yaml`) parsable during migration.
 
 ### Identity
 
 | Field | Value |
 |-------|-------|
-| `planSpecVersion` | `"0.1.0"` |
+| `planSpecVersion` | `"5.0.0-alpha2"` |
 | `kind` | `"ImplementationPlan"` |
-| `profile` | `"praxis-v0.1"` |
 
-### Key rules
+### Top-level required fields
 
-- Every task requires `artifactPolicy` with class, wiringRequired, reachabilityRequired, executionRequired.
-- `runtime_code` and `cli_command` require `integrationContract`.
-- `integrationContract.mode != "none"` requires at least one content array (declaredUnits, integrationPoints, exportSurfaces, usageProofs, runtimeProbes).
-- `runtime_code` and `cli_command` cannot use `integrationContract.mode: "none"`.
-- `acceptanceCriterion` cannot have both `verification.advisoryOnly: true` and `verification.canSatisfyFinalGate: true`.
-- `humanApproved: false` cannot satisfy FinalGate (`canSatisfyFinalGate: true` blocked).
-- `commandRef` fields must match `^CMD-[A-Za-z0-9_.-]+$` (reference `exactAllowedCommand.id`).
-- `reports.repairPacketRequiredOnHoldOrFail: true` requires `repair.enabled: true`.
+`$schema`, `planSpecVersion`, `kind`, `metadata`, `compatibility`,
+`intent`, `authority`, `enforcementRegistry`, `security`, `commands`,
+`locking`, `brief`, `waves`, `workspaces`, `validation`, `evidence`,
+`reports`.
 
-### Related
+## PlanSpec v0.1 (archived)
 
-- Examples: `../examples/planspec/`
-- Fixtures: `../fixtures/planspec/`
-- Contracts: `../packages/contracts/src/planspec/types.ts`
-- Validation: `../scripts/validate-planspec-v0.1.py`
-- Schema source: `../praxis_planspec_v0_1.schema.yaml`
+`archive/v0.1/planspec.v0.1.schema.yaml` — kept for parsing prior
+plan files during migration. Not the active schema.
+
+## Migration notes
+
+When introducing a new v0.6.x plan file:
+1. Use `planSpecVersion: "5.0.0-alpha2"` and `kind: "ImplementationPlan"`.
+2. Mirror v0.1 acceptance criteria into the v5-alpha2 `validation` block
+   per wave task.
+3. Do not delete or rewrite historical v0.1 plan files; the archive
+   keeps them reproducible.
