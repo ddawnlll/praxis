@@ -124,7 +124,7 @@ describe('protocol v1 — unknown required capabilities are rejected', () => {
     (v.capabilities as string[]).push('unknown.capability');
     const r = validate('protocol-v1', v);
     expect(r.ok).toBe(false);
-    expect(r.issues.some((i) => i.message.includes('must be equal to one of the allowed values'))).toBe(true);
+    expect(r.issues.some((i) => i.keyword === 'enum')).toBe(true);
   });
 });
 

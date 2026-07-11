@@ -1,15 +1,13 @@
 {
-  "name": "@praxis/protocol",
+  "name": "@praxis/ledger",
   "version": "0.6.0",
   "private": false,
   "type": "module",
-  "description": "PRAXIS protocol/v1 — canonical schemas, serialization, Ed25519 signing, and trust store.",
+  "description": "PRAXIS append-only Merkle evidence ledger with atomic writes and crash recovery.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./v1/*": "./src/v1/*",
-    "./schemas/*": "./src/schemas/*"
+    ".": "./src/index.ts"
   },
   "files": [
     "src",
@@ -19,7 +17,9 @@
     "test": "bun test",
     "typecheck": "bun run tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@praxis/protocol": "file:../protocol"
+  },
   "devDependencies": {
     "@types/node": "^22.10.5",
     "typescript": "^5.9.2"
