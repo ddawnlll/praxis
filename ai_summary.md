@@ -188,6 +188,7 @@ See `todo.md` for full task-level tracking.
 | `todo.md` | Tracking | Implementation todo list — all phases, tasks, checkboxes, progress formulas | Current state source |
 | `ai_summary.md` | Meta | This file — project state maintained by agents | Active |
 | `CLAUDE.md` | Meta | Agent instructions: read ai_summary.md first, update on changes | Active |
+| `.github/ISSUE_TEMPLATE/verity-work-item.yml` | GitHub | Required Verity work-item form: objective, risk, authority boundary, deterministic ACs, negative tests, rollout, model routing, evidence, DoD | NEW 2026-07-11; used by Verity milestone issues #14–#35 |
 | `reports/` | Reports | ACCP readiness reports (pi_reuse_readiness, architecture_lock_readiness) | ACCP YAML |
 | `reports/accp/planspec-v0.1-fitness-audit.accp.yaml` | Report | PlanSpec v0.1 fitness audit (ACCP-YAML) — scores planspec.json 3.6/10 v0.1, 7.0/10 advanced; verdict HOLD; strategy TASK_YAML_PLUS_ADVANCED_PLANSPEC | 2026-06-20 |
 | `reports/accp/planspec-v0.1-fitness-audit.summary.md` | Report | Markdown summary of the PlanSpec v0.1 fitness audit | 2026-06-20 |
@@ -464,6 +465,7 @@ These packages must NOT be copied into PRAXIS:
 
 | Date | Files | Summary |
 |------|-------|---------|
+| 2026-07-11 | `.github/ISSUE_TEMPLATE/verity-work-item.yml`, `ai_summary.md`; GitHub milestone `PRAXIS Verity 1.0`, labels, issues #14–#35 | **PRAXIS Verity 1.0 delivery program opened:** Added the canonical GitHub Issue Form with authority/trust-boundary fields, deterministic acceptance criteria, required negative tests, rollout/rollback, different-family model routing, evidence, and DoD. Created milestone `PRAXIS Verity 1.0`, wave 0–7 and model-routing labels, and 22 dependency-linked issues covering architecture lock through 300K replay/shadow/release qualification. Primary routing: GLM 5.2 for critical kernel/security, MiniMax M3 for evidence/integration, DeepSeek V4 Flash for conformance/adversarial qualification. |
 | 2026-07-10 | `packages/cli/src/cli.ts`, `packages/cli/package.json`, `packages/cli/tsconfig.json`, `packages/kernel/test/monteCarlo.spec.ts`, `planspec.json` (deleted), `docs/contracts/legacy-planspec-deprecation.md` (deleted), `schemas/README.md`, `ai_summary.md` | **CLI runtime fix (bun build + bun shebang) + MC test efficiency + schema cleanup:** Changed CLI from `tsc` build to `bun build --target bun` (230 modules → 0.76 MB bundle in 27ms). Changed shebang `#!/usr/bin/env node` → `#!/usr/bin/env bun`. Set `bin` to `./src/cli.ts` (Bun required runtime). Reduced Monte Carlo test iterations from 2900 to 440 — total runtime 23.65s (was 120s+ timeout). Deleted legacy `planspec.json` (v5-alpha2) and its deprecation doc. Updated `schemas/README.md`. |
 | 2026-07-08 | `packages/kernel/src/daemon/` (3 new files), `packages/mcp-server/` (new package), `packages/kernel/src/index.ts` (updated), `packages/cli/src/cli.ts` (updated), `package.json` (updated), `ai_summary.md` (updated) | **50x speedup: Praxis daemon + MCP server + incremental caching + parallel gates:** Created `praxisDaemon.ts` (persistent TCP server holding warm plan/lock/evidence state), `state.ts` (warm state + incremental evidence index with O(1) criterionId lookup), `gateCache.ts` (content-addressed SHA256 gate result cache — Turbopack-style). MCP server package (`@praxis/mcp-server`) exposes `praxis_verify`, `praxis_validate`, `praxis_status`, `praxis_cache_stats` as MCP tools over stdio — Hermes/Claude Code agents call Praxis without CLI overhead. CLI updated with `--daemon` mode (connects to warm daemon), `--gates` filter (skip expensive gates), `--parallel N` (ExecGate parallelism). `daemon` command for lifecycle. `--force` flag for lock overwrite. Identity-derived lock paths from previous session. All 205 tests pass. |
 | 2026-07-08 | `README.md` (rewritten) | **README rewrite for v0.4 accuracy:** Replaced stale design-phase README with current project state — all 6 gates built, CLI/plugin/server/desktop packages, 167 tests, v0.1→v0.4 progression, updated architecture diagram, project layout, and quick start. References old repo URL as canonical GitHub. |
@@ -490,6 +492,7 @@ These packages must NOT be copied into PRAXIS:
 
 ## Known Issues
 
+- **Current test baseline is red (verified 2026-07-11):** `bun test` reports 201 pass, 79 fail, and 1 unhandled dependency error. The primary cascade is the runtime still loading `schemas/planspec.v0.1.schema.yaml` after the canonical-schema layout changed; `@praxis/server` also lacks the `hono` dependency in the installed workspace. README/older summary claims of an all-green suite are stale until Verity migration work resolves the split-brain.
 - **Environment mismatch**: `pi/AGENTS.md` references macOS paths and tmux commands — not applicable to this Linux environment
 - **Legacy ai_summary.md**: `pi/ai_summary.md` has 1500+ lines of auto-generated file analysis that may be stale
 
@@ -497,6 +500,7 @@ These packages must NOT be copied into PRAXIS:
 
 ## Active Work
 
+- **PRAXIS Verity 1.0 (PLANNED / OPEN 2026-07-11):** GitHub milestone `PRAXIS Verity 1.0` contains 22 open, dependency-linked issues #14–#35 across waves W0–W7. W0 begins with architecture/SLO lock (#14), protocol/contracts (#15), and legacy freeze/migration (#16). The program targets eight deterministic gates, signed receipts, hermetic execution, Hephaestus v0.6 policy/client/golden replay, adversarial qualification, and a 30-day shadow release gate. Canonical issue form: `.github/ISSUE_TEMPLATE/verity-work-item.yml`.
 - **Plugin-First Pivot (COMPLETE 2026-06-18):** Two-pack documentation: (1) Pivot Decision Pack — ADR-013, decisions.md D-127–D-148, product-scope/phase-map rewrites, 4 new docs, 8 supersession notices. (2) Rebrand Alignment — README.md and architecture.md rewritten, identity.md created, 2 additional supersession notices, index.md updated. Both packs zipped.
 - **PlanSpec v0.1 Fitness Audit (COMPLETE 2026-06-20):** Audit-only analysis of planspec.json. Reports at `reports/accp/planspec-v0.1-fitness-audit.accp.yaml` + `.summary.md`. 16/16 ACs pass.
 - **Remaining MVP Architecture Design Pack (COMPLETE 2026-06-20):** Full 16-document design pack for EvidenceGate through plugin bridge. 17/17 ACs pass, 8.6/10 scorecard. Zip at `design/praxis-remaining-mvp-design-pack.zip`. Report at `reports/accp/remaining-mvp-design-pack.accp.yaml`.
@@ -532,3 +536,54 @@ WiringGate v0.1?            →  Static file matching only (05-wiringgate-design
 ExecGate safety?            →  exactAllowedCommands only (06-execgate-design.md)
 Next phase?                 →  P3 EvidenceGate implementation (WAITING for acceptance)
 ```
+
+---
+
+## Verity 1.0 Work (Session 2026-07-11, on branch `feat/verity-1.0`)
+
+This session addresses the 22-issue Verity 1.0 milestone (#14–#35). See
+`docs/verity-execution-plan.md` for the full plan and `docs/verity-architecture.md`
+for the architecture deliverable.
+
+**Status by wave:**
+- W0 #14 + #15 + #16: **DELIVERED** (architecture doc + protocol v1 schemas + migration policy)
+- W1 #17 + #18: **DELIVERED** (Ed25519 + canonical + Merkle ledger)
+- W1 #19: **FOUNDATION** (toolchain attestation hooks — runner image digest needs #24)
+- W1 #20: **FOUNDATION** (conformance vectors exist; cross-runtime harness is a CI concern)
+- W2 #21 + #23: **DELIVERED** (Admission + Integrity + Effect + Hephaestus v0.6)
+- W2 #22: **FOUNDATION** (path-only scope check; full import-graph deferred)
+- W3 #24 + #25: **OUT-OF-SCOPE-THIS-SESSION** (real OCI + Linux namespaces need CI infra)
+- W3 #26: **FOUNDATION** (HermeticExecGate contract + adapter interfaces)
+- W4 #27 + #28: **DELIVERED** (RecoveryGate + FinalReceiptGate + signed receipt lifecycle)
+- W4 #29: **FOUNDATION** (parity tests added; daemon needs hono dep fixed — pre-existing)
+- W5 #30: **DELIVERED** (Hephaestus v0.6 policy pack)
+- W5 #31: **DELIVERED** (versioned client with promotion binding + receipt verify)
+- W5 #32: **DELIVERED** (golden replay harness with 6 named scenarios)
+- W6 #33: **FOUNDATION** (CLI/MCP/SDKs ship; TS SDK shipped, Python SDK stubbed)
+- W7 #34: **DELIVERED** (fuzz + fault + mutation infrastructure + CI workflow)
+- W7 #35: **FAIL-CLOSED RELEASE GATE INSTALLED** (does NOT fake 30-day shadow or 300K replay; gate DENYs until artifacts exist)
+
+**Test totals:** 446 pass / 1 pre-existing fail (Monte Carlo #8) / 1 pre-existing error (hono dep in packages/server — future work).
+
+**New packages added (8):**
+- `packages/protocol/` — v1 schemas, canonical, Ed25519, trust store, migration
+- `packages/ledger/` — Merkle tree, append-only ledger, receipt storage
+- `packages/verity-gates/` — Admission, Integrity, Recovery, FinalReceipt
+- `packages/verity-policy/` — EffectGate + Hephaestus v0.6 policy pack
+- `packages/verity-replay/` — golden replay harness
+- `packages/verity-qual/` — fuzz, fault injection, fail-closed release gate
+- `packages/verity-client/` — versioned client with promotion binding
+
+**CI:**
+- `.github/workflows/verity-ci.yml` — test, replay, shadow, release-gate jobs
+- `scripts/verity-release-gate.ts` — CLI entry point
+- `scripts/replay-harness.ts` — 300K replay harness
+- `scripts/shadow-heartbeat.ts` — 30-day shadow SLO heartbeat
+
+**Known limitations (called out in PR body):**
+- #19 attestation depends on #24 (real runner image); foundation-only.
+- #22 full import-graph reachability deferred; path-only v0.6.
+- #24 + #25 need real Docker/Linux namespaces; interface + dry-run shipped.
+- #32 golden replay runs in-process; real cross-process replay runs in CI.
+- #34 Windows requires WSL or actual Windows runner; Linux + macOS covered.
+- #35 30-day shadow requires real wall-clock time; gate refuses to mark released until then.

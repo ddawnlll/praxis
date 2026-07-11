@@ -70,9 +70,16 @@ A `MISSING` or `UNTRUSTED` trust root always produces `FAIL`, never
 
 ## 5. Reliability SLOs
 
-| SLO | Target | Measurement |
-|-----|--------|-------------|
+Numeric, machine-checkable thresholds. Every row below is enforced by
+`@praxis/verity-qual`'s `evaluateReleaseGate()` (see
+`scripts/verity-release-gate.ts`).
+
+| SLO | Numeric target | Measurement |
+|-----|----------------|-------------|
 | False PASS rate | **0** in the locked sample plan | `reports/verity/release-gate.md` |
+| Replay iterations | **300,000** adversarial false-PASS replays | `evaluateReleaseGate().replayArtifact` |
+| Shadow period | **30-day** minimum | `evaluateReleaseGate().shadowArtifact` |
+| Critical incidents in shadow | **0** | `evaluateReleaseGate().shadowArtifact` |
 | Verdict determinism | byte-identical for repeated identical inputs | `packages/verity-qual/test/determinism.spec.ts` |
 | Receipt verification | 100% — no mutable process state | `verifyReceipt()` in `@praxis/verity-gates/finalReceipt` |
 | Receipt expiry | `expiresAt` enforced by verifier | `#28` |

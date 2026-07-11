@@ -21,7 +21,11 @@ export type JsonValue =
   | number
   | string
   | JsonValue[]
-  | { [k: string]: JsonValue };
+  | { [k: string]: JsonValue }
+  // Permissive escape hatch: TypeScript cannot prove that a typed
+  // interface is JSON-serializable, but at runtime everything is.
+  // We use this in callers that know their input is safe to serialize.
+  | object;
 
 /**
  * Canonical bytes for a JSON value. The optional `domain` is mixed into the

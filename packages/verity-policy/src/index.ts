@@ -1,1 +1,2 @@
-export const PLACEHOLDER = true;
+// @praxis/verity-policy — public API
+export * from './effectGate';
