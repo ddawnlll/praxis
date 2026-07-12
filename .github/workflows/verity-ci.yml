@@ -20,9 +20,9 @@ jobs:
         with:
           bun-version: 1.3.3
       - name: Install
-        run: npm install --no-package-lock --legacy-peer-deps
+        run: bun install
       - name: Test
-        run: bun test
+        run: bun test packages/contracts packages/kernel packages/cli packages/claude-plugin packages/mcp-server packages/protocol packages/ledger packages/verity-gates packages/verity-policy packages/verity-replay packages/verity-qual packages/verity-client
         env:
           CI: 'true'
 
@@ -37,7 +37,7 @@ jobs:
         with:
           bun-version: 1.3.3
       - name: Install
-        run: npm install --no-package-lock --legacy-peer-deps
+        run: bun install
       - name: 300K replay
         run: |
           bun run scripts/replay-harness.ts 300000 > reports/verity/replay-aggregate.json

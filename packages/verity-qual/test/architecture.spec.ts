@@ -156,8 +156,10 @@ describe('architecture AC-3: qualification thresholds are numeric and machine-ch
   });
   test('architecture doc documents the same thresholds', async () => {
     const fs = await import('node:fs');
-    const path = '/Users/hootie/src/praxis/docs/verity-architecture.md';
-    const raw = fs.readFileSync(path, 'utf-8');
+    const { resolve, dirname } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+    const docPath = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'docs', 'verity-architecture.md');
+    const raw = fs.readFileSync(docPath, 'utf-8');
     expect(raw).toContain('300,000');
     expect(raw).toContain('30-day');
     expect(raw).toContain('FinalReceiptGate');
