@@ -1,0 +1,205 @@
+name: PRAXIS Verity Work Item
+description: Contract, kernel, gate, integration, or qualification work for Verity 1.0
+title: "[VERITY] "
+labels:
+  - verity
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Define one bounded outcome and the deterministic evidence that will prove it.
+        Agent claims and prose-only acceptance criteria are not completion evidence.
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: State one observable outcome.
+      placeholder: RecoveryGate rejects promotion when the candidate base hash differs from active state.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: Describe the concrete failure mode, production risk, or user impact.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: work_type
+    attributes:
+      label: Work type
+      options:
+        - Architecture / ADR
+        - Contract / Schema
+        - Kernel / Gate
+        - Hermetic Runtime
+        - Hephaestus Integration
+        - Product Surface
+        - Qualification / Release
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk class
+      options:
+        - P0 — authority, cryptography, false-PASS, or irreversible effect
+        - P1 — kernel, evidence, isolation, or recovery
+        - P2 — integration, protocol, or product surface
+        - P3 — fixture, documentation, or mechanical refactor
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: List the components, contracts, files, and behavior in scope.
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: State what this issue deliberately will not implement.
+    validations:
+      required: true
+
+  - type: textarea
+    id: authority
+    attributes:
+      label: Authority and trust-boundary impact
+      placeholder: |
+        Trust boundary:
+        Can affect PASS: yes/no
+        Fail-closed behavior:
+        Human approval required:
+    validations:
+      required: true
+
+  - type: textarea
+    id: contracts
+    attributes:
+      label: Contracts and interfaces
+      placeholder: |
+        Consumes:
+        Produces:
+        Schema/protocol version:
+        Compatibility impact:
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies and parallelism
+      placeholder: |
+        Blocked by: #...
+        Blocks: #...
+        Parallel-safe with: #...
+        Shared-file conflicts:
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Deterministic acceptance criteria
+      description: Every criterion must define input, action, expected verdict, verification command, and evidence artifact.
+      placeholder: |
+        AC-1
+        Given:
+        When:
+        Then:
+        Expected verdict:
+        Verification command:
+        Evidence artifact:
+    validations:
+      required: true
+
+  - type: textarea
+    id: negative_tests
+    attributes:
+      label: Required negative tests
+      placeholder: |
+        - Missing input:
+        - Tampered input:
+        - Stale state:
+        - Duplicate delivery:
+        - Crash/restart:
+        - Unauthorized authority:
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollout
+    attributes:
+      label: Rollout, migration, and rollback
+      placeholder: |
+        Feature flag:
+        Migration:
+        Rollout stages:
+        Rollback procedure:
+        Existing data/receipt impact:
+    validations:
+      required: true
+
+  - type: dropdown
+    id: primary_model
+    attributes:
+      label: Primary model
+      options:
+        - GLM 5.2
+        - MiniMax M3
+        - DeepSeek V4 Flash
+        - Human-owned
+    validations:
+      required: true
+
+  - type: dropdown
+    id: review_model
+    attributes:
+      label: Independent review model
+      description: Must differ from the primary model.
+      options:
+        - GLM 5.2
+        - MiniMax M3
+        - DeepSeek V4 Flash
+        - Human security review
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Required evidence
+      placeholder: |
+        - Unit/integration test output:
+        - Mutation/fuzz report:
+        - Replay fixture:
+        - Verification receipt:
+        - Benchmark or resource data:
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: definition_of_done
+    attributes:
+      label: Definition of done
+      options:
+        - label: Acceptance criteria have deterministic verification commands.
+          required: true
+        - label: Negative and fail-closed cases are specified.
+          required: true
+        - label: Rollback or an explicit no-migration justification is defined.
+          required: true
+        - label: Primary and reviewer use different model families.
+          required: true
+        - label: Documentation and compatibility impact are included.
+          required: true

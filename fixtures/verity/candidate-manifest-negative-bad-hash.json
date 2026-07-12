@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "praxis-protocol/v1",
+  "candidateId": "cand-neg-2",
+  "policyId": "policy-1",
+  "baseHash": "not-a-valid-hex-hash",
+  "intent": "test",
+  "submittedBy": { "identityId": "a", "keyId": "b" },
+  "submittedAt": "2026-07-11T00:00:00Z"
+}

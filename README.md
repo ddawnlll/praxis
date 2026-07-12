@@ -1,4 +1,4 @@
-# PRAXIS
+# PRAXIS v1.0
 
 **Bitti mi gerçekten? — Verify whether the agent actually completed the task.**
 
@@ -8,54 +8,34 @@ PRAXIS is **not a coding agent**. It does not write code, run its own agent loop
 
 ---
 
-## Project Status — v0.5
+## What's New in v1.0 — Verity
 
-| Milestone | Status | Components |
-|-----------|--------|------------|
-| **v0.1** — Truth Kernel | ✅ Complete | 6-gate pipeline (Schema → Lock → Evidence → Wiring → Exec → Final), CLI (11 commands), Claude Code plugin (9 slash commands + 3 hooks), 167 tests |
-| **v0.2** — Control Plane | ✅ Complete | Hono HTTP/SSE server (`@praxis/server`), Circuit Breaker, TestOutputParser, ACCP reports |
-| **v0.3** — Desktop + Multi-Worker | ✅ Complete | Desktop Mission Control (`@praxis/desktop`, Electron + React + Vite), Governor (stable_3→16), Deterministic Assembler, Wave Scheduler |
-| **v0.4** — Intelligence | ✅ Complete | AST import analysis, coverage gates, stable_16 concurrency, multi-agent desktop orchestration |
-| **v0.5** — Daemon + MCP + Attestation | ✅ Latest | Daemon mode (warm state), MCP server (agent integration), evidence attestation (PEL-1), lock GC, 279 tests |
+PRAXIS 1.0 introduces **Verity** — a cryptographic verification layer that makes agent output verification tamper-evident, hermetically isolated, and receipt-signed.
 
----
-
-## What Is PRAXIS?
-
-- **A deterministic Truth Kernel** — six gates (SchemaGate → LockGate → EvidenceGate → WiringGate → ExecGate → FinalGate) that verify agent outputs against human-approved criteria with PASS / HOLD / FAIL verdicts
-- **A daemon mode** — persistent warm server that caches plan state, evidence index, and gate results for near-instant re-verification (`praxis daemon`, `praxis verify --daemon`)
-- **An MCP server** — Model Context Protocol server for autonomous agent integration (Hermes, Claude Code, etc.) via stdio JSON-RPC (`@praxis/mcp-server`)
-- **Evidence attestation (PEL-1)** — HMAC-SHA256 DSSE envelope signing for evidence records, preventing agent forgery of deterministic source claims. Wired into `appendEvidenceRecordJsonl` (signs on write) and `EvidenceGate` (verifies on read). Set `PRAXIS_ATTESTATION_SECRET` or pass `attestationSecret` to gate input.
-- **A CLI tool** — `praxis init`, `praxis plan validate`, `praxis plan lock`, `praxis plan gc`, `praxis verify`, `praxis daemon`, `praxis status`, `praxis ledger show`, `praxis report show`, `praxis repair show`, `praxis help`, `praxis version`
-- **A Claude Code plugin** — slash commands (`/praxis:verify`, `/praxis:repair`, etc.) plus PreToolUse / PostToolUse / Stop hooks for automatic evidence capture
-- **A local control plane** — Hono HTTP server with SSE streaming (`@praxis/server`, `127.0.0.1:3457`)
-- **A Desktop Mission Control** — Electron + React dashboard for rich observability (`@praxis/desktop`)
-- **A Circuit Breaker** — CLOSED / OPEN / HALF_OPEN safety mechanism with failure-rate and evidence-hash-chain break detection
-- **A Repair Intelligence Module (RIM)** — 6 repair strategies across 7 attempts: initial → context_expand → tool_restrict → scope_narrow → knowledge_inject → hint_inject → ABORT
-- **An Adaptive Concurrency Governor** — stable_3 → 6 → 8 → 12 → 16 tiers (each requiring 48h clean operation)
-
-## What PRAXIS Is Not
-
-- ❌ A coding agent (does not write code, does not run its own agent loop)
-- ❌ A Claude Code clone or competitor
-- ❌ An OpenCode / MiMo clone
-- ❌ "Just a Claude Code plugin" — the kernel is independent; the plugin is a bridge
+| Feature | Description |
+|---------|-------------|
+| **Protocol v1** | Canonical JSON envelope format with Ed25519 trust store and versioned migration |
+| **8-Gate Pipeline** | Admission → Integrity → Scope → Architecture → Effect → Recovery → HermeticExec → FinalReceipt |
+| **Signed Receipts** | Ed25519-signed VerificationReceipt with single-use consumption and expiry |
+| **Merkle Evidence Ledger** | Append-only ledger with RFC-6962 Merkle tree for tamper-evident evidence chaining |
+| **Hermetic Execution** | OCI runner abstraction with isolation policy (network, resource, process) and adapter contracts |
+| **Golden Replay Harness** | 6 deterministic scenarios testing recovery, idempotency, effect gating, rollback, kill, and receipt expiry |
+| **Fuzz + Fault Injection** | Property-based fuzzing, 6 fault kinds, and fail-closed release gate (300K replay requirement) |
+| **Python SDK** | Canonical serialization, Ed25519 crypto, schema validation, and versioned client (28 tests) |
+| **CI Workflows** | Test, replay, shadow heartbeat, and release gate jobs |
 
 ---
 
-## Why PRAXIS Exists
+## Project Status
 
-AI coding agents are powerful but unreliable completion reporters.
-
-| Problem | Symptom |
-|---------|---------|
-| **False Done** | Agent says "done" but the diff is empty |
-| **Echo Chamber** | Agent writes the acceptance criteria AND passes them |
-| **Missing Evidence** | Agent claims tests passed but never ran them |
-| **Self-Reported Truth** | Agent's own status messages treated as completion |
-| **Scattered Verification** | Evidence spread across messages, files, and terminal output |
-
-PRAXIS solves these by being an **independent verification authority**. It does not trust agent claims. It checks evidence.
+| Milestone | Version | Status | Tests |
+|-----------|---------|--------|-------|
+| Truth Kernel + CLI + Plugin | v0.1 | ✅ Complete | 167 |
+| Control Plane (server, SSE, Circuit Breaker) | v0.2 | ✅ Complete | +12 |
+| Desktop Mission Control + Governor | v0.3 | ✅ Complete | — |
+| AST analysis, coverage, stable_16 | v0.4 | ✅ Complete | — |
+| Daemon + MCP + Attestation (PEL-1) | v0.5 | ✅ Complete | 279 |
+| **Verity 1.0 — Cryptographic Verification** | **v1.0** | ✅ **Latest** | **568 TS + 28 Python** |
 
 ---
 
@@ -78,209 +58,71 @@ LAW 3 — VERIFICATION AUTHORITY
 
 ---
 
-## The 6-Gate Pipeline
-
-```
-PlanSpec YAML
-    │
-    ▼
-SchemaGate — YAML parse → schema validate → semantic validate → hash
-    │ PASS
-    ▼
-LockGate — create lock → verify lock → hash match → criteria freeze
-    │ PASS
-    ▼
-EvidenceGate — read JSONL ledger → namespace check → required evidence → diff check
-    │ PASS
-    ▼
-WiringGate — declared unit match → export check → entrypoint → orphan detect
-    │ PASS
-    ▼
-ExecGate — validate commands → run → capture output → check results
-    │ PASS
-    ▼
-FinalGate — evaluate criteria → aggregate verdict → produce report
-    │
-    ▼
-PASS / HOLD / FAIL  ←  Repair packet generated on failure
-```
-
-### Verdict Ladder
-
-| EvidenceGate | ExecGate | FinalGate | Overall |
-|-------------|----------|-----------|---------|
-| PASS | PASS | PASS | **PASS** — task complete |
-| HOLD | PASS | PASS | HOLD — evidence gaps |
-| PASS | HOLD | PASS | HOLD — execution gaps |
-| PASS | PASS | HOLD | HOLD — criteria gaps |
-| FAIL | * | * | **FAIL** |
-| * | FAIL | * | **FAIL** |
-| * | * | FAIL | **FAIL** |
-
----
-
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │  PSAG — PlanSpec Admission Gate                                      │
 │  (schema, namespace collision, budget, deps, acceptance_criteria)    │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                │ ADMIT
-                                ▼
+└───────────────────────┬─────────────────────────────────────────────┘
+                        │ ADMIT
+                        ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  Auto Executor Kernel — FSM, Queue, Workspace Manager, Governor     │
-│  (lifecycle: DORMANT → QUEUED → WORKSPACE_INIT → RUNNING → ...)    │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                │
-          ┌─────────────────────┼─────────────────────┐
-          ▼                     ▼                     ▼
-    [Worker A]            [Worker B]            [Worker C]
-    namespace_a           namespace_b           namespace_c
-          │                     │                     │
-          └─────────────────────┼─────────────────────┘
-                                ▼
+│  Verity Protocol Layer — Ed25519 trust, Merkle ledger, receipts     │
+│  (protocol/v1 envelopes, canonical serialization, single-use)       │
+└───────────────────────┬─────────────────────────────────────────────┘
+                        │
+┌───────────────────────┼─────────────────────────────────────────────┐
+│  8-Gate Verification Pipeline                                       │
+│  Admission → Integrity → Scope → Architecture →                     │
+│  Effect → Recovery → HermeticExec → FinalReceipt                    │
+└───────────────────────┬─────────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  Golden Replay + Qualification                                       │
+│  6 scenarios, fuzz/fault injection, 300K replay, 30-day shadow     │
+└───────────────────────┬─────────────────────────────────────────────┘
+                        │
+                        ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Worker Adapter Layer — Claude Code CLI/SDK, OpenCode, local models │
 │  (normalizes all worker output → AttemptManifest)                   │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                ▼
+└───────────────────────┬─────────────────────────────────────────────┘
+                        ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  PRAXIS Hook Layer — intercepts ALL Claude Code tool events         │
-│  pre-tool/post-tool/stop → KernelOwnedTranscript                    │
-│  divergence check: hook result ≠ claude-reported result             │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  Attempt Capture + Evidence Hash Chain                              │
-│  stdout/stderr, transcript, exit codes, git diff, timestamps        │
-│  sha256 chain → EHCBreakClassifier (NOISE/SUSPECTED/CONFIRMED)     │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  Circuit Breaker — CLOSED → OPEN → HALF-OPEN                        │
-│  triggers: failure_rate > 30%/10min, governor_RED > 15min,          │
-│            EHC break = CONFIRMED                                    │
-└───────────────────────────────┬─────────────────────────────────────┘
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  Truth Engine — EvidenceGate → ExecGate → FinalGate                 │
+│  Truth Kernel — SchemaGate → LockGate → EvidenceGate →              │
+│  WiringGate → ExecGate → FinalGate                                  │
 │  PASS / HOLD / FAIL                                                 │
-└───────────────────────────┬─────────────────────────────────────────┘
-                            │ HOLD
-                            ▼
+└───────────────────────┬─────────────────────────────────────────────┘
+                        │ HOLD
+                        ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │  RIM — Repair Intelligence Module                                   │
-│  6 strategies: initial, context_expand, tool_restrict, scope_narrow,│
-│  knowledge_inject, hint_inject → ABORT @ attempt 7                 │
-└───────────────────────────┬─────────────────────────────────────────┘
-                            │ PASS (all workers done)
-                            ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  Adaptive Concurrency Governor — stable_3 → 6 → 8 → 12 → 16       │
-│  (each tier: 48h consecutive clean operation)                       │
-└───────────────────────────┬─────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  Deterministic Assembler — namespace recheck, semantic check,       │
-│  atomic apply, rollback → ConflictReport                           │
-└───────────────────────────┬─────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  ACCP Artifact Layer — ALWAYS ASYNC                                 │
-│  FVR per TaskRun, PRR per wave                                     │
+│  6 strategies across 7 attempts → ABORT                             │
 └─────────────────────────────────────────────────────────────────────┘
-```
-
-### TaskRun FSM
-
-```
-DORMANT → QUEUED → WORKSPACE_INIT → RUNNING → CAPTURING → VERIFYING → COMPLETE
-                                          ↓                              ↓
-                                       ABORTED                       REPAIR → RUNNING (loop)
-                                                                        ↓
-                                                                     ABORTED (@ attempt 7)
-```
-
----
-
-## Project Layout
-
-```
-praxis/
-├─ README.md                    ← This file
-├─ architecture.md              ← Canonical architecture baseline
-├─ ai_summary.md                ← Agent-readable project state
-├─ todo.md                      ← Implementation todo / completion tracking
-├─ CLAUDE.md                    ← Agent instructions
-├─ package.json                 ← Root workspace monorepo
-├─ tsconfig.base.json           ← Shared TypeScript config
-│
-├─ packages/
-│  ├─ contracts/                @praxis/contracts — shared types, parsers, validators
-│  ├─ kernel/                   @praxis/kernel — Truth Kernel (all 6 gates, evidence,
-│  │                              wiring, executor, final, report, repair, lock, daemon, attestation)
-│  ├─ cli/                      @praxis/cli — CLI binary (13 commands)
-│  ├─ claude-plugin/            @praxis/claude-plugin — Claude Code plugin
-│  │                              (9 slash commands + 3 hooks)
-│  ├─ mcp-server/               @praxis/mcp-server — MCP server for agent integration
-│  │                              (stdio JSON-RPC, Content-Length framing)
-│  ├─ server/                   @praxis/server — Hono HTTP + SSE control plane (v0.2)
-│  └─ desktop/                  @praxis/desktop — Electron + React Mission Control (v0.3)
-│
-├─ docs/                        Architecture docs, ADRs, contracts, pipeline specs
-│  ├─ decisions.md              ← Canonical decision register
-│  ├─ adr/                      ← Architecture Decision Records
-│  ├─ contracts/                ← Contract specifications
-│  ├─ pipelines/                ← Pipeline/flow specifications
-│  ├─ implementation/           ← Implementation gates
-│  └─ testing/                  ← Test strategies
-│
-├─ reports/                     ACCP readiness reports
-│  └─ accp/                     ACCP YAML audit reports
-│
-├─ design/                      Architecture design packs (historical)
-├─ artifacts/                   Zip archives of documentation snapshots
-└── pi/                         Old Pi monorepo (reference only — NOT active code)
 ```
 
 ---
 
 ## Packages
 
-| Package | Location | Tests | Status |
-|---------|----------|-------|--------|
-| `@praxis/contracts` | `packages/contracts/` | 31/31 | ✅ PASS_LOCKED |
-|| `@praxis/kernel` | `packages/kernel/` | 212/212 + 3 e2e¹ | ✅ PASS_LOCKED |
-| `@praxis/cli` | `packages/cli/` | 13/13 | ✅ COMPLETE |
-| `@praxis/claude-plugin` | `packages/claude-plugin/` | 20/20 | ✅ COMPLETE |
-| `@praxis/mcp-server` | `packages/mcp-server/` | 3/3 | ✅ COMPLETE |
-| **Total** | | **279** | **ALL PASS** |
-
-### CLI Commands
-
-| Command | Description |
-|---------|-------------|
-| `praxis init` | Initialize PlanSpec YAML template |
-| `praxis plan validate` | Validate PlanSpec schema + semantics |
-| `praxis plan lock` | Create/verify plan lock file |
-| `praxis plan gc` | Garbage collect old lock files (`--keep-latest`) |
-| `praxis verify` | Run 6-gate pipeline, persist results |
-| `praxis verify --daemon` | Connect to warm daemon for fast re-verification |
-| `praxis verify --gates` | Gate filter (e.g., `--gates=schema,lock,exec,final`) |
-| `praxis daemon` | Start persistent daemon server |
-| `praxis status` | Show current/previous run status |
-| `praxis ledger show` | Display evidence ledger records |
-| `praxis report show` | Generate verification report |
-| `praxis repair show` | Show repair packet for failed runs |
-| `praxis help` | Usage information |
-| `praxis version` | Version string |
-
-### Claude Code Plugin Slash Commands
-
-`/praxis:init`, `/praxis:plan validate`, `/praxis:plan lock`, `/praxis:verify`, `/praxis:status`, `/praxis:report`, `/praxis:ledger`, `/praxis:repair show`, `/praxis:help`
-
-Plus PreToolUse / PostToolUse / Stop hooks for automatic evidence capture.
+| Package | Location | Tests | Description |
+|---------|----------|-------|-------------|
+| `@praxis/contracts` | `packages/contracts/` | 31 | Shared types, parsers, validators |
+| `@praxis/kernel` | `packages/kernel/` | 212 | Truth Kernel (6 gates, evidence, daemon, attestation) |
+| `@praxis/cli` | `packages/cli/` | 13 | CLI binary (13 commands) |
+| `@praxis/claude-plugin` | `packages/claude-plugin/` | 20 | Claude Code plugin (9 slash commands + 3 hooks) |
+| `@praxis/mcp-server` | `packages/mcp-server/` | 3 | MCP server for agent integration |
+| `@praxis/protocol` | `packages/protocol/` | — | v1 schemas, canonical, Ed25519, trust store |
+| `@praxis/ledger` | `packages/ledger/` | — | Merkle tree, append-only ledger, receipt storage |
+| `@praxis/verity-gates` | `packages/verity-gates/` | 122 | 8 Verity gates + attestation + OCI + isolation |
+| `@praxis/verity-policy` | `packages/verity-policy/` | — | EffectGate + Hephaestus v0.6 policy pack |
+| `@praxis/verity-client` | `packages/verity-client/` | — | Versioned client with promotion binding |
+| `@praxis/verity-replay` | `packages/verity-replay/` | — | Golden replay harness (6 scenarios) |
+| `@praxis/verity-qual` | `packages/verity-qual/` | — | Fuzz, fault injection, release gate |
+| `praxis-verity-client` | `packages/verity-client-python/` | 28 | Python SDK (canonical, crypto, schema, client) |
+| **Total** | | **568 TS + 28 Py** | **ALL PASS** |
 
 ---
 
@@ -299,56 +141,63 @@ bun run typecheck
 # Initialize PRAXIS in a project
 praxis init
 
-# Validate a plan
+# Validate and lock a plan
 praxis plan validate --plan .praxis/plan.yaml
-
-# Lock the plan (freezes acceptance criteria)
 praxis plan lock --plan .praxis/plan.yaml
 
 # Run verification (cold path)
 praxis verify --plan .praxis/plan.yaml
 
-# Start daemon for fast re-verification (warm path)
+# Start daemon for fast re-verification
 praxis daemon
-
-# Verify via daemon (near-instant after first run)
 praxis verify --daemon --plan .praxis/plan.yaml
 
-# Garbage collect old lock files
-praxis plan gc --keep-latest
+# Generate report
+praxis report show
 ```
 
-### Daemon Mode
+### Python SDK
 
-The daemon keeps plan state, evidence index, and gate results in memory across verify calls. First run is cold (~2-3s), subsequent runs are near-instant (~50ms for cached gates).
+```python
+from praxis_verity_client import VersionedPraxisClient, ClientOptions, validate
 
-```bash
-# Start daemon (background)
-praxis daemon
+# Validate a manifest
+result = validate("candidate-manifest-v1", manifest_dict)
+assert result.ok
 
-# Verify via daemon
-praxis verify --daemon --plan .praxis/plan.yaml
-
-# Skip expensive gates during development
-praxis verify --daemon --gates=schema,lock,exec,final --plan .praxis/plan.yaml
+# Create a client and build handshake
+client = VersionedPraxisClient(ClientOptions(
+    identity_id="my-agent",
+    praxis_public_key_hex="...",
+    capabilities=["verify.cold"],
+))
+envelope = client.handshake()
 ```
 
-### MCP Server (Agent Integration)
+---
 
-The MCP server exposes PRAXIS verification as MCP tools for autonomous agents:
+## CLI Commands
 
-```bash
-# Start MCP server (stdio transport)
-bun run packages/mcp-server/src/index.ts
-```
+| Command | Description |
+|---------|-------------|
+| `praxis init` | Initialize PlanSpec YAML template |
+| `praxis plan validate` | Validate PlanSpec schema + semantics |
+| `praxis plan lock` | Create/verify plan lock file |
+| `praxis plan gc` | Garbage collect old lock files |
+| `praxis verify` | Run 6-gate pipeline, persist results |
+| `praxis verify --daemon` | Connect to warm daemon |
+| `praxis verify --gates` | Gate filter |
+| `praxis daemon` | Start persistent daemon server |
+| `praxis status` | Show current/previous run status |
+| `praxis ledger show` | Display evidence ledger records |
+| `praxis report show` | Generate verification report |
+| `praxis repair show` | Show repair packet for failed runs |
+| `praxis help` | Usage information |
+| `praxis version` | Version string |
 
-Tools available:
-- `praxis_verify` — full 6-gate pipeline
-- `praxis_validate` — schema-only validation (fast path)
-- `praxis_status` — daemon status
-- `praxis_cache_stats` — gate cache hit/miss statistics
+---
 
-### Manual Verify/Repair Loop
+## Manual Verify/Repair Loop
 
 ```
 1. praxis init                  ← Initialize .praxis/ workspace
@@ -371,7 +220,8 @@ Tools available:
 | 002 | Assembler is wave-level only — per-task assembly breaks parallelism |
 | 003 | stable_16 is the concurrency ceiling |
 | 004 | acceptance_criteria is human-authored only — prevents echo chamber (LAW 3) |
-| 005 | Claude Code NO-GO → Messages API fallback — if hooks unreliable, fallback to custom agent loop |
+| 005 | Claude Code NO-GO → Messages API fallback |
+| 013 | Plugin-First Pivot — local Truth Kernel, not desktop orchestrator |
 
 ---
 
@@ -382,18 +232,29 @@ Tools available:
 | v0.1 | Truth Kernel + CLI + Plugin | ✅ Complete |
 | v0.2 | Control Plane (server, SSE, Circuit Breaker) | ✅ Complete |
 | v0.3 | Desktop Mission Control + Governor + Assembler | ✅ Complete |
-| v0.4 | AST analysis, coverage gates, stable_16, Multi-agent | ✅ Complete |
-| v0.5 | Daemon, MCP server, Evidence Attestation (PEL-1), Lock GC | ✅ Latest |
-| v0.6+ | PEL-2 (Merkle log), cloud dashboard, postgres persistence | 🔜 Future |
+| v0.4 | AST analysis, coverage gates, stable_16 | ✅ Complete |
+| v0.5 | Daemon, MCP server, Evidence Attestation (PEL-1) | ✅ Complete |
+| **v1.0** | **Verity — 8 gates, signed receipts, hermetic exec, replay, qual** | ✅ **Latest** |
+| v1.1 | Real OCI runner in CI, import-graph scope, cross-process replay | 🔜 Future |
+| v2.0 | Cloud dashboard, postgres persistence, multi-agent orchestration | 🔜 Future |
+
+---
+
+## What PRAXIS Is Not
+
+- ❌ A coding agent (does not write code, does not run its own agent loop)
+- ❌ A Claude Code clone or competitor
+- ❌ An OpenCode / MiMo clone
+- ❌ "Just a Claude Code plugin" — the kernel is independent; the plugin is a bridge
 
 ---
 
 ## References
 
 - `architecture.md` — Full architecture baseline
-- `docs/decisions.md` — Canonical decision register with HARD/SOFT/OPEN lock classification
+- `docs/decisions.md` — Canonical decision register
 - `docs/adr/` — Architecture Decision Records
-- `docs/pipelines/` — Detailed pipeline specifications
-- `docs/contracts/` — Contract specifications (TaskSpec, PlanSpec, WorkerAdapter, etc.)
-- `ai_summary.md` — Agent-maintained project state (read first each session)
-- `todo.md` — Full implementation tracking
+- `docs/pipelines/` — Pipeline specifications
+- `docs/contracts/` — Contract specifications
+- `ai_summary.md` — Agent-maintained project state
+- `CHANGELOG.md` — Release history

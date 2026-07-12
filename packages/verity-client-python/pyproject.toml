@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "praxis-verity-client"
+version = "0.6.0"
+description = "Praxis Verity Protocol v1 Python client — receipt verification, promotion binding, canonical serialization."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = [
+    "cryptography>=41.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov"]
+
+[tool.setuptools.packages.find]
+include = ["praxis_verity_client*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

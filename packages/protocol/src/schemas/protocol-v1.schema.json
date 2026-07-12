@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxis.local/schemas/protocol-v1.schema.json",
+  "title": "PraxisProtocolEnvelope",
+  "description": "Top-level transport envelope for praxis-protocol/v1. Carries a versioned payload between Praxis and Hephaestus.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolVersion",
+    "envelopeKind",
+    "sender",
+    "capabilities",
+    "payload",
+    "issuedAt",
+    "nonce"
+  ],
+  "properties": {
+    "protocolVersion": {
+      "type": "string",
+      "const": "praxis-protocol/v1"
+    },
+    "envelopeKind": {
+      "type": "string",
+      "enum": [
+        "capability.handshake",
+        "verify.request",
+        "verify.response",
+        "promote.request",
+        "promote.response",
+        "receipt.audit",
+        "kill.signal",
+        "shadow.report"
+      ]
+    },
+    "sender": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identityId", "keyId"],
+      "properties": {
+        "identityId": { "type": "string", "minLength": 1 },
+        "keyId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "verify.cold",
+          "verify.daemon",
+          "promote.authority",
+          "receipt.issue",
+          "receipt.consume",
+          "kill.authority",
+          "shadow.observe",
+          "policy.hepheastus.v0.6"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expiresAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "nonce": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 256
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}

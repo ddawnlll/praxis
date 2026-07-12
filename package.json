@@ -7,7 +7,14 @@
     "packages/kernel",
     "packages/cli",
     "packages/claude-plugin",
-    "packages/mcp-server"
+    "packages/mcp-server",
+    "packages/protocol",
+    "packages/ledger",
+    "packages/verity-gates",
+    "packages/verity-policy",
+    "packages/verity-client",
+    "packages/verity-replay",
+    "packages/verity-qual"
   ],
   "scripts": {
     "test": "bun run --filter='@praxis/*' test",

@@ -25,7 +25,9 @@ export interface SchemaLoadResult {
 export function readPlanSpecSchema(basePath?: string): SchemaLoadResult {
   const diagnostics: Diagnostic[] = [];
   const root = basePath ?? process.cwd();
-  const schemaPath = resolve(root, 'schemas', 'planspec.v0.1.schema.yaml');
+  // v0.1 is archived (per #16) but remains parseable during migration.
+  // The canonical active schema is v5-alpha2 at planspec.v5alpha2.schema.json.
+  const schemaPath = resolve(root, 'schemas', 'archive', 'v0.1', 'planspec.v0.1.schema.yaml');
 
   let raw: string;
   try {

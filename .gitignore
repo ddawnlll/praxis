@@ -18,6 +18,7 @@ Thumbs.db
 
 # Misc / agent detritus
 .mimocode/
+.commandcode/
 
 # Bun lockfiles (generated, not committed in workspace monorepo)
 bun.lock
@@ -29,3 +30,10 @@ bun.lock
 *.swp
 *.swo
 *~
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/

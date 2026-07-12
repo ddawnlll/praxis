@@ -265,7 +265,7 @@ describe('PlanLock helpers', () => {
     expect(lock.lockVersion).toBe('praxis-plan-lock/v0.1');
     expect(lock.planId).toBe(sv.plan!.metadata.planId);
     expect(lock.hashes.planHash).toBe(sv.hashes!.planHash);
-    expect(lock.source.schemaPath).toBe('schemas/planspec.v0.1.schema.yaml');
+    expect(lock.source.schemaPath).toBe('schemas/archive/v0.1/planspec.v0.1.schema.yaml');
   });
 
   test('readPlanLockYaml reads a valid lock', () => {

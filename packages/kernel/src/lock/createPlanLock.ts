@@ -30,7 +30,7 @@ export function createPlanLock(
     hashes,
     source: {
       planPath: options?.planPath,
-      schemaPath: options?.schemaPath ?? 'schemas/planspec.v0.1.schema.yaml',
+      schemaPath: options?.schemaPath ?? 'schemas/archive/v0.1/planspec.v0.1.schema.yaml',
       contractsPackageVersion: options?.contractsPackageVersion,
     },
   };

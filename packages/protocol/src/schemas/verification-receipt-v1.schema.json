@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxis.local/schemas/verification-receipt-v1.schema.json",
+  "title": "VerificationReceipt",
+  "description": "praxis-protocol/v1 — signed, base-bound, expiring, single-use artifact. PASS only when every required gate result is PASS and the receipt is verified.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "receiptId",
+    "candidateId",
+    "policyId",
+    "baseHash",
+    "merkleRoot",
+    "gateResults",
+    "issuedAt",
+    "expiresAt",
+    "issuer",
+    "signature"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "praxis-protocol/v1"
+    },
+    "receiptId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "candidateId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policyId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "merkleRoot": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "gateResults": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/gateResult" }
+    },
+    "issuedAt": { "type": "string", "format": "date-time" },
+    "expiresAt": { "type": "string", "format": "date-time" },
+    "singleUseKeyId": { "type": "string", "minLength": 1 },
+    "consumedAt": { "type": ["string", "null"], "format": "date-time" },
+    "issuer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identityId", "keyId"],
+      "properties": {
+        "identityId": { "type": "string", "minLength": 1 },
+        "keyId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "value", "signedPayloadDigest"],
+      "properties": {
+        "algorithm": { "type": "string", "const": "ed25519" },
+        "value": { "type": "string", "pattern": "^[a-f0-9]{128}$" },
+        "signedPayloadDigest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    }
+  },
+  "$defs": {
+    "gateResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gate", "verdict", "reasonCode"],
+      "properties": {
+        "gate": {
+          "type": "string",
+          "enum": [
+            "admission",
+            "integrity",
+            "scope",
+            "architecture",
+            "effect",
+            "recovery",
+            "finalReceipt",
+            "hermeticExec"
+          ]
+        },
+        "verdict": { "type": "string", "enum": ["PASS", "HOLD", "FAIL"] },
+        "reasonCode": { "type": "string", "minLength": 1 },
+        "producedAt": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

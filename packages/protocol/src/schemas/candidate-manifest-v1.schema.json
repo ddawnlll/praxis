@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxis.local/schemas/candidate-manifest-v1.schema.json",
+  "title": "CandidateManifest",
+  "description": "praxis-protocol/v1 — immutable description of a candidate base being submitted for verification. Bound to a base hash and a policy id.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "candidateId",
+    "policyId",
+    "baseHash",
+    "intent",
+    "submittedBy",
+    "submittedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "praxis-protocol/v1"
+    },
+    "candidateId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policyId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseHash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "intent": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "submittedBy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identityId", "keyId"],
+      "properties": {
+        "identityId": { "type": "string", "minLength": 1 },
+        "keyId": { "type": "string", "minLength": 1 }
+      }
+    },
+    "submittedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "idempotencyKey": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "rollbackPointer": {
+      "type": ["string", "null"]
+    },
+    "labels": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}

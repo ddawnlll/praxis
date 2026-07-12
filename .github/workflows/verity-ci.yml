@@ -1,0 +1,111 @@
+name: Verity 1.0 CI
+
+on:
+  push:
+    branches: [feat/verity-1.0, main, master]
+  pull_request:
+    branches: [feat/verity-1.0, main, master]
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.3.3
+      - name: Install
+        run: npm install --no-package-lock --legacy-peer-deps
+      - name: Test
+        run: bun test packages/contracts packages/kernel packages/cli packages/claude-plugin packages/mcp-server packages/protocol packages/ledger packages/verity-gates packages/verity-policy packages/verity-replay packages/verity-qual packages/verity-client
+        env:
+          CI: 'true'
+
+  replay:
+    name: 300K replay (nightly)
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/verity-1.0'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.3.3
+      - name: Install
+        run: npm install --no-package-lock --legacy-peer-deps
+      - name: 300K replay
+        run: |
+          mkdir -p reports/verity
+          bun run scripts/replay-harness.ts 300000 > reports/verity/replay-aggregate.json
+      - name: Upload replay artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: verity-replay-aggregate
+          path: reports/verity/replay-aggregate.json
+
+  shadow:
+    name: 30-day shadow (heartbeat)
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/verity-1.0'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.3.3
+      - name: Install
+        run: npm install --no-package-lock --legacy-peer-deps
+      - name: Update shadow SLO heartbeat
+        run: |
+          mkdir -p reports/verity
+          bun run scripts/shadow-heartbeat.ts
+      - name: Upload shadow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: verity-shadow-slo
+          path: reports/verity/shadow-slo.json
+
+  release-gate:
+    name: Verity 1.0 release gate (fail-closed)
+    runs-on: ubuntu-latest
+    needs: [test, replay, shadow]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/verity-1.0'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.3.3
+      - name: Install
+        run: npm install --no-package-lock --legacy-peer-deps
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+          path: artifacts
+          ref: ${{ github.ref }}
+      - name: Download replay + shadow artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: Run release gate
+        run: |
+          mkdir -p reports/verity
+          bun run scripts/verity-release-gate.ts \
+            --replay artifacts/verity-replay-aggregate/replay-aggregate.json \
+            --shadow artifacts/verity-shadow-slo/shadow-slo.json \
+            --manifest reports/verity/release-manifest.json \
+            | tee reports/verity/release-gate.txt
+      - name: Fail-closed on DENY
+        run: |
+          if grep -q 'release-gate: DENY' reports/verity/release-gate.txt; then
+            echo "::error::Verity 1.0 release gate is DENY — refusing to publish."
+            exit 1
+          fi
+          echo "release-gate: ALLOW"

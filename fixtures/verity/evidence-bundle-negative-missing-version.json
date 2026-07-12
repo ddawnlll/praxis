@@ -1,0 +1,9 @@
+{
+  "candidateId": "cand-bundle-neg-1",
+  "merkleRoot": "aaaa",
+  "attestation": {
+    "runnerDigest": "sha256:aaa",
+    "toolchain": { "language": "TypeScript", "compiler": "tsc", "version": "5.9.2" }
+  },
+  "records": []
+}

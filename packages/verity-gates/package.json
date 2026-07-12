@@ -1,0 +1,11 @@
+{
+  "name": "@praxis/verity-gates",
+  "version": "0.6.0",
+  "private": false,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "bun test", "typecheck": "bun run tsc --noEmit" },
+  "devDependencies": { "@types/node": "^22.10.5", "typescript": "^5.9.2" }
+}

@@ -1,0 +1,13 @@
+{
+  "policyId": "policy-negative-1",
+  "blastRadius": "repo",
+  "effectClasses": {
+    "reversible": { "allowed": true, "requiresCompensationPlan": false },
+    "compensable": { "allowed": true, "requiresCompensationPlan": true },
+    "irreversible": { "allowed": true, "requiresCompensationPlan": true }
+  },
+  "authority": {
+    "requiredIdentityId": "human-approver-1",
+    "humanApprovalRequired": true
+  }
+}
