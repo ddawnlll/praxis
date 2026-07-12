@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "praxis-protocol/v1",
+  "policyId": "policy-negative-2",
+  "blastRadius": "galaxy",
+  "effectClasses": {
+    "reversible": { "allowed": true, "requiresCompensationPlan": false },
+    "compensable": { "allowed": true, "requiresCompensationPlan": true },
+    "irreversible": { "allowed": true, "requiresCompensationPlan": true }
+  },
+  "authority": {
+    "requiredIdentityId": "human-approver-1",
+    "humanApprovalRequired": true
+  }
+}

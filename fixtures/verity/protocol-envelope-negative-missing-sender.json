@@ -1,0 +1,9 @@
+{
+  "protocolVersion": "praxis-protocol/v1",
+  "envelopeKind": "verify.request",
+  "capabilities": ["verify.cold"],
+  "issuedAt": "2026-07-11T00:00:00Z",
+  "expiresAt": null,
+  "nonce": "nonce-005-sufficient-length",
+  "payload": {}
+}

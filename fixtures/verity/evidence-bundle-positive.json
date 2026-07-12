@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "praxis-protocol/v1",
+  "candidateId": "cand-bundle-1",
+  "merkleRoot": "bfadd938b2ddfddec1a9466a29dbe31c46e79b2842f6fbfaab544d0116a13e33",
+  "attestation": {
+    "runnerDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "toolchain": { "language": "TypeScript", "compiler": "tsc", "version": "5.9.2" },
+    "dependencyLocks": ["bun.lock:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+    "environmentFingerprint": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "records": [
+    {
+      "recordId": "r-1",
+      "kind": "command.exit",
+      "capturedAt": "2026-07-11T00:00:00Z",
+      "payload": { "exitCode": 0 }
+    }
+  ]
+}

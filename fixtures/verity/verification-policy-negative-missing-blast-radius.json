@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "praxis-protocol/v1",
+  "policyId": "policy-canonical-1",
+  "effectClasses": {
+    "reversible": { "allowed": true, "requiresCompensationPlan": false, "maxSteps": 100 },
+    "compensable": { "allowed": true, "requiresCompensationPlan": true, "maxSteps": 10 },
+    "irreversible": { "allowed": true, "requiresCompensationPlan": true }
+  },
+  "authority": {
+    "requiredIdentityId": "A",
+    "humanApprovalRequired": true
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "candidateId": "cand-neg-1",
+  "policyId": "policy-1",
+  "baseHash": "aaaa",
+  "intent": "test",
+  "submittedBy": { "identityId": "a", "keyId": "b" },
+  "submittedAt": "2026-07-11T00:00:00Z"
+}

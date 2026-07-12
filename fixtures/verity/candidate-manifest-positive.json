@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "praxis-protocol/v1",
+  "candidateId": "cand-canonical-1",
+  "policyId": "policy-canonical-1",
+  "baseHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "intent": "Implement feature X with full test coverage",
+  "submittedBy": {
+    "identityId": "agent-1",
+    "keyId": "aabbccdd00112233aabbccdd00112233"
+  },
+  "submittedAt": "2026-07-11T00:00:00Z",
+  "idempotencyKey": "idem-canonical-1",
+  "rollbackPointer": null,
+  "labels": { "wave": "W1", "priority": "high" }
+}

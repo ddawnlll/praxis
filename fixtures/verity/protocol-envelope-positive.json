@@ -1,0 +1,10 @@
+{
+  "protocolVersion": "praxis-protocol/v1",
+  "envelopeKind": "verify.request",
+  "sender": { "identityId": "A", "keyId": "aabbccdd00112233" },
+  "capabilities": ["verify.cold"],
+  "issuedAt": "2026-07-11T00:00:00Z",
+  "expiresAt": "2026-07-12T00:00:00Z",
+  "nonce": "nonce-001-sufficient-length",
+  "payload": {}
+}
