@@ -33,7 +33,23 @@ export type EvidenceSourceV01 =
   | 'cli'
   | 'agent_claim'
   | 'manual'
-  | 'test';
+  | 'test'
+  | 'external';
+
+/**
+ * Evidence accountability rung — how trustworthy is this evidence source?
+ *
+ * - AGENT_AUTHORED (lowest): the agent authored this evidence (e.g. self-report,
+ *   narrative claim). Can never alone produce PASS/PASS.
+ * - OS_RECORDED (medium): the OS/runtime recorded this automatically (e.g.
+ *   exit codes, file hashes, process output). Deterministic and verifiable.
+ * - THIRD_PARTY (highest): an independent third party attested this evidence
+ *   (e.g. CI system, signed external attestation, cryptographic receipt).
+ */
+export type EvidenceRungV01 =
+  | 'AGENT_AUTHORED'
+  | 'OS_RECORDED'
+  | 'THIRD_PARTY';
 
 /** Changed file status. */
 export type ChangedFileStatus =
@@ -61,6 +77,8 @@ export interface EvidenceRecordV01 {
   timestamp: string;
   type: EvidenceTypeV01;
   source: EvidenceSourceV01;
+  /** Accountability rung — auto-derived from source if not explicitly set. */
+  rung?: EvidenceRungV01;
   taskId?: string;
   criterionId?: string;
   path?: string;
@@ -112,6 +130,80 @@ export const BOOKKEEPING_TYPES: ReadonlySet<EvidenceTypeV01> = new Set([
   'divergence_tool',
   'divergence_output',
 ]);
+
+/**
+ * Map an evidence source to its accountability rung.
+ *
+ * - AGENT_AUTHORED: agent_claim, manual — the agent wrote this evidence.
+ * - OS_RECORDED: kernel, contracts, hook, cli, test — deterministic system records.
+ * - THIRD_PARTY: external — independently attested by a third party.
+ */
+export function sourceToRung(source: EvidenceSourceV01): EvidenceRungV01 {
+  switch (source) {
+    case 'kernel':
+    case 'contracts':
+    case 'hook':
+    case 'cli':
+    case 'test':
+      return 'OS_RECORDED';
+    case 'agent_claim':
+    case 'manual':
+      return 'AGENT_AUTHORED';
+    case 'external':
+      return 'THIRD_PARTY';
+  }
+}
+
+/**
+ * Resolve the effective rung for an evidence record.
+ * Returns the explicit `rung` field if set, otherwise derives from source.
+ */
+export function resolveRung(record: EvidenceRecordV01): EvidenceRungV01 {
+  if (record.rung) return record.rung;
+  return sourceToRung(record.source);
+}
+
+/**
+ * believe_under_floor — structural evidence sufficiency rule.
+ *
+ * OS_RECORDED veya THIRD_PARTY seviyesinde en az bir evidence kaydı
+ * olmadan, PASS kararı verilemez. Sadece AGENT_AUTHORED evidence
+ * varsa, en fazla HOLD alınabilir.
+ *
+ * Returns:
+ *   - canBelieve: true if at least one OS_RECORDED or THIRD_PARTY record exists
+ *   - reason: why belief is denied (if applicable)
+ */
+export function believeUnderFloor(
+  records: EvidenceRecordV01[],
+): { canBelieve: boolean; reason?: string } {
+  let hasAuthoritative = false;
+  let hasAgentOnly = false;
+
+  for (const r of records) {
+    const rung = resolveRung(r);
+    if (rung === 'OS_RECORDED' || rung === 'THIRD_PARTY') {
+      hasAuthoritative = true;
+    }
+    if (rung === 'AGENT_AUTHORED') {
+      hasAgentOnly = true;
+    }
+  }
+
+  if (hasAuthoritative) {
+    return { canBelieve: true };
+  }
+
+  if (hasAgentOnly) {
+    return {
+      canBelieve: false,
+      reason: 'Only AGENT_AUTHORED evidence found. At least one OS_RECORDED or THIRD_PARTY record is required for PASS. This prevents self-reported claims from being treated as verified.',
+    };
+  }
+
+  // No evidence at all — can't believe but also not a rejection
+  return { canBelieve: false, reason: 'No evidence records found.' };
+}
 
 /** Input for EvidenceGate. */
 export interface EvidenceGateInput {

@@ -18,6 +18,7 @@ export type {
   ChangedFileStatus,
   EvidenceTypeV01,
   EvidenceSourceV01,
+  EvidenceRungV01,
 } from './evidence/types';
 
 // Re-export P4 wiring types from a single barrel

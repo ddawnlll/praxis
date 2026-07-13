@@ -26,6 +26,7 @@ export type {
   ChangedFileStatus,
   EvidenceTypeV01,
   EvidenceSourceV01,
+  EvidenceRungV01,
   // P4 wiring types
   WiringGateInput,
   WiringGateResult,
@@ -45,7 +46,7 @@ export type {
   CriterionVerdict,
 } from './types';
 
-// Diagnostics
+// Diagnostics & evidence helpers
 export {
   SCHEMA_REASON_CODES,
   LOCK_REASON_CODES,
@@ -57,6 +58,11 @@ export {
   now,
   kdiag,
 } from './diagnostics';
+export {
+  sourceToRung,
+  resolveRung,
+  believeUnderFloor,
+} from './evidence/types';
 
 // Gates
 export { runSchemaGate } from './gates/schemaGate';

@@ -30,7 +30,7 @@ export type { SlashCommand } from './slashCommands';
 
 // Hooks
 export { capturePreToolUse } from './hooks/preToolUse';
-export type { PreToolUseEvent } from './hooks/preToolUse';
+export type { PreToolUseEvent, PreToolResult } from './hooks/preToolUse';
 
 export { capturePostToolUse } from './hooks/postToolUse';
 export type { PostToolUseEvent } from './hooks/postToolUse';
@@ -53,7 +53,8 @@ export {
 
 import { readPluginConfig } from './config';
 import { executeSlashCommand, parseSlashCommand } from './slashCommands';
-import { capturePreToolUse } from './hooks/preToolUse';
+import { capturePreToolUse, type PreToolResult } from './hooks/preToolUse';
+import type { ScopePolicy } from '@praxis/verity-gates';
 import { capturePostToolUse } from './hooks/postToolUse';
 import { handleStop } from './hooks/stopHandler';
 
@@ -103,17 +104,18 @@ export async function handleSlashCommand(args: string): Promise<string> {
 
 /**
  * Handle a pre-tool event from Claude Code.
- * Captures tool invocation evidence.
+ * Captures tool invocation evidence and enforces scope (when blocking mode is active).
+ * Returns a PreToolResult — consumers should check `.blocked` before proceeding.
  */
 export function handlePreToolUse(event: {
   toolName: string;
   toolInput: Record<string, unknown>;
   timestamp?: string;
   sessionId?: string;
-}): void {
-  if (!pluginConfig) return;
+}, scopePolicy?: ScopePolicy): PreToolResult {
+  if (!pluginConfig) return { blocked: false };
 
-  capturePreToolUse(
+  return capturePreToolUse(
     {
       toolName: event.toolName,
       toolInput: event.toolInput,
@@ -124,6 +126,7 @@ export function handlePreToolUse(event: {
     currentRepoRoot,
     currentAttemptId,
     currentPlanId,
+    scopePolicy,
   );
 }
 

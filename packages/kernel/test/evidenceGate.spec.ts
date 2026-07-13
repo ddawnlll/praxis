@@ -260,3 +260,118 @@ describe('EvidenceGate FAIL', () => {
     expect(result.reasonCodes).toContain(EVIDENCE_REASON_CODES.UNSUPPORTED_EVIDENCE_TYPE);
   });
 });
+
+// =========================================================
+// believe_under_floor Tests
+// =========================================================
+
+describe('EvidenceGate believe_under_floor', () => {
+  test('HOLD when only AGENT_AUTHORED evidence is present (cannot PASS without authoritative rung)', () => {
+    const plan = loadPlan();
+    const records = [
+      makeRecord({
+        recordId: 'EV-agent-001',
+        type: 'diff',
+        source: 'agent_claim',
+        criterionId: 'AC-01',
+        taskId: 'task-01',
+      }),
+    ];
+
+    const result = runEvidenceGate({
+      plan,
+      hashes: fakeHashes(),
+      attemptId: 'p3-test-001',
+      evidenceRecords: records,
+    });
+
+    // Cannot PASS with only AGENT_AUTHORED evidence — at best HOLD
+    expect(result.verdict).not.toBe('PASS');
+    expect(result.verdict).toBe('HOLD');
+    expect(result.reasonCodes).toContain(EVIDENCE_REASON_CODES.BELIEF_FLOOR_NOT_MET);
+  });
+
+  test('PASS when at least one OS_RECORDED evidence exists alongside AGENT_AUTHORED', () => {
+    const plan = loadPlan();
+    const records = [
+      makeRecord({
+        recordId: 'EV-agent-002',
+        type: 'diff',
+        source: 'agent_claim',
+        criterionId: 'AC-01',
+        taskId: 'task-01',
+      }),
+      makeRecord({
+        recordId: 'EV-os-001',
+        type: 'diff',
+        source: 'kernel',
+        criterionId: 'AC-01',
+        taskId: 'task-01',
+      }),
+    ];
+
+    const result = runEvidenceGate({
+      plan,
+      hashes: fakeHashes(),
+      attemptId: 'p3-test-001',
+      evidenceRecords: records,
+    });
+
+    // Has OS_RECORDED evidence — belief floor met
+    expect(result.reasonCodes).not.toContain(EVIDENCE_REASON_CODES.BELIEF_FLOOR_NOT_MET);
+  });
+});
+
+describe('believeUnderFloor', () => {
+  test('returns canBelieve=false when only AGENT_AUTHORED records exist', async () => {
+    const { believeUnderFloor } = await import('../src/evidence/types');
+    const records: EvidenceRecordV01[] = [
+      {
+        evidenceVersion: EVIDENCE_VERSION_V01,
+        recordId: 'EV-test-1',
+        attemptId: 'a1',
+        planId: 'p1',
+        timestamp: '2026-01-01T00:00:00Z',
+        type: 'diff',
+        source: 'agent_claim',
+      },
+    ];
+    const result = believeUnderFloor(records);
+    expect(result.canBelieve).toBe(false);
+    expect(result.reason).toContain('AGENT_AUTHORED');
+  });
+
+  test('returns canBelieve=true when OS_RECORDED record exists', async () => {
+    const { believeUnderFloor } = await import('../src/evidence/types');
+    const records: EvidenceRecordV01[] = [
+      {
+        evidenceVersion: EVIDENCE_VERSION_V01,
+        recordId: 'EV-test-2',
+        attemptId: 'a1',
+        planId: 'p1',
+        timestamp: '2026-01-01T00:00:00Z',
+        type: 'diff',
+        source: 'kernel',
+      },
+    ];
+    const result = believeUnderFloor(records);
+    expect(result.canBelieve).toBe(true);
+  });
+
+  test('returns canBelieve=true when THIRD_PARTY record exists', async () => {
+    const { believeUnderFloor } = await import('../src/evidence/types');
+    const records: EvidenceRecordV01[] = [
+      {
+        evidenceVersion: EVIDENCE_VERSION_V01,
+        recordId: 'EV-test-3',
+        attemptId: 'a1',
+        planId: 'p1',
+        timestamp: '2026-01-01T00:00:00Z',
+        type: 'diff',
+        source: 'external',
+      },
+    ];
+    const result = believeUnderFloor(records);
+    expect(result.canBelieve).toBe(true);
+  });
+});

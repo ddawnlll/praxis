@@ -21,7 +21,8 @@
   },
   "dependencies": {
     "@praxis/kernel": "file:../kernel",
-    "@praxis/contracts": "file:../contracts"
+    "@praxis/contracts": "file:../contracts",
+    "@praxis/verity-gates": "file:../verity-gates"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

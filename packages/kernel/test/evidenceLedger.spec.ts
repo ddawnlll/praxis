@@ -10,6 +10,7 @@ import { appendEvidenceRecordJsonl } from '../src/evidence/appendEvidenceRecordJ
 import { validateEvidenceLedger } from '../src/evidence/validateEvidenceLedger';
 import {
   type EvidenceRecordV01,
+  type EvidenceRungV01,
   EVIDENCE_VERSION_V01,
 } from '../src/evidence/types';
 import { loadPlanSpecYaml, type PlanSpecV01 } from '@praxis/contracts';
@@ -226,5 +227,62 @@ describe('validateEvidenceLedger', () => {
     const result = validateEvidenceLedger(records, plan, 'p3-test-001');
     const unsupported = result.diagnostics.filter(d => d.code === 'UNSUPPORTED_EVIDENCE_TYPE');
     expect(unsupported.length).toBe(0);
+  });
+});
+
+// =========================================================
+// Evidence Rung Ladder Tests
+// =========================================================
+
+describe('sourceToRung', () => {
+  test('kernel sources map to OS_RECORDED', async () => {
+    const { sourceToRung } = await import('../src/evidence/types');
+    expect(sourceToRung('kernel')).toBe('OS_RECORDED');
+    expect(sourceToRung('contracts')).toBe('OS_RECORDED');
+    expect(sourceToRung('hook')).toBe('OS_RECORDED');
+    expect(sourceToRung('cli')).toBe('OS_RECORDED');
+    expect(sourceToRung('test')).toBe('OS_RECORDED');
+  });
+
+  test('agent_claim and manual map to AGENT_AUTHORED', async () => {
+    const { sourceToRung } = await import('../src/evidence/types');
+    expect(sourceToRung('agent_claim')).toBe('AGENT_AUTHORED');
+    expect(sourceToRung('manual')).toBe('AGENT_AUTHORED');
+  });
+
+  test('external maps to THIRD_PARTY', async () => {
+    const { sourceToRung } = await import('../src/evidence/types');
+    expect(sourceToRung('external')).toBe('THIRD_PARTY');
+  });
+});
+
+describe('resolveRung', () => {
+  test('uses explicit rung field when present', async () => {
+    const { resolveRung } = await import('../src/evidence/types');
+    const record: EvidenceRecordV01 = {
+      evidenceVersion: EVIDENCE_VERSION_V01,
+      recordId: 'EV-test',
+      attemptId: 'a1',
+      planId: 'p1',
+      timestamp: '2026-01-01T00:00:00Z',
+      type: 'diff',
+      source: 'kernel',
+      rung: 'THIRD_PARTY',
+    };
+    expect(resolveRung(record)).toBe('THIRD_PARTY');
+  });
+
+  test('derives rung from source when rung field is absent', async () => {
+    const { resolveRung } = await import('../src/evidence/types');
+    const record: EvidenceRecordV01 = {
+      evidenceVersion: EVIDENCE_VERSION_V01,
+      recordId: 'EV-test',
+      attemptId: 'a1',
+      planId: 'p1',
+      timestamp: '2026-01-01T00:00:00Z',
+      type: 'diff',
+      source: 'agent_claim',
+    };
+    expect(resolveRung(record)).toBe('AGENT_AUTHORED');
   });
 });
