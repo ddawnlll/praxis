@@ -23,6 +23,12 @@ export interface PluginConfig {
   evidenceDir: string;
   /** Run ID prefix. */
   runIdPrefix: string;
+  /**
+   * Enforcement mode for pre-tool scope checking.
+   * - 'advisory' (default): violations are logged but never block the tool.
+   * - 'blocking': scope violations cause the tool call to be rejected.
+   */
+  enforcementMode: 'advisory' | 'blocking';
 }
 
 /** Default plugin configuration. */
@@ -35,6 +41,7 @@ const DEFAULT_CONFIG: PluginConfig = {
   maxDiffBytes: 1024 * 1024, // 1MB
   evidenceDir: '.praxis/runs',
   runIdPrefix: 'plugin-run',
+  enforcementMode: 'advisory',
 };
 
 /**
@@ -86,6 +93,11 @@ export function readPluginConfig(repoRoot: string): PluginConfig {
             case 'maxDiffBytes': overrides.maxDiffBytes = parseInt(value, 10) || DEFAULT_CONFIG.maxDiffBytes; break;
             case 'evidenceDir': (overrides as Record<string, string>).evidenceDir = value; break;
             case 'runIdPrefix': (overrides as Record<string, string>).runIdPrefix = value; break;
+            case 'enforcementMode':
+              if (value === 'blocking' || value === 'advisory') {
+                overrides.enforcementMode = value;
+              }
+              break;
           }
         }
         return { ...DEFAULT_CONFIG, ...overrides };

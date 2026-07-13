@@ -225,13 +225,23 @@ describe('handlePreToolUse', () => {
   test('captures pre-tool event without throwing', async () => {
     const { handlePreToolUse, initPlugin } = await import('../src/index');
     initPlugin(import.meta.dir);
-    expect(() => {
-      handlePreToolUse({
-        toolName: 'Edit',
-        toolInput: { filePath: '/test/file.ts' },
-        timestamp: '2026-01-01T00:00:00Z',
-      });
-    }).not.toThrow();
+    const result = handlePreToolUse({
+      toolName: 'Edit',
+      toolInput: { filePath: '/test/file.ts' },
+      timestamp: '2026-01-01T00:00:00Z',
+    });
+    expect(result).toBeDefined();
+    expect(result.blocked).toBe(false);
+  });
+
+  test('returns PreToolResult with blocked=false when plugin not initialized', async () => {
+    // Import fresh — initPlugin not called
+    const plugin = await import('../src/index');
+    const result = plugin.handlePreToolUse({
+      toolName: 'Edit',
+      toolInput: { filePath: '/test/file.ts' },
+    });
+    expect(result).toEqual({ blocked: false });
   });
 });
 
@@ -259,7 +269,7 @@ describe('handleStopEvent', () => {
     const { handleStop } = await import('../src/hooks/stopHandler');
     const result = handleStop(
       { timestamp: '2026-01-01T00:00:00Z', reason: 'finished', agentReportedSuccess: true },
-      { cliPath: 'praxis', defaultPlanPath: '', autoVerifyOnStop: false, capturePreTool: false, capturePostTool: false, maxDiffBytes: 100, evidenceDir: '', runIdPrefix: 'test' },
+      { cliPath: 'praxis', defaultPlanPath: '', autoVerifyOnStop: false, capturePreTool: false, capturePostTool: false, maxDiffBytes: 100, evidenceDir: '', runIdPrefix: 'test', enforcementMode: 'advisory' },
       '/tmp',
       'test-attempt',
       'test-plan',

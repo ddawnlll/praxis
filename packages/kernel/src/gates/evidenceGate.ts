@@ -15,10 +15,14 @@ import {
   type EvidenceGateInput,
   type EvidenceGateResult,
   type ChangedFile,
+  type EvidenceRungV01,
   DETERMINISTIC_SOURCES,
   WEAK_SOURCES,
   DIVERGENCE_TYPES,
   BOOKKEEPING_TYPES,
+  sourceToRung,
+  resolveRung,
+  believeUnderFloor,
 } from '../evidence/types';
 import { EVIDENCE_REASON_CODES } from '../diagnostics';
 
@@ -385,7 +389,22 @@ export function runEvidenceGate(input: EvidenceGateInput): EvidenceGateResult {
     failedCriteriaIds.push(...validation.deterministicEvidenceMissing);
   }
 
-  // --- Step 6: Determine verdict ---
+  // --- Step 6: believe_under_floor check ---
+  // AGENT_AUTHORED evidence alone can never produce PASS.
+  // At least one OS_RECORDED or THIRD_PARTY record is required.
+  if (evidenceRecords.length > 0) {
+    const floor = believeUnderFloor(evidenceRecords);
+    if (!floor.canBelieve) {
+      reasonCodes.push(EVIDENCE_REASON_CODES.BELIEF_FLOOR_NOT_MET);
+      allDiagnostics.push({
+        code: 'BELIEF_FLOOR_NOT_MET',
+        severity: 'warning',
+        message: floor.reason ?? 'Belief floor check failed.',
+      });
+    }
+  }
+
+  // --- Step 7: Determine verdict ---
   const FAIL_CODES: readonly string[] = [
     EVIDENCE_REASON_CODES.ATTEMPT_ID_MISMATCH,
     EVIDENCE_REASON_CODES.PLAN_ID_MISMATCH,

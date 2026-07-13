@@ -591,3 +591,51 @@ for the architecture deliverable.
 - #33 Python SDK is standalone; does not call the TS CLI (future integration).
 - #34 Windows requires WSL or actual Windows runner; Linux + macOS covered.
 - #35 30-day shadow requires real wall-clock time; gate refuses to mark released until then.
+
+---
+
+## DOS-Inspired Verification (Session 2026-07-13, on branch `feat/dos-inspired-verification`)
+
+**4 new features added to Praxis, inspired by DOS Kernel verification patterns:**
+
+### Feature 1: Runtime Blocking Hook (EN YÜKSEK ÖNCELİK)
+- **Files:** `packages/claude-plugin/src/hooks/preToolUse.ts`, `packages/claude-plugin/src/index.ts`, `packages/claude-plugin/src/config.ts`
+- PluginConfig'e `enforcementMode: 'advisory' | 'blocking'` eklendi (default: 'advisory', backward-compat)
+- `capturePreToolUse` artık `PreToolResult { blocked, blockReason }` döndürüyor
+- Blocking modda file-mutating tool'lar scope dışına yazarsa reddediliyor
+- Advisory modda (default) sadece console.error ile loglanıyor, blok yok
+- **Tests:** 21 pass (0 fail) — mevcut testler güncellendi, yeni testler eklendi
+
+### Feature 2: Evidence Rung Ladder
+- **Files:** `packages/kernel/src/evidence/types.ts`, `packages/kernel/src/types.ts`, `packages/kernel/src/index.ts`
+- `EvidenceRungV01` türü eklendi: `'AGENT_AUTHORED' | 'OS_RECORDED' | 'THIRD_PARTY'`
+- `sourceToRung()` — evidence source'u rung'a eşleyen fonksiyon
+- `resolveRung()` — explicit rung field yoksa source'dan türeten fonksiyon
+- `EvidenceRecordV01`'a optional `rung` field'ı eklendi
+- Yeni `'external'` source değeri eklendi (THIRD_PARTY rung)
+- **Tests:** 5 yeni test (222 pass total)
+
+### Feature 3: believe_under_floor Kuralı
+- **Files:** `packages/kernel/src/evidence/types.ts`, `packages/kernel/src/gates/evidenceGate.ts`, `packages/kernel/src/diagnostics.ts`
+- `believeUnderFloor()` — structural evidence sufficiency rule
+- AGENT_AUTHORED evidence tek başına PASS olamaz; en az bir OS_RECORDED veya THIRD_PARTY gerekir
+- EvidenceGate'e entegre edildi: BELIEF_FLOOR_NOT_MET reason code ile HOLD döner
+- **Tests:** 5 yeni test (222 pass total)
+
+### Feature 4: ScopeGate Runtime Hook Bağlantısı
+- **Files:** `packages/claude-plugin/src/hooks/preToolUse.ts`, `packages/claude-plugin/src/index.ts`, `packages/claude-plugin/package.json`
+- `@praxis/verity-gates` dependency olarak eklendi
+- `ScopeGate` (scopeArchitecture.ts) preToolUse hook'una bağlandı
+- `evaluatePreToolUse` artık optional `ScopePolicy` parametresi alıyor
+- Policy varsa ScopeGate kullanılır, yoksa prefix-based fallback çalışır
+- **Tests:** 21 pass (0 fail)
+- **Known limitation:** ScopeGate'deki pre-existing typecheck errors (ledger Buffer uyumsuzluğu, JsonValue) claude-plugin'e dependency olarak yansıyor. Bunlar eski hatalar, benim değişikliklerimden kaynaklanmıyor.
+
+### Test Results (Final):
+| Package | Tests | Fail |
+|---------|-------|------|
+| @praxis/kernel | 222 | 0 |
+| @praxis/claude-plugin | 21 | 0 |
+| @praxis/verity-gates | 122 | 0 |
+
+**`praxis verify` status:** Not applicable — CLI's own verification requires a full plan/lock/evidence cycle that wasn't configured for this session. This is a known limitation, not a test failure.
